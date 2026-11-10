@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
+<meta name="build" content="20261110-235330">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -49,11 +50,107 @@ th{background:#faf9f5;position:sticky;top:0}
 .pcard{border:1px dashed #888;border-radius:8px;padding:10px;page-break-inside:avoid}
 .pcard .boxes span{display:inline-block;width:22px;height:22px;border:1px solid #444;margin:2px;text-align:center;font-size:.7rem;line-height:22px}
 @media print{body{background:#fff}.noprint{display:none!important}.pcard{break-inside:avoid}}
+/* == polish_v1 == */
+h3{margin:1.1em 0 .4em}
+.scroll{background:#fff;border:1px solid var(--line);border-radius:12px}
+th,td{padding:10px}
+th{font-weight:600;color:var(--mute);font-size:.85rem}
+tr:last-child td{border-bottom:0}
+td.row{display:table-cell;white-space:nowrap}
+td.row button{margin:2px}
+.tabs button{padding:8px 14px;font-size:.95rem}
+@media(min-width:900px){#app{max-width:980px}}
+@media(max-width:520px){#app{padding:10px}table{font-size:.85rem}}
+/* == polish_v2 == */
+h1{margin:.2em 0 .3em}
+.lesson{padding:14px 16px;transition:border-color .15s}
+.lesson b{line-height:1.5}
+.badge{white-space:nowrap}
+.card .row b{font-size:1.05rem}
+.bar{height:12px}
+button{min-height:42px}
+button.sm{min-height:34px}
+button.link{min-height:0;font-weight:600}
+.q label{padding:10px 12px;line-height:1.6}
+.q label:hover{border-color:var(--g)}
+.q input{margin-left:10px;transform:scale(1.2)}
+.body{max-width:68ch;margin-inline:auto}
+input[type=text]{min-height:46px}
+@media(max-width:520px){
+  .body{padding:12px;font-size:1.1rem}
+  .lesson{flex-direction:column;align-items:flex-start}
+  .card{padding:12px}
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style id="brand_v1">
+/* == brand_v1 == */
+:root{--g1:#064e2b;--g2:#0f7a43;--g3:#22a861;--o1:#c4570a;--o2:#ee8a1f;--o3:#f7b955;--bg:#f2f8f4;--ink:#12301f;--line:#d7e6dc}
+body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif}
+body h1,body h3{color:var(--g1)}
+body .muted{color:#5b7466}
+.brandbar{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 16px 16px;margin:0 0 14px;box-shadow:0 6px 18px rgba(6,78,43,.08);position:relative;overflow:hidden}
+.brandbar::after{content:"";position:absolute;inset:auto 0 0 0;height:5px;background:linear-gradient(90deg,var(--g2) 0 34%,var(--o2) 34% 67%,var(--g3) 67%)}
+.brandbar svg{flex:none}
+.bbt{font-weight:700;font-size:1.15rem;color:var(--g1);line-height:1.2}
+.bbs{font-size:.8rem;color:#5b7466}
+body #app>.row:first-child{background:linear-gradient(135deg,var(--g1),var(--g2) 62%,var(--g3));color:#fff;border-radius:18px;padding:20px 22px;margin-bottom:14px;box-shadow:0 10px 26px rgba(6,78,43,.22);position:relative;overflow:hidden}
+body #app>.row:first-child::before{content:"";position:absolute;inset:-45% auto auto -8%;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(238,138,31,.42),transparent 66%)}
+body #app>.row:first-child>*{position:relative;z-index:1}
+body #app>.row:first-child h1{color:#fff;margin:0}
+body #app>.row:first-child button.sec{background:rgba(255,255,255,.14);color:#fff;border:1.5px solid rgba(255,255,255,.55)}
+body #app>.row:first-child button.sec:hover{background:rgba(238,138,31,.9);border-color:var(--o2);color:#fff}
+body .card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 4px 14px rgba(6,78,43,.06)}
+body .card.lesson{border-right:5px solid var(--g2);transition:transform .15s,box-shadow .15s}
+body .card.lesson:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(6,78,43,.15);border-right-color:var(--o2)}
+body button{background:linear-gradient(135deg,var(--g2),var(--g1));color:#fff;border:0;border-radius:12px;font-family:inherit;cursor:pointer}
+body button:hover{filter:brightness(1.1)}
+body button.sec{background:#fff;color:var(--g1);border:1.5px solid var(--g2)}
+body button.sec:hover{background:#fff4e6;border-color:var(--o2);color:var(--o1);filter:none}
+body input,body textarea,body select{border:1.5px solid var(--line);border-radius:12px;font-family:inherit}
+body input:focus,body textarea:focus,body select:focus{outline:none;border-color:var(--g3);box-shadow:0 0 0 3px rgba(34,168,97,.18)}
+body .tabs{display:flex;gap:4px;overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;margin-bottom:14px}
+body .tabs button{background:transparent;color:#35523f;border:0;border-radius:10px;padding:9px 14px;white-space:nowrap;box-shadow:none}
+body .tabs button.on{background:linear-gradient(135deg,var(--g2),var(--g1));color:#fff;box-shadow:inset 0 -3px 0 var(--o2)}
+body .badge{border-radius:999px;font-weight:600}
+body .b-ok{background:#e3f5ea;color:#0b6b3a}
+body .b-late{background:#fde7d3;color:#b3470a}
+body .b-wait{background:#fff1d9;color:#8a5a00}
+body .bar{background:#e4efe7;border-radius:999px;height:10px;overflow:hidden}
+body .bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--g3),var(--g2))}
+body table th{background:#eaf4ee;color:var(--g1)}
+body table tr:hover td{background:#f6fbf8}
+body .err{border-radius:12px}
+.bstats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 14px}
+.bst{position:relative;border-radius:16px;padding:14px 16px;background:#fff;border:1px solid var(--line);box-shadow:0 4px 14px rgba(6,78,43,.07);overflow:hidden}
+.bst::before{content:"";position:absolute;inset:0 auto 0 0;width:6px}
+.bst .bn{font-size:2rem;font-weight:800;line-height:1.1}
+.bst .bl{font-size:.85rem;color:#4b6b57;margin-top:4px}
+.bst.s1{background:linear-gradient(135deg,#e6f6ed,#fff)}.bst.s1::before{background:var(--g2)}.bst.s1 .bn{color:var(--g2)}
+.bst.s2{background:linear-gradient(135deg,#fff6e0,#fff)}.bst.s2::before{background:var(--o3)}.bst.s2 .bn{color:#a8700a}
+.bst.s3{background:linear-gradient(135deg,#fde9d6,#fff)}.bst.s3::before{background:var(--o1)}.bst.s3 .bn{color:var(--o1)}
+.bpod{background:linear-gradient(180deg,#fff8ec,#fff);border:1px solid #f3d9ae;border-radius:18px;padding:14px;margin:0 0 14px}
+.bpod h3{margin:0 0 10px;color:var(--o1)}
+.bpg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.bpc{border-radius:14px;padding:12px 8px;text-align:center;background:#fff;border:1px solid var(--line)}
+.bpc.p1{border-color:#f0c15a;background:linear-gradient(180deg,#fff6dc,#fff)}
+.bpc.p2{border-color:#c9d3cc}
+.bpc.p3{border-color:#e6b58a;background:#fff4ea}
+.bpc .bm{font-size:2rem}
+.bpc .bnm{font-weight:700;margin:4px 0}
+.bpc .bpt{font-size:1.5rem;font-weight:800;color:var(--g2)}
+.bpc .bsb{font-size:.8rem;color:#6b7f72}
+@media(max-width:560px){.bstats,.bpg{gap:8px}.bst{padding:10px}.bst .bn{font-size:1.5rem}.bpc .bpt{font-size:1.2rem}}
+@media print{.brandbar{display:none}}
 </style>
 </head>
 <body>
 <div id="app"></div>
-<script src="config.js"></script>
+<script>
+window.onerror = function(msg, url, line) {
+    alert("🚨 المتصفح يقول:\n\n" + msg + "\n\nالسطر: " + line);
+};
+</script><script src="config.js"></script>
 <script>
 /* ============ أدوات عامة ============ */
 const CFG = window.CONFIG || {};
@@ -88,6 +185,152 @@ function msg(e) {
 const errBox = (e, retry) => '<div class="err">' + esc(msg(e)) + '</div>' + (retry ? '<button onclick="' + retry + '">إعادة المحاولة</button>' : '');
 
 /* ============ التوجيه ============ */
+/* == brand_v1 == */
+(function () {
+  const mk = () => {
+    const a = document.getElementById('app'); if (!a || document.getElementById('brandbar')) return;
+    const d = document.createElement('div'); d.id = 'brandbar'; d.className = 'brandbar noprint';
+    d.innerHTML = '<svg viewBox="0 0 48 48" width="46" height="46"><defs><linearGradient id="bglg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22a861"/><stop offset="1" stop-color="#064e2b"/></linearGradient></defs><rect width="48" height="48" rx="13" fill="url(#bglg)"/><path d="M24 15c-4-2.5-9-2.8-13-1.5v20c4-1.3 9-1 13 1.5 4-2.5 9-2.8 13-1.5v-20c-4-1.3-9-1-13 1.5z" fill="#fff"/><path d="M24 15v20" stroke="#0f7a43" stroke-width="1.6"/><circle cx="37" cy="12" r="4.2" fill="#ee8a1f"/></svg>' +
+      '<div><div class="bbt">متابعة القراءة</div><div class="bbs">إثبات القراءة والمتابعة الأسبوعية</div></div>';
+    a.parentNode.insertBefore(d, a);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mk); else mk();
+})();
+function brandStat(cls, n, t) { return '<div class="bst ' + cls + '"><div class="bn">' + n + '</div><div class="bl">' + t + '</div></div>'; }
+function statCards(done, tot, today) {
+  const late = S.ls.filter(l => !l.done && l.due && l.due < today).length;
+  const left = Math.max(0, tot - done - late);
+  const pct = tot ? Math.round(100 * done / tot) : 0;
+  return '<div class="bstats">' + brandStat('s1', done, 'أنجزتَ') + brandStat('s2', left, 'المتبقي') + brandStat('s3', late, 'متأخر') + '</div>' +
+    '<div class="card"><div class="row"><b>رصيدك: ' + pct + '%</b><span class="muted">' + done + ' من ' + tot + ' درساً</span></div><div class="bar"><i style="width:' + pct + '%"></i></div></div>';
+}
+function brandStats(c) {
+  const ms = c.perMember || [], n = ms.length;
+  const avg = n ? Math.round(ms.reduce((a, m) => a + (m.pct || 0), 0) / n) : 0;
+  const late = ms.filter(m => m.late > 0).length;
+  const top = ms.filter(m => m.done > 0).slice().sort((a, b) => b.pct - a.pct || b.done - a.done || String(a.name).localeCompare(String(b.name), 'ar')).slice(0, 3);
+  let h = '<div class="bstats">' + brandStat('s1', n, 'الأعضاء') + brandStat('s2', avg + '%', 'متوسط الإنجاز') + brandStat('s3', late, 'أعضاء متأخرون') + '</div>';
+  if (top.length) {
+    const med = ['🥇', '🥈', '🥉'], lb = ['الأول', 'الثاني', 'الثالث'];
+    h += '<div class="bpod"><h3>🏆 صدارة المتابعة</h3><div class="bpg">' + top.map((m, i) =>
+      '<div class="bpc p' + (i + 1) + '"><div class="bm">' + med[i] + '</div><div class="bsb">' + lb[i] + '</div><div class="bnm">' + esc(m.name) + '</div><div class="bpt">' + m.pct + '%</div><div class="bsb">' + m.done + ' / ' + m.tot + '</div></div>').join('') + '</div></div>';
+  }
+  return h;
+}
+/* == member_v1 == */
+const _cnt = a => ({ done: a.filter(l => l.done).length, tot: a.length });
+function dlBtn(id) {
+  const l = (S.ls || []).find(x => x.id === id);
+  return (l && l.has_file && l.dl) ? '<div class="row noprint" style="margin:6px 0"><button class="sec sm" onclick="dlFile(' + id + ')">⬇ تحميل الملف الأصلي</button></div>' : '';
+}
+async function dlFile(id) {
+  try {
+    const f = await rpc('get_lesson_file', { p_code: S.code, p_lesson: id });
+    const bin = atob(f.data), u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([u], { type: f.mime })); a.download = f.name; a.click();
+  } catch (e) { alert(String(e.message) === 'no_download' ? 'التحميل غير متاح لهذا الدرس.' : msg(e)); }
+}
+function renderHome() {
+  const done = S.ls.filter(l => l.done).length, tot = S.ls.length, today = todayStr();
+  let h = '<div class="row"><div class="grow"><h1>أهلاً ' + esc(S.me.name) + '</h1>' +
+    (S.me.leader ? '<span class="badge b-wait">مشرف مجموعة' + (S.me.grp ? ' — ' + esc(S.me.grp) : '') + '</span>' : '') +
+    '</div><button class="sec sm" onclick="logout()">خروج</button></div>' + statCards(done, tot, today);
+  const cs = (S.cs || []).slice();
+  if (S.ls.some(l => !l.course_id)) cs.push({ id: 0, title: 'دروس أخرى' });
+  if (!tot) h += '<p class="muted">لا توجد دروس منشورة بعد.</p>';
+  cs.forEach(c => {
+    const a = S.ls.filter(l => (l.course_id || 0) === c.id); if (!a.length) return;
+    const k = _cnt(a), pct = Math.round(100 * k.done / k.tot), late = a.filter(l => !l.done && l.due && l.due < today).length;
+    h += '<div class="card lesson" onclick="course(' + c.id + ')"><div class="grow"><b>' + esc(c.title) + '</b><div class="muted">' + k.done + ' من ' + k.tot + ' دروس' + (late ? ' · متأخر ' + late : '') + '</div><div class="bar"><i style="width:' + pct + '%"></i></div></div><span class="badge ' + (k.done === k.tot ? 'b-ok' : 'b-wait') + '">' + pct + '%</span></div>';
+  });
+  h += '<div class="card lesson" onclick="week()"><div><b>📋 المتابعة الأسبوعية</b><div class="muted">القيم والأخلاق: ضع علامة على ما طبّقته هذا الأسبوع</div></div><span class="badge b-wait">فتح</span></div>';
+  show(h);
+}
+function course(cid) {
+  const c = cid ? (S.cs || []).find(x => x.id === cid) : { title: 'دروس أخرى' };
+  const a = S.ls.filter(l => (l.course_id || 0) === cid), today = todayStr();
+  let h = '<button class="link" onclick="home()">← المواد</button><h2>' + esc(c ? c.title : '') + '</h2>';
+  a.forEach(l => {
+    const late = !l.done && l.due && l.due < today;
+    const b = l.done ? '<span class="badge b-ok">تم' + (l.source === 'group' ? ' (جماعي)' : l.source === 'manual' ? ' (يدوي)' : '') + '</span>'
+      : late ? '<span class="badge b-late">متأخر</span>' : '<span class="badge b-wait">لم يُقرأ</span>';
+    h += '<div class="card lesson" onclick="lesson(' + l.id + ')"><div><b>' + l.no + '. ' + esc(l.title) + '</b><div class="muted">نحو ' + l.minutes + ' دقيقة' + (l.due ? ' · الموعد ' + esc(l.due) : '') + (l.has_file && l.dl ? ' · ملف للتحميل ⬇' : '') + '</div></div>' + b + '</div>';
+  });
+  show(h);
+}
+async function wShift(w, n) { const d = new Date(w + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+async function week(w) {
+  show(loading);
+  try { renderWeek(await rpc('my_week', { p_code: S.code, p_week: w || null })); }
+  catch (e) { show('<button class="link" onclick="home()">← الرئيسية</button>' + errBox(e, 'week()')); }
+}
+
+/* == week_v2 == */
+function renderWeek(d) {
+  const its = d.items || [], cats = [];
+  its.forEach(i => { if (!cats.includes(i.cat || '')) cats.push(i.cat || ''); });
+  window._wk = { week: d.week, editable: d.editable, n: its.length };
+  let h = '<button class="link" onclick="home()">← الرئيسية</button><h2>📋 المتابعة الأسبوعية</h2>' +
+    '<div class="row"><button class="sec sm" onclick="week(\'' + wShift(d.week, -7) + '\')">▶ الأسبوع السابق</button><div class="grow muted" style="text-align:center">أسبوع يبدأ السبت ' + esc(d.week) + (d.week === d.current ? ' (الحالي)' : '') + '</div>' +
+    (d.week < d.current ? '<button class="sec sm" onclick="week(\'' + wShift(d.week, 7) + '\')">الأسبوع التالي ◀</button>' : '') + '</div>' +
+    '<div class="card wring"><svg viewBox="0 0 100 100" width="92" height="92"><circle cx="50" cy="50" r="42" fill="none" stroke="#e4efe7" stroke-width="10"/><circle id="wr" cx="50" cy="50" r="42" fill="none" stroke="url(#wrg)" stroke-width="10" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="264" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .5s"/><defs><linearGradient id="wrg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22a861"/><stop offset="1" stop-color="#ee8a1f"/></linearGradient></defs><text id="wrp" x="50" y="56" text-anchor="middle" font-size="22" font-weight="700" fill="#064e2b">0%</text></svg>' +
+    '<div class="grow"><div id="wans" style="font-weight:700"></div><div id="wyes" class="muted"></div></div></div>';
+  if (!d.editable) h += '<p class="muted">هذا الأسبوع للاطلاع فقط.</p>';
+  if (!its.length) h += '<p class="muted">لم تُضَف بنود المتابعة بعد.</p>';
+  let k = 0;
+  cats.forEach(c => {
+    if (c) h += '<h3 class="wcat">' + esc(c) + '</h3>';
+    its.filter(i => (i.cat || '') === c).forEach(i => {
+      k++;
+      const st = i.ans ? (i.on ? 'y' : 'n') : '';
+      h += '<div class="card witem" id="wi' + i.id + '" data-st="' + st + '"><div class="wno">' + k + '</div><div class="grow wt">' + esc(i.title) + '</div>' +
+        '<div class="wbtns"><button class="wy' + (st === 'y' ? ' on' : '') + '" ' + (d.editable ? '' : 'disabled ') + 'onclick="wSet(' + i.id + ',true)">✓ نفّذتُ</button>' +
+        '<button class="wn' + (st === 'n' ? ' on' : '') + '" ' + (d.editable ? '' : 'disabled ') + 'onclick="wSet(' + i.id + ',false)">✕ لم أنفّذ</button></div></div>';
+    });
+  });
+  show(h); wRing();
+}
+function wRing() {
+  const all = [...document.querySelectorAll('.witem')];
+  const y = all.filter(x => x.dataset.st === 'y').length, n = all.filter(x => x.dataset.st === 'n').length, tot = all.length;
+  const pct = tot ? Math.round(100 * y / tot) : 0;
+  const r = document.getElementById('wr'), p = document.getElementById('wrp'), a = document.getElementById('wans'), b = document.getElementById('wyes');
+  if (r) r.style.strokeDashoffset = String(264 - 264 * pct / 100);
+  if (p) p.textContent = pct + '%';
+  if (a) a.textContent = 'عبّأتَ ' + (y + n) + ' من ' + tot;
+  if (b) b.textContent = 'نفّذتَ ' + y + ' · لم تنفّذ ' + n + ' · لم تجب ' + (tot - y - n);
+}
+
+async function wSet(item, val) {
+  const el = document.getElementById('wi' + item); if (!el || !window._wk) return;
+  const cur = el.dataset.st, want = val ? 'y' : 'n';
+  const next = cur === want ? '' : want;
+  const btns = el.querySelectorAll('button'); btns.forEach(b => b.disabled = true);
+  try {
+    await rpc('set_check', { p_code: S.code, p_item: item, p_on: next === '' ? null : next === 'y', p_week: window._wk.week });
+    el.dataset.st = next;
+    el.querySelector('.wy').classList.toggle('on', next === 'y');
+    el.querySelector('.wn').classList.toggle('on', next === 'n');
+  } catch (e) { alert(msg(e)); }
+  btns.forEach(b => b.disabled = !window._wk.editable);
+  wRing();
+}
+(function () {
+  const s = document.createElement('style'); s.id = 'week_v2';
+  s.textContent = '.wring{display:flex;align-items:center;gap:16px}.wcat{margin:18px 0 6px;color:var(--o1)}' +
+    '.witem{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-right:5px solid var(--line);transition:border-color .2s,background .2s}' +
+    '.witem[data-st="y"]{border-right-color:var(--g2);background:linear-gradient(90deg,#fff,#eaf7ef)}' +
+    '.witem[data-st="n"]{border-right-color:var(--o2);background:linear-gradient(90deg,#fff,#fff3e3)}' +
+    '.wno{flex:none;width:30px;height:30px;border-radius:50%;background:var(--g1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem}' +
+    '.wt{min-width:200px;line-height:1.6}.wbtns{display:flex;gap:6px}' +
+    '.wbtns button{background:#fff;color:#35523f;border:1.5px solid var(--line);padding:8px 14px;font-weight:600}' +
+    '.wbtns .wy.on{background:linear-gradient(135deg,var(--g3),var(--g1));color:#fff;border-color:var(--g2)}' +
+    '.wbtns .wn.on{background:linear-gradient(135deg,var(--o2),var(--o1));color:#fff;border-color:var(--o1)}' +
+    '.wbtns button:disabled{opacity:.6;cursor:default}@media(max-width:560px){.wbtns{width:100%}.wbtns button{flex:1}}';
+  document.head.appendChild(s);
+})();
 function route() {
   const h = location.hash;
   if (h.startsWith('#admin')) return adminEntry();
@@ -116,30 +359,14 @@ async function home() {
   show(loading);
   try {
     const d = await rpc('my_status', { p_code: S.code });
-    S.me = d.member; S.ls = d.lessons || [];
+    S.me = d.member; S.ls = d.lessons || []; S.cs = d.courses || [];
     renderHome();
   } catch (e) {
     if (String(e.message) === 'bad_code') { localStorage.removeItem('code'); S.code = ''; return login('الرمز غير صحيح أو معطّل.'); }
     show(errBox(e, 'home()'));
   }
 }
-function renderHome() {
-  const done = S.ls.filter(l => l.done).length, tot = S.ls.length, today = todayStr();
-  const pct = tot ? Math.round(100 * done / tot) : 0;
-  let h = '<div class="row"><div class="grow"><h1>أهلاً ' + esc(S.me.name) + '</h1>' +
-    (S.me.leader ? '<span class="badge b-wait">مشرف مجموعة' + (S.me.grp ? ' — ' + esc(S.me.grp) : '') + '</span>' : '') +
-    '</div><button class="sec sm" onclick="logout()">خروج</button></div>' +
-    '<div class="card"><div class="row"><b>رصيدك:</b> ' + done + ' من ' + tot + ' درساً (' + pct + '%)</div><div class="bar"><i style="width:' + pct + '%"></i></div></div>';
-  if (!tot) h += '<p class="muted">لا توجد دروس بعد.</p>';
-  S.ls.forEach(l => {
-    const late = !l.done && l.due && l.due < today;
-    let b = l.done ? '<span class="badge b-ok">تم' + (l.source === 'group' ? ' (جماعي)' : l.source === 'manual' ? ' (يدوي)' : '') + '</span>'
-      : late ? '<span class="badge b-late">متأخر</span>' : '<span class="badge b-wait">لم يُقرأ</span>';
-    h += '<div class="card lesson" onclick="lesson(' + l.id + ')"><div><b>' + l.id + '. ' + esc(l.title) + '</b><div class="muted">نحو ' + l.minutes + ' دقيقة' +
-      (l.due ? ' · الموعد ' + esc(l.due) : '') + '</div></div>' + b + '</div>';
-  });
-  show(h);
-}
+
 
 /* ============ شاشة الدرس ============ */
 let _iv = null;
@@ -148,9 +375,9 @@ async function lesson(id) {
   let d;
   try { d = await rpc('get_lesson', { p_code: S.code, p_lesson: id }); } catch (e) { return show('<button class="link" onclick="home()">← الدروس</button>' + errBox(e, 'lesson(' + id + ')')); }
   const t0 = Date.now();
-  const paras = String(d.body).split(/\n\s*\n/).map(p => '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>').join('');
+  const paras = String(d.body).split(/\n\s*\n/).map(p => { p = p.trim(); const im = p.match(/^\[\[img:(data:image\/jpeg;base64,[A-Za-z0-9+\/=]+)\]\]$/); return im ? '<img src="' + im[1] + '" alt="" style="width:100%;display:block;margin:8px 0;border-radius:8px">' : '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>'; }).join('');
   let h = '<button class="link" onclick="clearInterval(_iv);home()">← الدروس</button><h2>' + d.id + '. ' + esc(d.title) + '</h2>' +
-    '<div class="muted">نحو ' + d.minutes + ' دقيقة قراءة</div>' +
+    '<div class="muted">نحو ' + d.minutes + ' دقيقة قراءة</div>' + dlBtn(d.id) +
     '<div class="row noprint" style="margin:8px 0"><button class="sec sm" onclick="fs(1)">أ+</button><button class="sec sm" onclick="fs(-1)">أ−</button></div>' +
     '<div class="body" id="body">' + paras + '</div>';
   if (d.done) { h += '<div class="ok">سبق تسجيل هذا الدرس في رصيدك ✓</div>'; return show(h); }
@@ -225,7 +452,7 @@ function adminLogin() { A.pass = $('#ap').value; sessionStorage.setItem('apass',
 function adminOut() { A.pass = ''; sessionStorage.removeItem('apass'); location.hash = ''; login(); }
 async function adminLoad() {
   show(loading);
-  try { A.data = await rpc('admin_report', { p_pass: A.pass }); adminRender(); }
+  try { A.L = null; A.W = null; A.data = await rpc('admin_report', { p_pass: A.pass }); adminRender(); }
   catch (e) { if (String(e.message) === 'bad_admin') { A.pass = ''; sessionStorage.removeItem('apass'); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); }
 }
 function calc() {
@@ -244,15 +471,15 @@ function calc() {
   return { map, perLesson, perMember, act };
 }
 function adminRender() {
-  const tabs = [['report', 'التقرير'], ['matrix', 'الجدول الكامل'], ['members', 'الأعضاء'], ['lessons', 'الدروس'], ['manual', 'تسجيل يدوي']];
+  const tabs = [['report', 'التقرير'], ['matrix', 'الجدول الكامل'], ['week', 'الأسبوع'], ['members', 'الأعضاء'], ['lessons', 'الدروس'], ['manual', 'تسجيل يدوي']];
   let h = '<div class="row noprint"><div class="grow"><h1>لوحة المسؤول</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
-  h += ({ report: tReport, matrix: tMatrix, members: tMembers, lessons: tLessons, manual: tManual })[A.tab]();
+  h += ({ report: tReport, matrix: tMatrix, week: tWeek, members: tMembers, lessons: tLessons, manual: tManual })[A.tab]();
   show(h);
 }
 function tReport() {
   const c = calc();
-  let h = '<h3>إنجاز كل درس</h3><div class="scroll"><table><tr><th>الدرس</th><th>قرأه</th><th>النسبة</th><th></th></tr>';
+  let h = brandStats(c) + '<h3>إنجاز كل درس</h3><div class="scroll"><table><tr><th>الدرس</th><th>قرأه</th><th>النسبة</th><th></th></tr>';
   c.perLesson.forEach(l => {
     h += '<tr><td>' + l.id + '. ' + esc(l.title) + (l.due ? '<div class="muted">الموعد ' + esc(l.due) + '</div>' : '') + '</td><td>' + l.n + ' / ' + l.total + '</td><td>' + l.pct + '%</td><td style="width:90px"><div class="bar"><i style="width:' + l.pct + '%"></i></div></td></tr>';
   });
@@ -274,6 +501,59 @@ function tMatrix() {
     }).join('') + '</tr>';
   });
   return h + '</table></div>';
+}
+
+/* == adminweek_v1 == */
+function pctOf(a, b) { return b ? Math.round(100 * a / b) : 0; }
+async function loadW(w) {
+  if (A.Wbusy) return; A.Wbusy = true;
+  try { A.W = await rpc('admin_week', { p_pass: A.pass, p_week: w || null }); }
+  catch (e) { A.W = { weeks: [], items: [], members: [], total_members: 0, total_items: 0 }; alert(msg(e)); }
+  A.Wbusy = false;
+  if (A.tab === 'week') adminRender();
+}
+function wCsv() {
+  const W = A.W; if (!W) return;
+  const TM = W.total_members || 0, TI = W.total_items || 0;
+  const rows = [['الأسبوع', W.week], [], ['البند', 'نفّذ', 'لم ينفّذ', 'لم يُجب', 'نسبة التنفيذ']];
+  (W.items || []).forEach(i => rows.push([i.title, i.done, i.no, Math.max(0, TM - i.done - i.no), pctOf(i.done, TM) + '%']));
+  rows.push([]);
+  rows.push(['العضو', 'أجاب عن', 'نفّذ', 'من إجمالي البنود', 'نسبة التعبئة']);
+  (W.members || []).forEach(m => rows.push([m.name, m.answered, m.done, TI, pctOf(m.answered, TI) + '%']));
+  const t = '\uFEFF' + rows.map(r => r.map(x => '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([t], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'weekly-' + todayStr() + '.csv';
+  a.click();
+}
+function tWeek() {
+  if (!A.W) { loadW(); return '<p class="muted">جارٍ تحميل المتابعة الأسبوعية…</p>'; }
+  const W = A.W, TM = W.total_members || 0, TI = W.total_items || 0;
+  const ws = (W.weeks || []).slice();
+  if (W.week && ws.indexOf(W.week) < 0) ws.unshift(W.week);
+  let h = '<div class="card"><div class="row"><div class="grow"><b>📋 المتابعة الأسبوعية</b><div class="muted">الأعضاء النشطون: ' + TM + ' · البنود: ' + TI + '</div></div>' +
+    '<select onchange="loadW(this.value)">' + ws.map(x => '<option value="' + esc(x) + '"' + (x === W.week ? ' selected' : '') + '>أسبوع ' + esc(x) + '</option>').join('') + '</select> ' +
+    '<button class="sec sm" onclick="wCsv()">تصدير CSV</button></div></div>';
+  if (!TI || !TM) return h + '<p class="muted">لا توجد بنود أو أعضاء نشطون بعد.</p>';
+  h += '<h3>نسبة تنفيذ كل بند</h3><div class="scroll"><table><tr><th>#</th><th>البند</th><th>نفّذ</th><th>لم ينفّذ</th><th>لم يُجب</th><th>النسبة</th><th></th></tr>';
+  (W.items || []).forEach((i, k) => {
+    const na = Math.max(0, TM - i.done - i.no), p = pctOf(i.done, TM);
+    h += '<tr><td>' + (k + 1) + '</td><td>' + esc(i.title) + '</td><td><span class="badge b-ok">' + i.done + '</span></td><td>' + i.no + '</td><td>' + na + '</td><td>' + p + '%</td>' +
+      '<td style="width:90px"><div class="bar"><i style="width:' + p + '%"></i></div></td></tr>';
+  });
+  h += '</table></div>';
+  const ms = (W.members || []).slice().sort((a, b) => a.answered - b.answered || a.name.localeCompare(b.name, 'ar'));
+  h += '<h3>تعبئة كل عضو (الأقل تعبئة أولاً)</h3><div class="scroll"><table><tr><th>العضو</th><th>أجاب عن</th><th>نفّذ</th><th>التعبئة</th><th></th></tr>';
+  ms.forEach(m => {
+    const p = pctOf(m.answered, TI);
+    const b = m.answered === 0 ? '<span class="badge b-late">لم يُجب</span>' : (m.answered >= TI ? '<span class="badge b-ok">مكتمل</span>' : '');
+    h += '<tr><td>' + esc(m.name) + '</td><td>' + m.answered + ' / ' + TI + '</td><td>' + m.done + '</td><td>' + p + '% ' + b + '</td>' +
+      '<td style="width:90px"><div class="bar"><i style="width:' + p + '%"></i></div></td></tr>';
+  });
+  h += '</table></div>';
+  const none = ms.filter(m => m.answered === 0);
+  h += '<div class="card"><b>من لم يُجب هذا الأسبوع (' + none.length + ')</b><div class="muted">' + (none.length ? none.map(m => esc(m.name)).join('، ') : 'الجميع أجاب عن بند واحد على الأقل 👏') + '</div></div>';
+  return h;
 }
 function csv() {
   const c = calc(), d = A.data;
@@ -326,14 +606,172 @@ function printCards() {
   });
   show(h + '</div>');
 }
-function tLessons() {
-  const d = A.data;
-  let h = '<div class="card"><h3>استيراد الدروس</h3><p class="muted">الصق ملف JSON (انظر lessons.json) أو اختر الملف. الاستيراد يحدّث الدروس ذات الأرقام نفسها.</p><input type="file" accept=".json" onchange="loadFile(this)"><textarea id="lj" placeholder="[ { &quot;n&quot;: 1, &quot;title&quot;: &quot;…&quot;, &quot;body&quot;: &quot;…&quot;, &quot;minutes&quot;: 15, &quot;due&quot;: &quot;2026-12-01&quot;, &quot;questions&quot;: [ … ] } ]" style="margin-top:8px"></textarea><p><button onclick="importLessons()">استيراد</button></p></div>';
-  h += '<div class="scroll"><table><tr><th>#</th><th>العنوان</th><th>الدقائق</th><th>الموعد</th><th>الأسئلة</th></tr>';
-  d.lessons.forEach(l => { h += '<tr><td>' + l.id + '</td><td>' + esc(l.title) + '</td><td>' + l.minutes + '</td><td>' + esc(l.due || '—') + '</td><td>' + (l.nq < 2 ? '<span class="badge b-late">' + l.nq + '</span>' : l.nq) + '</td></tr>'; });
-  return h + '</table></div><p class="muted">يُنصح بألا يقل بنك أسئلة الدرس عن 4 أسئلة حتى تتنوع الأسئلة المعروضة.</p>';
+/* == lessons_v1 == */
+function fmtSize(b) { b = Number(b) || 0; return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.round(b / 1024) + ' KB'; }
+function lmsg(e) {
+  const m = String((e && e.message) || e);
+  if (m === 'has_readings') return 'غير مسموح: سُجّلت قراءات، وهذا يحمي أرصدة الأعضاء.';
+  return msg(e);
 }
-function loadFile(inp) { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $('#lj').value = r.result; }; r.readAsText(f, 'utf-8'); }
+async function loadL() {
+  if (A.Lbusy) return; A.Lbusy = true;
+  try { A.L = await rpc('admin_lessons', { p_pass: A.pass }); }
+  catch (e) { A.L = { lessons: [], total_bytes: 0 }; alert(lmsg(e)); }
+  A.Lbusy = false;
+  if (A.tab === 'lessons') adminRender();
+}
+async function lMove(id, dir) {
+  try { await rpc('admin_lesson_move', { p_pass: A.pass, p_id: id, p_dir: dir }); } catch (e) { alert(lmsg(e)); }
+  await adminLoad();
+}
+async function lRenum() {
+  if (!confirm('إعادة ترقيم الدروس 1، 2، 3... بالترتيب الحالي؟')) return;
+  try { await rpc('admin_lessons_renumber', { p_pass: A.pass }); alert('تمت إعادة الترقيم.'); } catch (e) { alert(lmsg(e)); }
+  await adminLoad();
+}
+async function lDel(id) {
+  if (!confirm('حذف الدرس ' + id + ' نهائياً؟')) return;
+  try { await rpc('admin_lesson_delete', { p_pass: A.pass, p_id: id, p_force: false }); }
+  catch (e) {
+    if (String(e.message) === 'has_readings') {
+      if (confirm('لهذا الدرس قراءات مسجّلة وستُحذف معه. تأكيد الحذف؟')) {
+        try { await rpc('admin_lesson_delete', { p_pass: A.pass, p_id: id, p_force: true }); } catch (e2) { alert(lmsg(e2)); }
+      }
+    } else alert(lmsg(e));
+  }
+  await adminLoad();
+}
+async function lEdit(id) {
+  const l = (A.L.lessons || []).find(x => x.id === id); if (!l) return;
+  const t = prompt('عنوان الدرس:', l.title); if (t === null) return;
+  const m = prompt('المدة بالدقائق:', l.minutes); if (m === null) return;
+  const due = prompt('الموعد (YYYY-MM-DD) أو اتركه فارغاً:', l.due || ''); if (due === null) return;
+  const mi = parseInt(m, 10); if (!mi || mi < 1) return alert('المدة غير صحيحة.');
+  const ms = mi === l.minutes ? l.min_seconds : Math.round(mi * 60 * 0.4);
+  try { await rpc('admin_lesson_update', { p_pass: A.pass, p_id: id, p_title: t, p_minutes: mi, p_min_seconds: ms, p_due: due.trim(), p_course: null }); }
+  catch (e) { alert(lmsg(e)); }
+  await adminLoad();
+}
+async function lAdd() {
+  const t = ($('#nl_t').value || '').trim(), m = parseInt($('#nl_m').value, 10), b = ($('#nl_b').value || '').trim();
+  if (!t || !b || !m) return alert('اكتب العنوان والمدة ونص الدرس.');
+  const n = Math.max(0, ...(A.L.lessons || []).map(x => x.id)) + 1;
+  try { await rpc('admin_import_lessons', { p_pass: A.pass, p_lessons: [{ n: n, title: t, minutes: m, min_seconds: Math.round(m * 24), body: b, questions: [] }] }); alert('أُضيف الدرس رقم ' + n + '.'); }
+  catch (e) { alert(lmsg(e)); }
+  await adminLoad();
+}
+function tLessons() {
+  let h = '<div class="card"><h3>استيراد الدروس</h3><p class="muted">اختر ملفاً أو أكثر (PDF أو Word أو PowerPoint أو نص أو JSON) وسيُستورد مباشرة بعد تأكيدك. الدرس الأطول من 15 دقيقة يُقسَّم تلقائياً. الاستيراد يحدّث الدروس ذات الأرقام نفسها.</p><input type="file" accept=".json,.txt,.md,.docx,.pptx,.pdf,application/pdf,application/json,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation" multiple onchange="loadFile(this)"><textarea id="lj" placeholder="[ { &quot;n&quot;: 1, &quot;title&quot;: &quot;…&quot;, &quot;body&quot;: &quot;…&quot;, &quot;minutes&quot;: 15, &quot;due&quot;: &quot;2026-12-01&quot;, &quot;questions&quot;: [ … ] } ]" style="display:none"></textarea></div>';
+  if (!A.L) { loadL(); return h + '<p class="muted">جارٍ تحميل قائمة الدروس…</p>'; }
+  const L = A.L.lessons || [];
+  h += '<div class="card"><b>الدروس: ' + L.length + '</b> · الحجم الكلي ' + fmtSize(A.L.total_bytes) + ' من 500 MB (السعة المجانية)</div>';
+  h += '<div class="scroll"><table><tr><th>#</th><th>العنوان</th><th>الدقائق</th><th>الحجم</th><th>صور</th><th>أسئلة</th><th>قرّاء</th><th>الموعد</th><th></th></tr>';
+  L.forEach(l => {
+    h += '<tr><td>' + l.id + '</td><td>' + esc(l.title) + '</td><td>' + l.minutes + '</td><td>' + fmtSize(l.bytes) + '</td><td>' + (l.imgs || 0) + '</td><td>' +
+      (l.nq < 2 ? '<span class="badge b-late">' + l.nq + '</span>' : l.nq) + '</td><td>' + l.readers + '</td><td>' + esc(l.due || '—') + '</td><td style="white-space:nowrap">' +
+      '<button class="sec sm" onclick="lMove(' + l.id + ',-1)">▲</button> <button class="sec sm" onclick="lMove(' + l.id + ',1)">▼</button> ' +
+      '<button class="sec sm" onclick="lEdit(' + l.id + ')">تعديل</button> <button class="sec sm" onclick="lDel(' + l.id + ')">حذف</button></td></tr>';
+  });
+  h += '</table></div><p><button class="sec" onclick="lRenum()">إعادة الترقيم 1، 2، 3…</button></p>';
+  h += '<details class="card"><summary><b>إضافة درس نصي يدوياً</b></summary><p><input id="nl_t" placeholder="عنوان الدرس"></p><p><input id="nl_m" type="number" placeholder="المدة بالدقائق" value="10"></p><p><textarea id="nl_b" rows="8" placeholder="نص الدرس (فقرات تفصلها سطر فارغ)"></textarea></p><p><button onclick="lAdd()">إضافة</button></p></details>';
+  return h + '<p class="muted">الترتيب والترقيم والتعديل الجذري ممنوعة بعد تسجيل أي قراءة. يُنصح ببنك لا يقل عن 4 أسئلة لكل درس.</p>';
+}
+/* == import_v1 == */
+const _libs = {};
+const _CDN = 'https://cdnjs.cloudflare.com/ajax/libs/';
+function _lib(u) {
+  return _libs[u] || (_libs[u] = new Promise((ok, no) => {
+    const s = document.createElement('script'); s.src = u; s.onload = ok;
+    s.onerror = () => no(new Error('تعذّر تحميل مكتبة القراءة. تحقق من الإنترنت.'));
+    document.head.appendChild(s);
+  }));
+}
+async function _extract(f) {
+  const ext = f.name.split('.').pop().toLowerCase();
+  if (ext === 'txt' || ext === 'md') return await f.text();
+  const buf = await f.arrayBuffer();
+  if (ext === 'docx') {
+    await _lib(_CDN + 'mammoth/1.6.0/mammoth.browser.min.js');
+    return (await mammoth.extractRawText({ arrayBuffer: buf })).value;
+  }
+  if (ext === 'pptx') {
+    await _lib(_CDN + 'jszip/3.10.1/jszip.min.js');
+    const z = await JSZip.loadAsync(buf);
+    const names = Object.keys(z.files).filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n))
+      .sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+    const out = [];
+    for (const n of names) {
+      const x = await z.file(n).async('string');
+      const ps = x.split('</a:p>').map(p => (p.match(/<a:t[^>]*>[^<]*<\/a:t>/g) || []).map(t => t.replace(/<[^>]+>/g, '')).join(''))
+        .map(t => t.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&').trim())
+        .filter(Boolean);
+      if (ps.length) out.push(ps.join('\n'));
+    }
+    return out.join('\n\n');
+  }
+  if (ext === 'pdf') {
+    await _lib(_CDN + 'pdf.js/3.11.174/pdf.min.js');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = _CDN + 'pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    const pg = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const c = await (await pdf.getPage(i)).getTextContent();
+      pg.push(c.items.map(t => t.str).join(' '));
+    }
+/* == pdfimg_v1 == */
+    if (pg.join('').trim().length < 50 * pdf.numPages) {
+      const im = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i), vp = page.getViewport({ scale: 1.3 });
+        const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
+        const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+        await page.render({ canvasContext: cx, viewport: vp }).promise;
+        im.push('[[img:' + cv.toDataURL('image/jpeg', 0.6) + ']]');
+      }
+      return im.join('\n\n');
+    }
+    return pg.join('\n\n');
+  }
+  throw new Error('صيغة غير مدعومة');
+}
+/* == direct_v1 == */
+function _split(t, max) {
+  const ps = t.split(/\n+/), parts = []; let cur = [], w = 0;
+  for (const p of ps) {
+    const c = p.split(/\s+/).length;
+    if (w + c > max && cur.length) { parts.push(cur.join('\n\n')); cur = []; w = 0; }
+    cur.push(p); w += c;
+  }
+  if (cur.length) parts.push(cur.join('\n\n'));
+  return parts;
+}
+async function _doImport(arr, notes) {
+  const sum = arr.map(l => l.n + '. ' + l.title + ' (' + (l.minutes || 15) + ' دقيقة)').join('\n');
+  const head = (notes && notes.length) ? notes.join('\n') + '\n\n' : '';
+  if (!confirm(head + 'سيُستورد ' + arr.length + ' درساً:\n' + sum + '\n\nمتابعة؟')) return;
+  try { const n = await rpc('admin_import_lessons', { p_pass: A.pass, p_lessons: arr }); alert('تم استيراد ' + n + ' درساً.'); await adminLoad(); }
+  catch (e) { alert(msg(e)); }
+}
+async function loadFile(inp) {
+  const fs = Array.from(inp.files || []); if (!fs.length) return;
+  const ta = $('#lj');
+  const ext0 = f => f.name.split('.').pop().toLowerCase();
+  if (fs.length === 1 && ext0(fs[0]) === 'json') { try { const j = JSON.parse(await fs[0].text()); if (!Array.isArray(j)) return alert('يجب أن يكون الملف مصفوفة دروس.'); await _doImport(j, []); } catch (e) { alert('صيغة JSON غير صحيحة.'); } return; }
+  const out = [], notes = [];
+  let n = Math.max(0, ...A.data.lessons.map(l => l.id)) + 1;
+  for (const f of fs) {
+    try {
+      if (ext0(f) === 'json') { notes.push(f.name + ': تُرك (JSON يُختار وحده)'); continue; }
+      let t = (await _extract(f)).replace(/\r\n/g, '\n').replace(/[ \t]+\n/g, '\n').trim();
+      if (!t) { notes.push(f.name + ': لا نص فيه (ربما ملف ممسوح ضوئياً)'); continue; }
+      const words = t.split(/\s+/).length, minutes = Math.max(1, Math.round(words / 180));
+      const isImg = t.includes('[[img:'); const parts = isImg ? _split(t, 7) : (minutes > 15 ? _split(t, 2500) : [t]); const base = f.name.replace(/\.[^.]+$/, ''); parts.forEach((pt, k) => { const m = isImg ? (pt.split('[[img:').length - 1) * 2 : Math.max(1, Math.round(pt.split(/\s+/).length / 180)); out.push({ n: n++, title: parts.length > 1 ? base + ' (الجزء ' + (k + 1) + ')' : base, minutes: m, due: '', body: pt, questions: [] }); });
+      notes.push(f.name + ': ' + words + ' كلمة، نحو ' + minutes + ' دقيقة' + (minutes > 15 ? ' (سيُقسَّم تلقائياً)' : ''));
+    } catch (e) { notes.push(f.name + ': فشل (' + (e.message || e) + ')'); }
+  }
+  if (out.length) await _doImport(out, notes); else alert(notes.join('\n'));
+  
+}
 async function importLessons() {
   let j; try { j = JSON.parse($('#lj').value); } catch (e) { return alert('صيغة JSON غير صحيحة.'); }
   if (!Array.isArray(j)) return alert('يجب أن يكون الملف مصفوفة دروس.');
@@ -356,6 +794,281 @@ async function manual(add) {
 }
 
 route();
+</script>
+<script>
+/* == weekui_v1 == */
+var WKS = null;
+(function () {
+  var st = document.createElement('style');
+  st.setAttribute('data-id', 'weekui_v1');
+  st.textContent = [
+    '.wk-item{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-right:5px solid var(--line);transition:border-color .2s,background .2s}',
+    '.wk-item[data-st="y"]{border-right-color:var(--g3);background:linear-gradient(90deg,#fff,#eaf7ef)}',
+    '.wk-item[data-st="n"]{border-right-color:var(--o2);background:linear-gradient(90deg,#fff,#fff3e3)}',
+    '.wk-item.wk-miss{border-right-color:#b3402a;background:#fdeeea}',
+    '.wk-no{flex:none;width:30px;height:30px;border-radius:50%;background:var(--g1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem}',
+    '.wk-t{min-width:200px;line-height:1.6}.wk-cat{margin:18px 0 6px;color:var(--o1)}',
+    '.wk-btns{display:flex;gap:6px}',
+    '.wk-btns button{background:#fff;color:#35523f;border:1.5px solid var(--line);padding:8px 14px;font-weight:600}',
+    '.wk-btns .wk-y.on{background:linear-gradient(135deg,var(--g3),var(--g1));color:#fff;border-color:var(--g1)}',
+    '.wk-btns .wk-n.on{background:linear-gradient(135deg,var(--o2),var(--o1));color:#fff;border-color:var(--o1)}',
+    '.wk-btns button:disabled{opacity:.65;cursor:default}',
+    '.badge.wk-new{background:#fde4e0;color:#b3402a}.badge.wk-wait{background:#fff0dc;color:#c4570a}.badge.wk-off{background:#eceeec;color:#6b746e}',
+    '.wk-streak{background:linear-gradient(90deg,#fff3e3,#fff);border-color:#f7b955}',
+    '.wk-done{text-align:center;background:linear-gradient(135deg,#eaf7ef,#fff);border-color:#22a861}',
+    '.wk-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}',
+    '.wk-r2{display:flex;align-items:center;gap:8px}',
+    '.wk-cmp{display:flex;align-items:center;justify-content:space-around;gap:10px;text-align:center;margin:10px 0}',
+    '.wk-big{font-size:2rem;font-weight:800;color:var(--g1)}',
+    '.wk-arrow{font-size:2rem;font-weight:800}.wk-arrow div{font-size:.9rem}',
+    '.wk-up{color:#0f7a43}.wk-dn{color:#c4570a}',
+    '.wk-err{color:#b3402a;font-weight:700;margin-bottom:8px}',
+    '.wk-send button{width:100%;padding:14px;font-size:1.05rem}',
+    '.wk-ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}',
+    '.wk-md{background:#fff;border-radius:14px;padding:18px;max-width:420px;width:100%}',
+    '@media(max-width:560px){.wk-btns{width:100%}.wk-btns button{flex:1}}'
+  ].join('');
+  document.head.appendChild(st);
+})();
+
+function wkKey(w) { return 'wk_draft_' + S.code + '_' + w; }
+function wkLoad(w) { try { var r = localStorage.getItem(wkKey(w)); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+function wkSave(w, o) { try { localStorage.setItem(wkKey(w), JSON.stringify(o)); } catch (e) {} }
+function wkDrop(w) { try { localStorage.removeItem(wkKey(w)); } catch (e) {} }
+function wkSeenGet() { try { return JSON.parse(localStorage.getItem('wk_seen_' + S.code) || '[]'); } catch (e) { return []; } }
+function wkSeenAdd(w) {
+  var a = wkSeenGet();
+  if (a.indexOf(w) < 0) { a.push(w); try { localStorage.setItem('wk_seen_' + S.code, JSON.stringify(a.slice(-60))); } catch (e) {} }
+}
+function wkShort(w) { var p = String(w).split('-'); return p.length === 3 ? (+p[2]) + '/' + (+p[1]) : String(w); }
+function wkWord(n) { return n === 1 ? 'أسبوع واحد' : n === 2 ? 'أسبوعان' : n <= 10 ? n + ' أسابيع' : n + ' أسبوعاً'; }
+function wkMsg(e) {
+  var m = String((e && e.message) || e);
+  if (m === 'incomplete') return 'بقيت بنود لم تجب عنها. أجب عن كل البنود ثم أرسل.';
+  if (m === 'already_submitted') return 'سبق إرسال هذا الأسبوع ولا يمكن تغييره.';
+  if (m === 'week_locked') return 'انتهت مدة الإجابة عن هذا الأسبوع.';
+  return msg(e);
+}
+
+function wkChart(weeks) {
+  var pts = (weeks || []).filter(function (x) { return x.status === 'sent' && x.pct !== null; }).slice(-12);
+  var W = 640, H = 230, L = 40, R = 16, T = 22, B = 36, iw = W - L - R, ih = H - T - B;
+  var g = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="direction:ltr;max-width:100%" role="img" aria-label="رسم نسبة التنفيذ عبر الأسابيع">';
+  [0, 50, 100].forEach(function (v) {
+    var y = T + ih - ih * v / 100;
+    g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" stroke="#d7e6dc" stroke-dasharray="4 4"/>' +
+      '<text x="' + (L - 6) + '" y="' + (y + 4) + '" text-anchor="end" font-size="12" fill="#6b746e">' + v + '%</text>';
+  });
+  if (!pts.length) {
+    return g + '<text x="' + (W / 2) + '" y="' + (T + ih / 2) + '" text-anchor="middle" font-size="15" fill="#6b746e">سيظهر رسمك هنا بعد إرسال أول أسبوع</text></svg>';
+  }
+  var xs = pts.map(function (p, i) { return pts.length === 1 ? L + iw / 2 : L + iw * i / (pts.length - 1); });
+  var ys = pts.map(function (p) { return T + ih - ih * p.pct / 100; });
+  var line = xs.map(function (x, i) { return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + ys[i].toFixed(1); }).join(' ');
+  var base = T + ih;
+  g += '<path d="' + line + ' L' + xs[xs.length - 1].toFixed(1) + ' ' + base + ' L' + xs[0].toFixed(1) + ' ' + base + ' Z" fill="rgba(34,168,97,.13)"/>';
+  g += '<path d="' + line + '" fill="none" stroke="#0f7a43" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>';
+  var step = Math.ceil(pts.length / 8);
+  pts.forEach(function (p, i) {
+    var dn = i > 0 && p.pct < pts[i - 1].pct;
+    g += '<circle cx="' + xs[i].toFixed(1) + '" cy="' + ys[i].toFixed(1) + '" r="6" fill="' + (dn ? '#ee8a1f' : '#22a861') + '" stroke="#fff" stroke-width="2"/>' +
+      '<text x="' + xs[i].toFixed(1) + '" y="' + (ys[i] - 11).toFixed(1) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#12301f">' + p.pct + '</text>';
+    if (i % step === 0 || i === pts.length - 1) {
+      g += '<text x="' + xs[i].toFixed(1) + '" y="' + (H - 12) + '" text-anchor="middle" font-size="12" fill="#6b746e">' + esc(wkShort(p.week)) + '</text>';
+    }
+  });
+  return g + '</svg>';
+}
+
+function wkCompare(c) {
+  if (!c) return '<div class="card"><b>📈 مقارنة الأسبوعين</b><p class="muted">بعد إرسال أول أسبوع ستظهر هنا مقارنة تقدّمك بما قبله.</p></div>';
+  var items = c.items || [], nowY = 0, nowT = 0, prevY = 0, prevT = 0, up = [], down = [];
+  items.forEach(function (i) {
+    if (i.now !== null) { nowT++; if (i.now) nowY++; }
+    if (i.prev !== null) { prevT++; if (i.prev) prevY++; }
+    if (i.prev !== null && i.now !== null) {
+      if (!i.prev && i.now) up.push(i); else if (i.prev && !i.now) down.push(i);
+    }
+  });
+  var pn = nowT ? Math.round(100 * nowY / nowT) : 0;
+  var pp = prevT ? Math.round(100 * prevY / prevT) : null;
+  var h = '<div class="card"><b>📈 آخر أسبوع أرسلته مقابل الذي قبله</b>';
+  if (pp === null) {
+    return h + '<div class="wk-cmp"><div><div class="wk-big">' + pn + '%</div><div class="muted">أسبوع ' + esc(wkShort(c.week)) + '</div></div></div>' +
+      '<p class="muted">هذا أول أسبوع أرسلته. ستظهر المقارنة بعد أسبوعك القادم.</p></div>';
+  }
+  var dl = pn - pp, cls = dl > 0 ? 'wk-up' : dl < 0 ? 'wk-dn' : '', ar = dl > 0 ? '⬆' : dl < 0 ? '⬇' : '➡';
+  h += '<div class="wk-cmp"><div><div class="wk-big">' + pn + '%</div><div class="muted">أسبوع ' + esc(wkShort(c.week)) + '</div></div>' +
+    '<div class="wk-arrow ' + cls + '">' + ar + '<div>' + (dl > 0 ? '+' : '') + dl + ' نقطة</div></div>' +
+    '<div><div class="wk-big" style="color:#6b746e">' + pp + '%</div><div class="muted">أسبوع ' + esc(wkShort(c.prev)) + '</div></div></div>';
+  var li = function (i) { return '<li>' + esc(i.title) + '</li>'; };
+  if (up.length) h += '<p class="wk-up"><b>⬆ تحسّنتَ في ' + up.length + ' من البنود:</b></p><ul>' + up.map(li).join('') + '</ul>';
+  if (down.length) h += '<p class="wk-dn"><b>⬇ تحتاج العودة إلى ' + down.length + ' من البنود:</b></p><ul>' + down.map(li).join('') + '</ul>';
+  if (!up.length && !down.length) h += '<p class="muted">لم يتغيّر أي بند بين الأسبوعين.</p>';
+  h += '<p><b>' + (dl > 0 ? 'أحسنت! تقدّمتَ على أسبوعك السابق. استمر 💪' : dl < 0 ? 'لا بأس. أسبوع جديد وفرصة جديدة للعودة 🌱' : 'ثبات جيد. جرّب تحسين بند واحد هذا الأسبوع ⭐') + '</b></p></div>';
+  return h;
+}
+
+function wkList(ws, cur) {
+  var seen = wkSeenGet(), h = '';
+  ws.slice().reverse().forEach(function (x) {
+    var b, sub, btn = '', go = 'onclick="week(\'' + esc(x.week) + '\')"';
+    if (x.status === 'sent') {
+      b = '<span class="badge b-ok">✓ مكتمل</span>';
+      sub = 'نفّذتَ ' + x.done + ' من ' + x.total + ' (' + x.pct + '%)';
+      btn = '<button class="sec sm" ' + go + '>عرض</button>';
+    } else if (x.status === 'open') {
+      var dr = wkLoad(x.week), n = dr && dr.a ? Object.keys(dr.a).length : 0;
+      if (n > 0) { b = '<span class="badge wk-wait">مستأنف</span>'; sub = 'أجبتَ عن ' + n + ' بنداً. أكمل وأرسل.'; btn = '<button class="sm" ' + go + '>استئناف</button>'; }
+      else if (seen.indexOf(x.week) < 0) { b = '<span class="badge wk-new">جديد</span>'; sub = 'لم تبدأ بعد'; btn = '<button class="sm" ' + go + '>ابدأ</button>'; }
+      else { b = '<span class="badge wk-wait">بانتظارك</span>'; sub = 'لم ترسل بعد'; btn = '<button class="sm" ' + go + '>فتح</button>'; }
+    } else {
+      b = '<span class="badge wk-off">مغلق</span>'; sub = 'انتهت مدته دون إرسال';
+    }
+    h += '<div class="card wk-row"><div><b>أسبوع يبدأ السبت ' + esc(x.week) + (x.week === cur ? ' (الحالي)' : '') + '</b><div class="muted">' + sub + '</div></div><div class="wk-r2">' + b + btn + '</div></div>';
+  });
+  return h;
+}
+
+function wkRenderList(d, banner) {
+  var ws = d.weeks || [];
+  var h = '<button class="link" onclick="home()">← الرئيسية</button><h2>📋 المتابعة الأسبوعية</h2>' + (banner || '');
+  if (d.streak > 0) h += '<div class="card wk-streak">🔥 سلسلة الإرسال المتتالي: <b>' + wkWord(d.streak) + '</b>. استمر!</div>';
+  h += '<div class="card"><b>📊 تطوّر نسبة تنفيذك</b>' + wkChart(ws) + '<div class="muted">🟢 ارتفاع أو ثبات · 🟠 انخفاض عن الأسبوع الذي قبله</div></div>';
+  h += wkCompare(d.compare);
+  h += '<h3>الأسابيع</h3>' + wkList(ws, d.current);
+  show(h);
+}
+
+function wkRenderWeek(d) {
+  var its = d.items || [], a = {}, valid = {};
+  its.forEach(function (i) { valid[i.id] = 1; if (i.ans) a[i.id] = !!i.on; });
+  var dr = d.editable ? wkLoad(d.week) : null;
+  if (dr && dr.a) Object.keys(dr.a).forEach(function (k) { if (valid[k]) a[k] = !!dr.a[k]; });
+  WKS = { week: d.week, editable: !!d.editable, items: its, a: a };
+  var cats = [];
+  its.forEach(function (i) { var c = i.cat || ''; if (cats.indexOf(c) < 0) cats.push(c); });
+  var h = '<button class="link" onclick="week()">← الأسابيع</button><h2>أسبوع يبدأ السبت ' + esc(d.week) + (d.week === d.current ? ' (الحالي)' : '') + '</h2>';
+  if (d.submitted) h += '<div class="ok">✓ أُرسل هذا الأسبوع ولا يمكن تغيير إجاباته.</div>';
+  else if (!d.editable) h += '<p class="muted">انتهت مدة الإجابة عن هذا الأسبوع، وهو للاطلاع فقط.</p>';
+  else h += '<p class="muted">اختر ✓ أو ✕ لكل بند ثم اضغط «إرسال». لا يُحفظ شيء عند الخادم قبل الإرسال، ويبقى اختيارك على جهازك.</p>';
+  h += '<div class="card"><div class="bar"><i id="wkbar" style="width:0%"></i></div><div id="wktxt" class="muted" style="margin-top:6px"></div></div>';
+  if (d.editable && its.length) h += '<div class="row"><button class="sec sm" onclick="wkAll(true)">✓ تحديد الكل</button><button class="sec sm" onclick="wkAll(null)">إلغاء الكل</button></div>';
+  if (!its.length) h += '<p class="muted">لم تُضَف بنود المتابعة بعد.</p>';
+  var k = 0, dis = d.editable ? '' : ' disabled';
+  cats.forEach(function (c) {
+    if (c) h += '<h3 class="wk-cat">' + esc(c) + '</h3>';
+    its.filter(function (i) { return (i.cat || '') === c; }).forEach(function (i) {
+      k++;
+      h += '<div class="card wk-item" id="wki' + i.id + '" data-st=""><div class="wk-no">' + k + '</div><div class="grow wk-t">' + esc(i.title) + '</div>' +
+        '<div class="wk-btns"><button class="wk-y"' + dis + ' onclick="wkSet(' + i.id + ',true)">✓ نفّذتُ</button>' +
+        '<button class="wk-n"' + dis + ' onclick="wkSet(' + i.id + ',false)">✕ لم أنفّذ</button></div></div>';
+    });
+  });
+  if (d.editable && its.length) h += '<div class="card wk-send"><div id="wkmsg" class="wk-err"></div><button id="wksend" onclick="wkAsk()">إرسال الأسبوع</button></div>';
+  show(h); wkPaint();
+}
+
+function wkPaint() {
+  if (!WKS) return;
+  var y = 0, n = 0, tot = WKS.items.length;
+  WKS.items.forEach(function (i) {
+    var v = WKS.a[i.id], el = document.getElementById('wki' + i.id);
+    if (v === true) y++; else if (v === false) n++;
+    if (!el) return;
+    el.dataset.st = v === true ? 'y' : v === false ? 'n' : '';
+    if (v !== undefined) el.classList.remove('wk-miss');
+    var by = el.querySelector('.wk-y'), bn = el.querySelector('.wk-n');
+    if (by) by.classList.toggle('on', v === true);
+    if (bn) bn.classList.toggle('on', v === false);
+  });
+  var pct = tot ? Math.round(100 * (y + n) / tot) : 0;
+  var bar = document.getElementById('wkbar'), tx = document.getElementById('wktxt'), m = document.getElementById('wkmsg');
+  if (bar) bar.style.width = pct + '%';
+  if (tx) tx.textContent = 'أجبتَ عن ' + (y + n) + ' من ' + tot + ' · نفّذتَ ' + y + ' · لم تنفّذ ' + n;
+  if (m && (y + n) === tot) m.textContent = '';
+}
+
+function wkDraftSave() {
+  if (!WKS) return;
+  if (Object.keys(WKS.a).length) wkSave(WKS.week, { a: WKS.a }); else wkDrop(WKS.week);
+}
+function wkSet(id, val) {
+  if (!WKS || !WKS.editable) return;
+  if (WKS.a[id] === val) delete WKS.a[id]; else WKS.a[id] = val;
+  wkPaint(); wkDraftSave();
+}
+function wkAll(v) {
+  if (!WKS || !WKS.editable) return;
+  WKS.items.forEach(function (i) { if (v === null) delete WKS.a[i.id]; else WKS.a[i.id] = v; });
+  wkPaint(); wkDraftSave();
+}
+
+function wkClose() { var o = document.getElementById('wkov'); if (o) o.remove(); }
+function wkAsk() {
+  if (!WKS || !WKS.editable) return;
+  var miss = WKS.items.filter(function (i) { return WKS.a[i.id] === undefined; });
+  var m = document.getElementById('wkmsg');
+  if (miss.length) {
+    if (m) m.textContent = 'بقي ' + miss.length + ' من البنود بلا إجابة. أجب عنها ثم أرسل.';
+    miss.forEach(function (i) { var el = document.getElementById('wki' + i.id); if (el) el.classList.add('wk-miss'); });
+    var f = document.getElementById('wki' + miss[0].id);
+    if (f && f.scrollIntoView) f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  var y = WKS.items.filter(function (i) { return WKS.a[i.id] === true; }).length, tot = WKS.items.length;
+  document.body.insertAdjacentHTML('beforeend', '<div class="wk-ov" id="wkov"><div class="wk-md"><h3>تأكيد الإرسال</h3><p>نفّذتَ <b>' + y + '</b> ولم تنفّذ <b>' + (tot - y) + '</b> من <b>' + tot + '</b> بنداً.</p><p class="muted">بعد الإرسال لا يمكنك تغيير إجابات هذا الأسبوع.</p><div class="row"><button id="wkok" onclick="wkSend()">تأكيد الإرسال</button><button class="sec" onclick="wkClose()">رجوع</button></div></div></div>');
+}
+
+async function wkSend() {
+  if (!WKS || !WKS.editable) return;
+  var ok = document.getElementById('wkok');
+  if (ok) { ok.disabled = true; ok.textContent = 'جارٍ الإرسال…'; }
+  var wkw = WKS.week;
+  try {
+    var r = await rpc('submit_week', { p_code: S.code, p_week: wkw, p_answers: WKS.items.map(function (i) { return { item: i.id, on: WKS.a[i.id] === true }; }) });
+    wkDrop(wkw); wkClose(); WKS = null;
+    var banner = '<div class="card wk-done"><div style="font-size:2.6rem">🎉</div><b>تم إرسال أسبوعك</b><div class="muted">نفّذتَ ' + r.done + ' من ' + r.total + '. أحسنت!</div></div>';
+    try { wkRenderList(await rpc('my_weeks', { p_code: S.code }), banner); }
+    catch (e2) { show(banner + '<button onclick="week()">عرض الأسابيع</button>'); }
+  } catch (e) {
+    wkClose();
+    var m = document.getElementById('wkmsg'); if (m) m.textContent = wkMsg(e);
+    if (String((e && e.message) || e) === 'already_submitted') setTimeout(function () { week(wkw); }, 1500);
+  }
+}
+
+async function week(w) {
+  show(loading);
+  try {
+    if (!w) { wkRenderList(await rpc('my_weeks', { p_code: S.code })); return; }
+    wkSeenAdd(w);
+    wkRenderWeek(await rpc('my_week', { p_code: S.code, p_week: w }));
+  } catch (e) { show('<button class="link" onclick="home()">← الرئيسية</button>' + errBox(e, 'week()')); }
+}
+</script>
+<script>/* == ver_v1 == */
+(function () {
+  try {
+    var m = document.querySelector('meta[name="build"]'); if (!m) return;
+    var cur = m.content;
+    var b = document.createElement('div');
+    b.style.cssText = 'position:fixed;bottom:4px;left:6px;font:11px sans-serif;color:#7a8f82;z-index:5;direction:ltr';
+    b.textContent = 'build ' + cur; document.body.appendChild(b);
+    fetch(location.pathname + '?c=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.text(); })
+      .then(function (t) {
+        var x = t.match(/name="build" content="([^"]+)"/);
+        if (x && x[1] !== cur) {
+          var n = document.createElement('div');
+          n.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ee8a1f;color:#fff;text-align:center;padding:10px;font:700 14px sans-serif;z-index:99;cursor:pointer';
+          n.textContent = '🔄 يوجد إصدار أحدث — اضغط هنا للتحديث';
+          n.onclick = function () { location.replace(location.pathname + '?v=' + Date.now() + location.hash); };
+          document.body.appendChild(n);
+        }
+      }).catch(function () {});
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>

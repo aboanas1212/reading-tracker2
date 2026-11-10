@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta name="build" content="20261111-014938">
+<meta name="build" content="20261111-022953">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -472,10 +472,10 @@ function calc() {
   return { map, perLesson, perMember, act };
 }
 function adminRender() {
-  const tabs = [['week', 'الفروع'], ['report', 'تقرير الدروس'], ['matrix', 'الجدول الكامل'], ['members', 'الأعضاء'], ['lessons', 'الدروس'], ['manual', 'تسجيل يدوي']];
+  const tabs = [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع'], ['report', 'تقرير الدروس'], ['matrix', 'الجدول الكامل'], ['members', 'الأعضاء'], ['lessons', 'الدروس'], ['manual', 'تسجيل يدوي']];
   let h = '<div class="row noprint"><div class="grow"><h1>لوحة المسؤول</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
-  h += ({ report: tReport, matrix: tMatrix, week: tWeek, members: tMembers, lessons: tLessons, manual: tManual })[A.tab]();
+  h += ({ report: tReport, matrix: tMatrix, wr: tWR, week: tWeek, members: tMembers, lessons: tLessons, manual: tManual })[A.tab]();
   show(h);
 }
 function tReport() {
@@ -707,7 +707,256 @@ function hierBar() {
   else b = '<button class="sec sm" onclick="hierSupervisors()">تعيين المشرفين</button> <button class="sec sm" onclick="hierGroupRename()">تسمية المجموعة</button> <button class="sec sm" onclick="hierGroupDel()">حذف المجموعة</button>';
   return '<div class="row noprint" style="margin:8px 0">' + b + '</div>';
 }
-function tWeek() { return hierBar() + tWeekBase(); }function csv() {
+function tWeek() { return hierBar() + tWeekBase(); }
+/* WR_V1: تقارير متابعة الأسبوع */
+function wrNorm(s) { return String(s || '').replace(/[\u064B-\u0652\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').toLowerCase().trim(); }
+function wrInit() {
+  if (!A.rsel) A.rsel = {};
+  if (!A.rexp) A.rexp = {};
+  if (!A.rm) A.rm = 'exec';
+  if (A.rq == null) A.rq = '';
+}
+async function loadR() {
+  if (A.Rbusy) return; A.Rbusy = true;
+  try {
+    A.R = await rpc('admin_weekly_report', { p_pass: A.pass });
+    A.Rx = null; A.rci = [];
+    (A.R.weeks || []).forEach(function (w, i) { if (String(w) < String(A.R.current_week)) A.rci.push(i); });
+  } catch (e) {
+    A.R = { weeks: [], items: [], branches: [], groups: [], members: [], gi: {}, total_items: 0, current_week: '' }; A.rci = [];
+    alert(msg(e));
+  }
+  A.Rbusy = false;
+  if (A.tab === 'wr') adminRender();
+}
+function wrIdx() {
+  if (A.Rx && A.Rx.src === A.R) return A.Rx;
+  const R = A.R, x = { src: R, bg: {}, mg: {}, gby: {}, bby: {}, mby: {} };
+  (R.branches || []).forEach(function (b) { x.bby[b.id] = b; });
+  (R.groups || []).forEach(function (g) { x.gby[g.id] = g; (x.bg[g.branch_id] = x.bg[g.branch_id] || []).push(g); });
+  (R.members || []).forEach(function (m) {
+    if (m.gid && !x.gby[m.gid]) m.gid = 0;
+    x.mby[m.id] = m; (x.mg[m.gid] = x.mg[m.gid] || []).push(m);
+  });
+  A.Rx = x; return x;
+}
+function wrUnit(key) {
+  const x = wrIdx(), t = key.charAt(0), id = Number(key.slice(2));
+  if (t === 'b') {
+    const b = x.bby[id]; if (!b) return null;
+    const gs = x.bg[id] || []; let ms = [];
+    gs.forEach(function (g) { ms = ms.concat(x.mg[g.id] || []); });
+    return { key: key, name: b.name, ms: ms, gids: gs.map(function (g) { return g.id; }), kind: 'b' };
+  }
+  if (t === 'g') {
+    if (id === 0) return { key: key, name: 'أعضاء بلا مجموعة', ms: x.mg[0] || [], gids: [0], kind: 'g' };
+    const g = x.gby[id]; if (!g) return null;
+    return { key: key, name: g.name, ms: x.mg[id] || [], gids: [id], kind: 'g' };
+  }
+  const m = x.mby[id]; if (!m) return null;
+  return { key: key, name: m.name, ms: [m], gids: null, kind: 'm' };
+}
+function wrScope() {
+  const x = wrIdx(), keys = Object.keys(A.rsel).filter(function (k) { return A.rsel[k]; });
+  const units = keys.map(wrUnit).filter(Boolean);
+  let ms = [], gids = [], itemsOk = true;
+  if (!units.length) { ms = A.R.members || []; gids = Object.keys(x.mg).map(Number); }
+  else {
+    const seen = {};
+    units.forEach(function (u) {
+      u.ms.forEach(function (m) { if (!seen[m.id]) { seen[m.id] = 1; ms.push(m); } });
+      if (u.gids) u.gids.forEach(function (g) { if (gids.indexOf(g) < 0) gids.push(g); }); else itemsOk = false;
+    });
+  }
+  let cmp;
+  if (!units.length) {
+    cmp = (A.R.branches || []).map(function (b) { return wrUnit('b:' + b.id); });
+    if ((x.mg[0] || []).length) cmp.push(wrUnit('g:0'));
+  } else if (units.length === 1 && units[0].kind === 'b') {
+    cmp = (x.bg[Number(units[0].key.slice(2))] || []).map(function (g) { return wrUnit('g:' + g.id); });
+  } else if (units.length === 1 && units[0].kind === 'g') {
+    cmp = units[0].ms.map(function (m) { return wrUnit('m:' + m.id); });
+  } else cmp = units;
+  return { units: units, ms: ms, gids: gids, itemsOk: itemsOk, cmp: cmp.filter(Boolean), all: !units.length };
+}
+function wrSer(ms, metric) {
+  const ti = A.R.total_items || 1;
+  return A.rci.map(function (i) {
+    if (!ms.length) return 0;
+    let s = 0;
+    ms.forEach(function (m) { s += metric === 'sent' ? ((m.s || [])[i] || 0) : ((m.d || [])[i] || 0); });
+    return Math.round(metric === 'sent' ? 100 * s / ms.length : 100 * s / (ms.length * ti));
+  });
+}
+function wrDelta(a) { return a.length < 2 ? 0 : a[a.length - 1] - a[a.length - 2]; }
+function wrArr(a) {
+  if (a.length < 2) return '';
+  const d = wrDelta(a);
+  return d > 0 ? '<span style="color:var(--g)">▲ ' + d + '</span>' : d < 0 ? '<span style="color:var(--r)">▼ ' + (-d) + '</span>' : '<span class="muted">＝</span>';
+}
+function wrPts(n) { return n === 1 ? 'نقطة واحدة' : n === 2 ? 'نقطتين' : n <= 10 ? n + ' نقاط' : n + ' نقطة'; }
+function wrCol(p) { return p >= 75 ? 'var(--g2)' : p >= 50 ? 'var(--y2)' : 'var(--r2)'; }
+function wrItems(sc) {
+  if (!sc.itemsOk || !A.rci.length) return null;
+  const R = A.R, x = wrIdx(), i = A.rci[A.rci.length - 1];
+  let den = 0; sc.gids.forEach(function (g) { den += (x.mg[g] || []).length; });
+  if (!den) return null;
+  return (R.items || []).map(function (it) {
+    let n = 0;
+    sc.gids.forEach(function (g) { const a = ((R.gi || {})[String(g)] || {})[String(it.id)]; n += (a && a[i]) || 0; });
+    return { id: it.id, title: it.title, cat: it.cat || 'أخرى', pct: Math.round(100 * n / den) };
+  });
+}
+function wrCats(items) {
+  const c = {};
+  items.forEach(function (it) { (c[it.cat] = c[it.cat] || []).push(it.pct); });
+  return Object.keys(c).map(function (k) { return { cat: k, pct: Math.round(c[k].reduce(function (a, b) { return a + b; }, 0) / c[k].length) }; });
+}
+function wrNames(arr, n) {
+  return arr.slice(0, n).map(function (r) { return '«' + r.u.name + '»'; }).join('، ') + (arr.length > n ? ' وغيرها' : '');
+}
+function wrReport(sc) {
+  const R = A.R, x = wrIdx(), m = A.rm;
+  const ws = (R.weeks || []).filter(function (w, i) { return A.rci.indexOf(i) >= 0; });
+  const ser = wrSer(sc.ms, m), last = ser.length ? ser[ser.length - 1] : 0, d = wrDelta(ser);
+  const avg = ser.length ? Math.round(ser.reduce(function (a, b) { return a + b; }, 0) / ser.length) : 0;
+  const lastW = ws.length ? ws[ws.length - 1] : '';
+  const mName = m === 'sent' ? 'نسبة الإرسال' : 'نسبة التنفيذ';
+  const sentSer = wrSer(sc.ms, 'sent'), sentLast = sentSer.length ? sentSer[sentSer.length - 1] : 0;
+  const li = A.rci.length ? A.rci[A.rci.length - 1] : -1;
+  const notSent = li < 0 ? 0 : sc.ms.filter(function (mm) { return !((mm.s || [])[li]); }).length;
+  const gset = {}, bset = {};
+  sc.ms.forEach(function (mm) { if (mm.gid) { gset[mm.gid] = 1; const g = x.gby[mm.gid]; if (g) bset[g.branch_id] = 1; } });
+  const scopeName = sc.all ? 'المؤسسة كلها' : sc.units.slice(0, 3).map(function (u) { return '«' + u.name + '»'; }).join('، ') + (sc.units.length > 3 ? ' وغيرها' : '');
+  const rows = sc.cmp.map(function (u) { const s = wrSer(u.ms, m); return { u: u, s: s, last: s.length ? s[s.length - 1] : 0, d: wrDelta(s) }; });
+  const ranked = rows.filter(function (r) { return r.u.ms.length; }).sort(function (a, b) { return b.last - a.last; });
+  const lines = [], strong = [], weak = [];
+  lines.push('النطاق: ' + scopeName + '. الأعضاء: ' + sc.ms.length + '، المجموعات: ' + Object.keys(gset).length + '، الفروع: ' + Object.keys(bset).length + '.');
+  if (!ser.length) lines.push('لا يوجد أسبوع مكتمل بعد، فلا مقارنة ممكنة.');
+  else {
+    lines.push('في آخر أسبوع مكتمل (' + lastW + ') بلغت ' + mName + ' ' + last + '%' +
+      (ser.length > 1 ? (d > 0 ? '، بارتفاع ' + wrPts(d) + ' عن الأسبوع السابق' : d < 0 ? '، بانخفاض ' + wrPts(-d) + ' عن الأسبوع السابق' : '، دون تغيّر عن الأسبوع السابق') : '') +
+      '. ومتوسط الأسابيع المكتملة (' + ser.length + ') ' + avg + '%.');
+    if (m !== 'sent') lines.push('أرسل ' + sentLast + '% من الأعضاء في آخر أسبوع.');
+  }
+  if (ranked.length >= 2) {
+    const top = ranked[0], bot = ranked[ranked.length - 1];
+    strong.push('الأعلى: «' + top.u.name + '» (' + top.last + '%)');
+    weak.push('الأدنى: «' + bot.u.name + '» (' + bot.last + '%)');
+    lines.push('الأعلى بين الوحدات المقارَنة «' + top.u.name + '» (' + top.last + '%)، والأدنى «' + bot.u.name + '» (' + bot.last + '%).');
+  }
+  const hi = ranked.filter(function (r) { return r.last >= 75; }), lo = ranked.filter(function (r) { return r.last < 50; });
+  if (hi.length) strong.push('فوق 75% (' + hi.length + ' من ' + ranked.length + '): ' + wrNames(hi, 4));
+  if (lo.length) weak.push('دون 50% (' + lo.length + ' من ' + ranked.length + '): ' + wrNames(lo.slice().reverse(), 4));
+  const ups = ranked.filter(function (r) { return r.d >= 5; }).sort(function (a, b) { return b.d - a.d; });
+  const downs = ranked.filter(function (r) { return r.d <= -5; }).sort(function (a, b) { return a.d - b.d; });
+  if (ups.length) strong.push('تحسّن بخمس نقاط فأكثر: ' + wrNames(ups, 4));
+  if (downs.length) weak.push('تراجع بخمس نقاط فأكثر: ' + wrNames(downs, 4));
+  const items = wrItems(sc);
+  if (items && items.length) {
+    const si = items.slice().sort(function (a, b) { return b.pct - a.pct; });
+    strong.push('أعلى البنود: ' + si.slice(0, 2).map(function (i) { return i.title + ' (' + i.pct + '%)'; }).join('، '));
+    weak.push('أضعف البنود: ' + si.slice(-3).reverse().map(function (i) { return i.title + ' (' + i.pct + '%)'; }).join('، '));
+    const cs = wrCats(items).sort(function (a, b) { return b.pct - a.pct; });
+    if (cs.length >= 2) {
+      strong.push('أقوى الأقسام: ' + cs[0].cat + ' (' + cs[0].pct + '%)');
+      weak.push('أضعف الأقسام: ' + cs[cs.length - 1].cat + ' (' + cs[cs.length - 1].pct + '%)');
+    }
+  } else if (!sc.itemsOk) lines.push('تفصيل البنود يتاح عند اختيار فرع أو مجموعة فقط، لا أعضاء منفردين.');
+  if (ser.length && sentLast >= 90) strong.push('الإرسال مرتفع: ' + sentLast + '%.');
+  if (notSent > 0) weak.push('الأعضاء الذين لم يرسلوا في آخر أسبوع: ' + notSent + '.');
+  const noSup = Object.keys(gset).map(function (id) { return x.gby[id]; }).filter(function (g) { return g && !(g.supervisors || []).length; });
+  if (noSup.length) weak.push('مجموعات بلا مشرف (' + noSup.length + '): ' + noSup.slice(0, 3).map(function (g) { return '«' + g.name + '»'; }).join('، ') + (noSup.length > 3 ? ' وغيرها' : ''));
+  if (!strong.length) strong.push('لا شيء بارز بعد.');
+  if (!weak.length) weak.push('لا ملاحظات سلبية.');
+  return { ser: ser, last: last, d: d, avg: avg, lastW: lastW, ws: ws, mName: mName, sentLast: sentLast, lines: lines, strong: strong, weak: weak, rows: rows, nM: sc.ms.length, nG: Object.keys(gset).length, nB: Object.keys(bset).length, scopeName: scopeName };
+}
+function wrOut() {
+  const sc = wrScope(), rp = wrReport(sc);
+  const box = function (title, arr, bg, fg) {
+    return '<div class="grow" style="min-width:230px;background:' + bg + ';border-radius:12px;padding:10px 12px"><b style="color:' + fg + '">' + title + '</b>' +
+      arr.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>';
+  };
+  let h = '<div class="card"><div class="muted">تقرير متابعة الأسبوع</div><h2>' + esc(rp.scopeName) + '</h2>' +
+    '<div class="muted">آخر أسبوع مكتمل: ' + esc(String(rp.lastW || '—')) + ' · المقياس: ' + rp.mName + '</div>' +
+    '<div class="row" style="margin-top:10px"><div class="grow"><div class="muted">الأعضاء</div><b>' + rp.nM + '</b></div>' +
+    '<div class="grow"><div class="muted">المجموعات</div><b>' + rp.nG + '</b></div>' +
+    '<div class="grow"><div class="muted">' + rp.mName + '</div><b style="font-size:22px">' + rp.last + '%</b> ' + wrArr(rp.ser) + '</div>' +
+    '<div class="grow"><div class="muted">المتوسط</div><b>' + rp.avg + '%</b></div></div></div>';
+  h += '<div class="card" style="background:var(--y2)"><b style="color:var(--y)">الخلاصة</b>' + rp.lines.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>';
+  h += '<div class="row" style="align-items:stretch">' + box('جوانب القوة', rp.strong, 'var(--g2)', 'var(--g)') + box('جوانب الضعف', rp.weak, 'var(--r2)', 'var(--r)') + '</div>';
+  if (rp.rows.length) {
+    const all = { u: { name: 'إجمالي النطاق', ms: sc.ms }, s: rp.ser, d: rp.d };
+    const rs = rp.rows.slice().sort(function (a, b) { return a.last - b.last; });
+    h += '<h3>مقارنة الوحدات (الأضعف أولاً)</h3><div class="scroll"><table><tr><th>الوحدة</th><th>الأعضاء</th>' +
+      rp.ws.map(function (w) { return '<th>' + esc(String(w).slice(5)) + '</th>'; }).join('') + '<th>التغيّر</th></tr>';
+    [all].concat(rs).forEach(function (r, k) {
+      h += '<tr' + (k === 0 ? ' style="font-weight:bold"' : '') + '><td>' + esc(r.u.name) + '</td><td>' + r.u.ms.length + '</td>' +
+        r.s.map(function (p) { return '<td style="background:' + wrCol(p) + '">' + p + '%</td>'; }).join('') + '<td>' + wrArr(r.s) + '</td></tr>';
+    });
+    h += '</table></div>';
+  }
+  return h;
+}
+function wrCtl() {
+  return '<div class="row" style="margin:8px 0"><button class="sm' + (A.rm === 'exec' ? '' : ' sec') + '" onclick="wrMetric(\'exec\')">نسبة التنفيذ</button> ' +
+    '<button class="sm' + (A.rm === 'sent' ? '' : ' sec') + '" onclick="wrMetric(\'sent\')">نسبة الإرسال</button><span class="grow"></span>' +
+    '<button class="sec sm" onclick="wrClear()">مسح التحديد</button></div>';
+}
+function wrTree() {
+  const x = wrIdx(), q = wrNorm(A.rq), R = A.R;
+  const cb = function (key, label, extra, dis) {
+    const on = !!A.rsel[key] || dis;
+    return '<label style="display:flex;gap:8px;align-items:center;margin:2px 0"><input type="checkbox" style="width:auto" ' + (on ? 'checked ' : '') + (dis ? 'disabled ' : '') +
+      'onchange="wrToggle(\'' + key + '\')"><span>' + esc(label) + '</span>' + (extra || '') + '</label>';
+  };
+  const grp = function (g, bm, bsel) {
+    const ms = x.mg[g.id] || [], gm = bm || wrNorm(g.name).indexOf(q) >= 0;
+    const mm = q ? ms.filter(function (m) { return wrNorm(m.name).indexOf(q) >= 0; }) : [];
+    if (q && !gm && !mm.length) return '';
+    const gsel = bsel || !!A.rsel['g:' + g.id];
+    const open = !!A.rexp['g:' + g.id] || (!!q && mm.length > 0);
+    let mh = '';
+    if (open) (q && !gm ? mm : ms).forEach(function (m) { mh += '<div style="margin-right:30px">' + cb('m:' + m.id, m.name, '', gsel) + '</div>'; });
+    return '<div style="margin-right:22px"><div class="row" style="gap:4px;flex-wrap:nowrap"><button class="link sm" style="padding:0 6px" onclick="wrExp(\'g:' + g.id + '\')">' + (open ? '▾' : '◂') + '</button>' +
+      cb('g:' + g.id, g.name, ' <span class="muted">(' + ms.length + ')</span>', bsel) + '</div>' + mh + '</div>';
+  };
+  let h = '';
+  (R.branches || []).forEach(function (b) {
+    const bm = !q || wrNorm(b.name).indexOf(q) >= 0, bsel = !!A.rsel['b:' + b.id];
+    let gh = ''; (x.bg[b.id] || []).forEach(function (g) { gh += grp(g, bm, bsel); });
+    if (!bm && !gh) return;
+    const n = (x.bg[b.id] || []).reduce(function (s, g) { return s + (x.mg[g.id] || []).length; }, 0);
+    h += '<div style="margin:6px 0"><b>' + cb('b:' + b.id, b.name, ' <span class="muted">(' + n + ')</span>', false) + '</b>' + gh + '</div>';
+  });
+  if ((x.mg[0] || []).length) {
+    const u = grp({ id: 0, name: 'أعضاء بلا مجموعة' }, false, false);
+    if (u) h += '<div style="margin:6px 0">' + u.replace('margin-right:22px', 'margin-right:0') + '</div>';
+  }
+  return h || '<p class="muted">لا نتائج مطابقة.</p>';
+}
+function wrRefresh() {
+  const t = document.getElementById('wr-tree'), o = document.getElementById('wr-out');
+  if (t) t.innerHTML = wrTree();
+  if (o) o.innerHTML = wrOut();
+}
+function wrToggle(k) { if (A.rsel[k]) delete A.rsel[k]; else A.rsel[k] = true; wrRefresh(); }
+function wrExp(k) { if (A.rexp[k]) delete A.rexp[k]; else A.rexp[k] = true; const t = document.getElementById('wr-tree'); if (t) t.innerHTML = wrTree(); }
+function wrSearch(v) { A.rq = v; const t = document.getElementById('wr-tree'); if (t) t.innerHTML = wrTree(); }
+function wrMetric(m) { A.rm = m; const c = document.getElementById('wr-ctl'); if (c) c.innerHTML = wrCtl(); const o = document.getElementById('wr-out'); if (o) o.innerHTML = wrOut(); }
+function wrClear() { A.rsel = {}; wrRefresh(); }
+function wrReload() { A.R = null; A.Rx = null; adminRender(); }
+function tWR() {
+  wrInit();
+  if (!A.R) { loadR(); return '<p class="muted">جارٍ تحميل تقارير المتابعة…</p>'; }
+  if (!(A.R.weeks || []).length) return '<div class="card"><b>تقارير متابعة الأسبوع</b><p class="muted">لا توجد أسابيع مسجَّلة بعد.</p></div>';
+  return '<div class="card"><div class="row"><div class="grow"><b>تقارير متابعة الأسبوع</b><div class="muted">اختر من الشجرة ما تريد مقارنته، أو اتركها فارغة للمؤسسة كلها.</div></div>' +
+    '<button class="sec sm" onclick="wrReload()">تحديث البيانات</button></div>' +
+    '<div id="wr-ctl">' + wrCtl() + '</div>' +
+    '<input type="text" placeholder="ابحث في الفروع والمجموعات والأعضاء" value="' + esc(A.rq) + '" oninput="wrSearch(this.value)">' +
+    '<div id="wr-tree" style="max-height:300px;overflow:auto;margin-top:8px">' + wrTree() + '</div></div>' +
+    '<div id="wr-out">' + wrOut() + '</div>';
+}function csv() {
   const c = calc(), d = A.data;
   const rows = [['الاسم', 'المجموعة', 'الرمز'].concat(d.lessons.map(l => 'درس ' + l.id)).concat(['المنجز', 'المتأخر'])];
   c.perMember.forEach(m => rows.push([m.name, m.grp, m.code].concat(d.lessons.map(l => { const r = c.map[m.id + '_' + l.id]; return r ? ({ individual: 'فردي', group: 'جماعي', manual: 'يدوي' })[r.s] : ''; })).concat([m.done, m.late])));

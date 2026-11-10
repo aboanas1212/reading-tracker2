@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta name="build" content="20261111-013417">
+<meta name="build" content="20261111-014938">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -586,7 +586,7 @@ function ovTh(first, extra, ws) {
   return '<div class="scroll"><table><tr><th>' + first + '</th>' + extra.map(x => '<th>' + x + '</th>').join('') +
     ws.map(w => '<th>' + esc(String(w).slice(5)) + '</th>').join('') + '<th>التغيّر</th></tr>';
 }
-function tWeek() {
+function tWeekBase() {
   if (!A.O) { loadO(); return '<p class="muted">جارٍ تحميل الفروع…</p>'; }
   const s = ovFind(), O = s.O, ws = O.weeks || [];
   const brs = (O.branches || []).slice().sort((a, b) => ovPct(a.pct) - ovPct(b.pct) || a.name.localeCompare(b.name, 'ar'));
@@ -645,7 +645,69 @@ function tWeek() {
   });
   h += '</table></div><div class="card"><b>من لم يُرسل في آخر أسبوع (' + nos.length + ')</b><div class="muted">' + (nos.length ? nos.map(m => esc(m.name)).join('، ') : 'الجميع أرسل') + '</div></div>';
   return h;
-}function csv() {
+}/* == adminhier_v1 == */
+function hierErr(e) {
+  const m = String((e && e.message) || e);
+  const map = { has_groups: 'لا يُحذف الفرع وفيه مجموعات. احذف مجموعاته أو انقلها أولاً.', has_members: 'لا تُحذف المجموعة وفيها أعضاء. انقل أعضاءها أولاً.', duplicate_name: 'الاسم مستعمل من قبل في هذا المستوى.', name_required: 'اكتب اسماً.', not_found: 'العنصر غير موجود، حدّث الصفحة.' };
+  for (const k in map) { if (m.indexOf(k) >= 0) return map[k]; }
+  return m;
+}
+async function hierCall(fn, args) {
+  try { await rpc(fn, args); A.O = null; adminRender(); return true; }
+  catch (e) { alert(hierErr(e)); return false; }
+}
+function hierBranchAdd() {
+  const n = prompt('اسم الفرع الجديد:'); if (n === null || !n.trim()) return;
+  hierCall('admin_branch_save', { p_pass: A.pass, p_id: null, p_name: n.trim() });
+}
+function hierBranchRename() {
+  const s = ovFind(); if (!s.br) return;
+  const n = prompt('اسم الفرع:', s.br.name); if (n === null || !n.trim()) return;
+  hierCall('admin_branch_save', { p_pass: A.pass, p_id: s.br.id, p_name: n.trim() });
+}
+function hierBranchDel() {
+  const s = ovFind(); if (!s.br) return;
+  if (!confirm('حذف الفرع «' + s.br.name + '»؟')) return;
+  const id = s.br.id; A.ob = null; A.og = null;
+  hierCall('admin_branch_delete', { p_pass: A.pass, p_id: id });
+}
+function hierGroupAdd() {
+  const s = ovFind(); if (!s.br) return;
+  const n = prompt('اسم المجموعة الجديدة في ' + s.br.name + ':'); if (n === null || !n.trim()) return;
+  hierCall('admin_group_save', { p_pass: A.pass, p_id: null, p_branch_id: s.br.id, p_name: n.trim() });
+}
+function hierGroupRename() {
+  const s = ovFind(); if (!s.gr) return;
+  const n = prompt('اسم المجموعة:', s.gr.name); if (n === null || !n.trim()) return;
+  hierCall('admin_group_save', { p_pass: A.pass, p_id: s.gr.id, p_branch_id: s.br.id, p_name: n.trim() });
+}
+function hierGroupDel() {
+  const s = ovFind(); if (!s.gr) return;
+  if (!confirm('حذف المجموعة «' + s.gr.name + '»؟')) return;
+  const id = s.gr.id; A.og = null;
+  hierCall('admin_group_delete', { p_pass: A.pass, p_id: id });
+}
+function hierSupervisors() {
+  const s = ovFind(); if (!s.gr) return;
+  const ms = (s.gr.members || []);
+  if (!ms.length) { alert('لا أعضاء في هذه المجموعة بعد.'); return; }
+  const list = ms.map((m, i) => (i + 1) + '. ' + m.name + (m.leader ? '  (مشرف حالياً)' : '')).join('\n');
+  const r = prompt('اكتب أرقام المشرفين مفصولة بفاصلة (اتركها فارغة لإلغاء كل المشرفين):\n\n' + list);
+  if (r === null) return;
+  const ids = [];
+  r.split(/[,،\s]+/).forEach(x => { const k = parseInt(x, 10); if (k >= 1 && k <= ms.length && ids.indexOf(ms[k - 1].id) < 0) ids.push(ms[k - 1].id); });
+  hierCall('admin_group_supervisors_set', { p_pass: A.pass, p_group_id: s.gr.id, p_member_ids: ids });
+}
+function hierBar() {
+  if (!A.O) return '';
+  const s = ovFind();
+  let b;
+  if (!s.br) b = '<button class="sec sm" onclick="hierBranchAdd()">＋ إضافة فرع</button>';
+  else if (!s.gr) b = '<button class="sec sm" onclick="hierGroupAdd()">＋ إضافة مجموعة</button> <button class="sec sm" onclick="hierBranchRename()">تسمية الفرع</button> <button class="sec sm" onclick="hierBranchDel()">حذف الفرع</button>';
+  else b = '<button class="sec sm" onclick="hierSupervisors()">تعيين المشرفين</button> <button class="sec sm" onclick="hierGroupRename()">تسمية المجموعة</button> <button class="sec sm" onclick="hierGroupDel()">حذف المجموعة</button>';
+  return '<div class="row noprint" style="margin:8px 0">' + b + '</div>';
+}
+function tWeek() { return hierBar() + tWeekBase(); }function csv() {
   const c = calc(), d = A.data;
   const rows = [['الاسم', 'المجموعة', 'الرمز'].concat(d.lessons.map(l => 'درس ' + l.id)).concat(['المنجز', 'المتأخر'])];
   c.perMember.forEach(m => rows.push([m.name, m.grp, m.code].concat(d.lessons.map(l => { const r = c.map[m.id + '_' + l.id]; return r ? ({ individual: 'فردي', group: 'جماعي', manual: 'يدوي' })[r.s] : ''; })).concat([m.done, m.late])));

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta name="build" content="20261111-003344">
+<meta name="build" content="20261111-013417">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -451,6 +451,7 @@ function adminEntry() {
 function adminLogin() { A.pass = $('#ap').value; sessionStorage.setItem('apass', A.pass); adminLoad(); }
 function adminOut() { A.pass = ''; sessionStorage.removeItem('apass'); location.hash = ''; login(); }
 async function adminLoad() {
+  A.O = null; A.ob = null; A.og = null;
   show(loading);
   try { A.L = null; A.W = null; A.data = await rpc('admin_report', { p_pass: A.pass }); adminRender(); }
   catch (e) { if (String(e.message) === 'bad_admin') { A.pass = ''; sessionStorage.removeItem('apass'); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); }
@@ -471,7 +472,7 @@ function calc() {
   return { map, perLesson, perMember, act };
 }
 function adminRender() {
-  const tabs = [['report', 'التقرير'], ['matrix', 'الجدول الكامل'], ['week', 'الأسبوع'], ['members', 'الأعضاء'], ['lessons', 'الدروس'], ['manual', 'تسجيل يدوي']];
+  const tabs = [['week', 'الفروع'], ['report', 'تقرير الدروس'], ['matrix', 'الجدول الكامل'], ['members', 'الأعضاء'], ['lessons', 'الدروس'], ['manual', 'تسجيل يدوي']];
   let h = '<div class="row noprint"><div class="grow"><h1>لوحة المسؤول</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
   h += ({ report: tReport, matrix: tMatrix, week: tWeek, members: tMembers, lessons: tLessons, manual: tManual })[A.tab]();
@@ -526,36 +527,125 @@ function wCsv() {
   a.download = 'weekly-' + todayStr() + '.csv';
   a.click();
 }
-function tWeek() {
-  if (!A.W) { loadW(); return '<p class="muted">جارٍ تحميل المتابعة الأسبوعية…</p>'; }
-  const W = A.W, TM = W.total_members || 0, TI = W.total_items || 0;
-  const ws = (W.weeks || []).slice();
-  if (W.week && ws.indexOf(W.week) < 0) ws.unshift(W.week);
-  let h = '<div class="card"><div class="row"><div class="grow"><b>📋 المتابعة الأسبوعية</b><div class="muted">الأعضاء النشطون: ' + TM + ' · البنود: ' + TI + '</div></div>' +
-    '<select onchange="loadW(this.value)">' + ws.map(x => '<option value="' + esc(x) + '"' + (x === W.week ? ' selected' : '') + '>أسبوع ' + esc(x) + '</option>').join('') + '</select> ' +
-    '<button class="sec sm" onclick="wCsv()">تصدير CSV</button></div></div>';
-  if (!TI || !TM) return h + '<p class="muted">لا توجد بنود أو أعضاء نشطون بعد.</p>';
-  h += '<h3>نسبة تنفيذ كل بند</h3><div class="scroll"><table><tr><th>#</th><th>البند</th><th>نفّذ</th><th>لم ينفّذ</th><th>لم يُجب</th><th>النسبة</th><th></th></tr>';
-  (W.items || []).forEach((i, k) => {
-    const na = Math.max(0, TM - i.done - i.no), p = pctOf(i.done, TM);
-    h += '<tr><td>' + (k + 1) + '</td><td>' + esc(i.title) + '</td><td><span class="badge b-ok">' + i.done + '</span></td><td>' + i.no + '</td><td>' + na + '</td><td>' + p + '%</td>' +
-      '<td style="width:90px"><div class="bar"><i style="width:' + p + '%"></i></div></td></tr>';
-  });
-  h += '</table></div>';
-  const ms = (W.members || []).slice().sort((a, b) => a.answered - b.answered || a.name.localeCompare(b.name, 'ar'));
-  h += '<h3>تعبئة كل عضو (الأقل تعبئة أولاً)</h3><div class="scroll"><table><tr><th>العضو</th><th>أجاب عن</th><th>نفّذ</th><th>التعبئة</th><th></th></tr>';
-  ms.forEach(m => {
-    const p = pctOf(m.answered, TI);
-    const b = m.answered === 0 ? '<span class="badge b-late">لم يُجب</span>' : (m.answered >= TI ? '<span class="badge b-ok">مكتمل</span>' : '');
-    h += '<tr><td>' + esc(m.name) + '</td><td>' + m.answered + ' / ' + TI + '</td><td>' + m.done + '</td><td>' + p + '% ' + b + '</td>' +
-      '<td style="width:90px"><div class="bar"><i style="width:' + p + '%"></i></div></td></tr>';
-  });
-  h += '</table></div>';
-  const none = ms.filter(m => m.answered === 0);
-  h += '<div class="card"><b>من لم يُجب هذا الأسبوع (' + none.length + ')</b><div class="muted">' + (none.length ? none.map(m => esc(m.name)).join('، ') : 'الجميع أجاب عن بند واحد على الأقل 👏') + '</div></div>';
-  return h;
+/* == adminreport_v2 == */
+function ovPct(a) { return a && a.length ? a[0] : 0; }
+function ovArrow(a) {
+  if (!a || a.length < 2) return '<span class="muted">–</span>';
+  const d = a[0] - a[1];
+  if (d > 0) return '<span style="color:#2f7d4f">▲ ' + d + '</span>';
+  if (d < 0) return '<span style="color:#b3402a">▼ ' + (-d) + '</span>';
+  return '<span class="muted">◄► 0</span>';
 }
-function csv() {
+function ovColor(p) {
+  const x = Math.max(0, Math.min(100, p)) / 100;
+  return 'rgb(' + Math.round(250 - 40 * x) + ',' + Math.round(225 + 15 * x) + ',' + Math.round(205 + 10 * x) + ')';
+}
+function ovCell(p) { return '<td style="background:' + ovColor(p) + ';text-align:center">' + p + '%</td>'; }
+function ovChip(p) { return '<span style="background:' + ovColor(p) + ';padding:2px 8px;border-radius:6px;margin-inline-end:4px;display:inline-block">' + p + '%</span>'; }
+function ovCsvDl(rows, name) {
+  const t = '\uFEFF' + rows.map(r => r.map(x => '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([t], { type: 'text/csv;charset=utf-8' }));
+  a.download = name + '-' + todayStr() + '.csv';
+  a.click();
+}
+async function loadO() {
+  if (A.Obusy) return; A.Obusy = true;
+  try { A.O = await rpc('admin_overview', { p_pass: A.pass }); }
+  catch (e) { A.O = { weeks: [], branches: [], items: [], org_pct: [], org_sent: [] }; alert(msg(e)); }
+  A.Obusy = false;
+  if (A.tab === 'week') adminRender();
+}
+function ovOpen(b, g) { A.ob = b == null ? null : b; A.og = g == null ? null : g; adminRender(); }
+function ovFind() {
+  const O = A.O || {}, brs = O.branches || [];
+  const br = A.ob != null ? brs.filter(x => x.id === A.ob)[0] : null;
+  const gr = br && A.og != null ? (br.groups || []).filter(x => x.id === A.og)[0] : null;
+  return { O: O, br: br, gr: gr };
+}
+function ovCsv() {
+  const s = ovFind(), O = s.O, ws = O.weeks || [];
+  const head = ws.map(w => 'تنفيذ ' + w);
+  let rows, name;
+  if (!s.br) {
+    name = 'branches';
+    rows = [['الفرع', 'المجموعات', 'الأعضاء'].concat(head)];
+    (O.branches || []).forEach(b => rows.push([b.name, b.groups_n, b.members_n].concat(b.pct || [])));
+  } else if (!s.gr) {
+    name = 'groups';
+    rows = [['الفرع', 'المجموعة', 'المشرف', 'الأعضاء'].concat(head)];
+    (s.br.groups || []).forEach(g => rows.push([s.br.name, g.name, (g.supervisors || []).join('، '), g.members_n].concat(g.pct || [])));
+  } else {
+    name = 'members';
+    rows = [['الفرع', 'المجموعة', 'العضو', 'مشرف'].concat(head).concat(['لم يُرسل في آخر أسبوع'])];
+    (s.gr.members || []).forEach(m => rows.push([s.br.name, s.gr.name, m.name, m.leader ? 'نعم' : ''].concat(m.pct || []).concat([m.sent && m.sent[0] ? '' : 'نعم'])));
+  }
+  ovCsvDl(rows, name);
+}
+function ovTh(first, extra, ws) {
+  return '<div class="scroll"><table><tr><th>' + first + '</th>' + extra.map(x => '<th>' + x + '</th>').join('') +
+    ws.map(w => '<th>' + esc(String(w).slice(5)) + '</th>').join('') + '<th>التغيّر</th></tr>';
+}
+function tWeek() {
+  if (!A.O) { loadO(); return '<p class="muted">جارٍ تحميل الفروع…</p>'; }
+  const s = ovFind(), O = s.O, ws = O.weeks || [];
+  const brs = (O.branches || []).slice().sort((a, b) => ovPct(a.pct) - ovPct(b.pct) || a.name.localeCompare(b.name, 'ar'));
+  if (!brs.length) return '<p class="muted">لا توجد فروع بعد.</p>';
+  if (A.ob != null && !s.br) { A.ob = null; A.og = null; }
+  let h = '<div class="row noprint"><div class="grow muted"><a href="javascript:void(0)" onclick="ovOpen()">المؤسسة</a>' +
+    (s.br ? ' ‹ <a href="javascript:void(0)" onclick="ovOpen(' + s.br.id + ')">' + esc(s.br.name) + '</a>' : '') +
+    (s.gr ? ' ‹ ' + esc(s.gr.name) : '') + '</div><button class="sec sm" onclick="ovCsv()">تصدير CSV</button></div>';
+
+  if (!s.br) {
+    const op = O.org_pct || [], os = O.org_sent || [];
+    const sentPct = O.members_n ? Math.round(100 * (os[0] || 0) / O.members_n) : 0;
+    const wi = (O.items || []).slice().sort((a, b) => ovPct(a.pct) - ovPct(b.pct)).slice(0, 3);
+    h += '<div class="card"><b>المؤسسة</b>' + (ws.length ? '<div class="muted">آخر أسبوع مكتمل: ' + esc(String(ws[0])) + '</div>' : '') +
+      '<div class="row" style="margin-top:8px"><div class="grow"><div class="muted">الفروع</div><b>' + O.branches_n + '</b></div>' +
+      '<div class="grow"><div class="muted">المجموعات</div><b>' + O.groups_n + '</b></div>' +
+      '<div class="grow"><div class="muted">الأعضاء</div><b>' + O.members_n + '</b></div>' +
+      '<div class="grow"><div class="muted">نسبة التنفيذ</div><b>' + ovPct(op) + '%</b> ' + ovArrow(op) + '</div>' +
+      '<div class="grow"><div class="muted">أرسل</div><b>' + sentPct + '%</b></div></div>' +
+      (O.unassigned_n ? '<div class="muted" style="margin-top:6px">أعضاء بلا مجموعة: ' + O.unassigned_n + '</div>' : '') + '</div>';
+    h += '<h3>الفروع (الأضعف أولاً)</h3>';
+    brs.forEach((b, k) => {
+      const sp = b.members_n && b.sent ? Math.round(100 * (b.sent[0] || 0) / b.members_n) : 0;
+      h += '<div onclick="ovOpen(' + b.id + ')" style="cursor:pointer;background:#fff;border:1px solid #e3dccb;border-bottom:3px solid #e3dccb;border-radius:12px;padding:12px;margin:8px 0">' +
+        '<div class="row"><div class="grow"><b>' + esc(b.name) + '</b>' + (k === 0 && brs.length > 1 ? ' <span class="badge b-late">الأضعف</span>' : '') +
+        '<div class="muted">' + b.groups_n + ' مجموعات · ' + b.members_n + ' عضواً · أرسل ' + sp + '%</div></div>' +
+        '<div><b style="font-size:22px">' + ovPct(b.pct) + '%</b> ' + ovArrow(b.pct) + '</div></div>' +
+        '<div style="margin-top:8px">' + (b.pct || []).slice().reverse().map(ovChip).join('') + '</div></div>';
+    });
+    if (ws.length) h += '<div class="muted">الأسابيع في كل بطاقة من الأقدم إلى الأحدث: ' + ws.slice().reverse().map(w => esc(String(w).slice(5))).join(' ‹ ') + '</div>';
+    if (wi.length) {
+      h += '<h3>أضعف البنود</h3><div class="scroll"><table><tr><th>البند</th><th>النسبة</th><th></th></tr>';
+      wi.forEach(i => { const p = ovPct(i.pct); h += '<tr><td>' + esc(i.title) + '</td><td>' + p + '%</td><td style="width:90px"><div class="bar"><i style="width:' + p + '%"></i></div></td></tr>'; });
+      h += '</table></div>';
+    }
+    return h;
+  }
+
+  if (!s.gr) {
+    const gl = (s.br.groups || []).slice().sort((a, b) => ovPct(a.pct) - ovPct(b.pct) || a.name.localeCompare(b.name, 'ar'));
+    h += '<div class="card"><b>' + esc(s.br.name) + '</b><div class="muted">' + s.br.groups_n + ' مجموعات · ' + s.br.members_n + ' عضواً · التنفيذ ' + ovPct(s.br.pct) + '% ' + ovArrow(s.br.pct) + '</div></div>';
+    h += '<h3>المجموعات (الأضعف أولاً)</h3>' + ovTh('المجموعة', ['المشرف', 'الأعضاء'], ws);
+    gl.forEach(g => {
+      h += '<tr><td><a href="javascript:void(0)" onclick="ovOpen(' + s.br.id + ',' + g.id + ')">' + esc(g.name) + '</a></td><td>' + (esc((g.supervisors || []).join('، ')) || '—') + '</td><td>' + g.members_n + '</td>' +
+        (g.pct || []).map(ovCell).join('') + '<td>' + ovArrow(g.pct) + '</td></tr>';
+    });
+    return h + '</table></div>';
+  }
+
+  const ml = (s.gr.members || []).slice().sort((a, b) => ovPct(a.pct) - ovPct(b.pct) || a.name.localeCompare(b.name, 'ar'));
+  const nos = ml.filter(m => !(m.sent && m.sent[0]));
+  h += '<div class="card"><b>' + esc(s.gr.name) + '</b><div class="muted">المشرف: ' + (esc((s.gr.supervisors || []).join('، ')) || '—') + ' · ' + s.gr.members_n + ' عضواً · التنفيذ ' + ovPct(s.gr.pct) + '% ' + ovArrow(s.gr.pct) + '</div></div>';
+  h += '<h3>الأعضاء (الأضعف أولاً)</h3>' + ovTh('العضو', [], ws);
+  ml.forEach(m => {
+    h += '<tr><td>' + esc(m.name) + (m.leader ? ' <span class="badge b-ok">مشرف</span>' : '') + '</td>' + (m.pct || []).map(ovCell).join('') + '<td>' + ovArrow(m.pct) + '</td></tr>';
+  });
+  h += '</table></div><div class="card"><b>من لم يُرسل في آخر أسبوع (' + nos.length + ')</b><div class="muted">' + (nos.length ? nos.map(m => esc(m.name)).join('، ') : 'الجميع أرسل') + '</div></div>';
+  return h;
+}function csv() {
   const c = calc(), d = A.data;
   const rows = [['الاسم', 'المجموعة', 'الرمز'].concat(d.lessons.map(l => 'درس ' + l.id)).concat(['المنجز', 'المتأخر'])];
   c.perMember.forEach(m => rows.push([m.name, m.grp, m.code].concat(d.lessons.map(l => { const r = c.map[m.id + '_' + l.id]; return r ? ({ individual: 'فردي', group: 'جماعي', manual: 'يدوي' })[r.s] : ''; })).concat([m.done, m.late])));

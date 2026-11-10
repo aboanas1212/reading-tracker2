@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta name="build" content="20261111-002438">
+<meta name="build" content="20261111-002943">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -1249,6 +1249,98 @@ function wkAsk() {
   ].join('');
   document.head.appendChild(st);
 })();
+</script>
+<script>/* == weekui_v6 == */
+var WKD = null;
+(function () {
+  var st = document.createElement('style');
+  st.setAttribute('data-id', 'weekui_v6');
+  st.textContent = [
+    'body .wk3-row{margin:9px 0;border:1px solid #d3e3d9;border-bottom:4px solid #b9d2c1;border-radius:14px;padding:11px 14px;background:linear-gradient(180deg,#fff,#f3f9f5);box-shadow:0 7px 14px rgba(6,78,43,.15),0 1px 0 #fff inset;transition:transform .12s,box-shadow .12s,background .18s,border-color .18s}',
+    'body .wk3-row:active{transform:translateY(2px);box-shadow:0 2px 6px rgba(6,78,43,.18);border-bottom-width:2px}',
+    'body .wk3-row[data-ro="1"]:active{transform:none}',
+    'body .wk3-row[data-on="1"]{background:linear-gradient(180deg,#f0fbf4,#d6efe0);border-color:#7cc597;border-bottom-color:#2f9a5f;border-right:1px solid #7cc597}',
+    'body .wk3-ck{width:32px;height:32px;font-size:1rem;box-shadow:inset 0 2px 4px rgba(0,0,0,.13)}',
+    'body .wk3-row[data-on="1"] .wk3-ck{box-shadow:0 3px 7px rgba(6,78,43,.35)}',
+    'body .wk3-tx{font-size:.88rem;line-height:1.45;font-weight:600;color:#12301f}',
+    'body .wk3-cat{margin:16px 2px 4px;padding:8px 14px;background:linear-gradient(90deg,#064e2b,#0f7a43);color:#fff;border:0;border-radius:12px;box-shadow:0 4px 10px rgba(6,78,43,.22);font-size:.9rem}',
+    'body .wk3-cat em{background:rgba(255,255,255,.2);color:#fff}',
+    'body .wk3-sp{border-top:0;height:120px}',
+    'body .wk3-prog{position:static;margin:18px 0 10px}',
+    '.wk6-h{font-size:1.15rem;margin:6px 0}',
+    '.wk6-mini{height:6px;background:#e4efe7;border-radius:4px;overflow:hidden;max-width:760px;margin:0 auto 8px}',
+    '.wk6-mini i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22a861,#064e2b);transition:width .25s}'
+  ].join('');
+  document.head.appendChild(st);
+})();
+
+function wk6Below(d) {
+  var el = document.getElementById('wk6below');
+  if (!el || !d) return;
+  var ws = d.weeks || [], h = '';
+  if (d.streak > 0) h += '<div class="card wk-streak">سلسلة الإرسال المتتالي: <b>' + wkWord(d.streak) + '</b>. استمر.</div>';
+  h += '<div class="card"><b>تطوّر نسبة تنفيذك</b>' + wkChart(ws) + '</div>';
+  h += wkCompare(d.compare);
+  h += '<h3>الأسابيع</h3>' + wkList(ws, d.current);
+  el.innerHTML = h;
+}
+
+function wkRenderWeek(d) {
+  var its = d.items || [], a = {}, valid = {};
+  its.forEach(function (i) { valid[i.id] = 1; if (i.ans && i.on) a[i.id] = true; });
+  var ed = !!d.editable;
+  var dr = ed ? wkLoad(d.week) : null;
+  if (dr && dr.a) Object.keys(dr.a).forEach(function (k) { if (valid[k]) { if (dr.a[k]) a[k] = true; else delete a[k]; } });
+  var cats = [];
+  its.forEach(function (i) { var c = i.cat || ''; if (cats.indexOf(c) < 0) cats.push(c); });
+  WKS = { week: d.week, editable: ed, items: its, a: a, cats: cats };
+  var tot = its.length, cur = d.week === d.current;
+  var h = '<button class="link" onclick="' + (cur ? 'home()' : 'week()') + '">' + (cur ? '← الرئيسية' : '← الأسبوع الحالي') + '</button><h2 class="wk6-h">أسبوع يبدأ السبت ' + esc(d.week) + (cur ? ' (الحالي)' : '') + '</h2>';
+  if (d.submitted) h += '<div class="wk3-note ok3">أُرسل هذا الأسبوع ولا يمكن تغيير إجاباته.</div>';
+  else if (!ed) h += '<div class="wk3-note">انتهت مدة الإجابة عن هذا الأسبوع، وهو للاطلاع فقط.</div>';
+  else h += '<div class="wk3-note">اضغط البند لتحديده «نفّذتُ». ما يُترك دون تحديد يُحسب «لم أنفّذ». لا يُرسل شيء قبل زر الإرسال.</div>';
+  if (!tot) { show(h + '<p class="muted">لم تُضَف بنود المتابعة بعد.</p>'); return; }
+  var k = 0;
+  cats.forEach(function (c, ci) {
+    var list = its.filter(function (i) { return (i.cat || '') === c; });
+    if (c) h += '<div class="wk3-cat"><span>' + esc(c) + '</span><em data-wk3c="' + ci + '"></em></div>';
+    list.forEach(function (i) {
+      k++;
+      h += '<div class="wk3-row" id="wki' + i.id + '" role="checkbox" aria-checked="false" data-on="0"' +
+        (ed ? ' tabindex="0" onclick="wkSet(' + i.id + ')" onkeydown="wk3Key(event,' + i.id + ')"' : ' data-ro="1"') + '>' +
+        '<div class="wk3-ck">✓</div><div class="wk3-tx">' + esc(i.title) + '</div><div class="wk3-no">' + k + '</div></div>';
+    });
+  });
+  var seg = ''; for (var s = 0; s < tot; s++) seg += '<i></i>';
+  h += '<div class="wk3-prog" id="wk3prog"><div class="wk3-ph"><div><b id="wk3n">0</b><span class="wk3-of"> / ' + tot + '</span></div><span id="wk3t" class="wk3-t2"></span><b id="wk3p" class="wk3-pc">0%</b></div><div class="wk3-seg" id="wk3seg">' + seg + '</div></div>';
+  h += '<div id="wk6below"></div>';
+  if (ed) h += '<div class="wk3-sp"></div><div class="wk3-dock"><div id="wkmsg" class="wk-err"></div><div class="wk6-mini"><i id="wk6f"></i></div><div class="wk3-dk"><button class="wk3-s" onclick="wkAll(true)">✓ الكل</button><button class="wk3-s" onclick="wkAll(null)">↺ مسح</button><button id="wksend" class="wk3-go" onclick="wkAsk()">إرسال</button></div></div>';
+  else h += '<div class="wk3-sp"></div>';
+  show(h); wkPaint();
+  if (cur && WKD) wk6Below(WKD);
+}
+
+var wk6OldPaint = wkPaint;
+wkPaint = function () {
+  wk6OldPaint();
+  var f = document.getElementById('wk6f');
+  if (f && WKS) {
+    var y = 0; WKS.items.forEach(function (i) { if (WKS.a[i.id] === true) y++; });
+    f.style.width = (WKS.items.length ? Math.round(100 * y / WKS.items.length) : 0) + '%';
+  }
+};
+
+async function week(w) {
+  show(loading);
+  try {
+    var d = await rpc('my_weeks', { p_code: S.code });
+    WKD = d;
+    var tw = w || d.current;
+    if (!tw) { wkRenderList(d); return; }
+    wkSeenAdd(tw);
+    wkRenderWeek(await rpc('my_week', { p_code: S.code, p_week: tw }));
+  } catch (e) { show('<button class="link" onclick="home()">← الرئيسية</button>' + errBox(e, 'week()')); }
+}
 </script>
 <script>/* == ver_v1 == */
 (function () {

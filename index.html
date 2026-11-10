@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>متابعة القراءة</title>
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--ink:#1f2a24;--mute:#6b746e;--line:#e2e0d8;--g:#1f7a4d;--g2:#e6f3ec;--r:#b3402a;--r2:#fbeae6;--y:#9a6b00;--y2:#fdf3d8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Tahoma,Arial,sans-serif;line-height:1.7;font-size:16px}
+#app{max-width:760px;margin:0 auto;padding:16px}
+h1,h2,h3{margin:.4em 0}
+h1{font-size:1.4rem}h2{font-size:1.2rem}h3{font-size:1.05rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
+.muted{color:var(--mute);font-size:.9rem}
+button,.btn{font:inherit;border:0;border-radius:10px;padding:10px 16px;background:var(--g);color:#fff;cursor:pointer}
+button:disabled{background:#b9c4bd;cursor:not-allowed}
+button.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
+button.danger{background:var(--r)}
+button.link{background:none;color:var(--g);padding:4px 0}
+button.sm{padding:4px 10px;font-size:.85rem}
+input[type=text],input[type=password],input[type=date],select,textarea{font:inherit;width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+textarea{min-height:140px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>.grow{flex:1}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--g)}
+.badge{display:inline-block;padding:1px 10px;border-radius:20px;font-size:.8rem}
+.b-ok{background:var(--g2);color:var(--g)}.b-late{background:var(--r2);color:var(--r)}.b-wait{background:var(--y2);color:var(--y)}
+.lesson{display:flex;justify-content:space-between;gap:10px;align-items:center;cursor:pointer}
+.lesson:hover{border-color:var(--g)}
+.body{background:#fffdf7;border:1px solid var(--line);border-radius:12px;padding:16px;font-size:1.15rem;line-height:2.1}
+.body p{margin:.6em 0}
+.q{margin:14px 0}
+.q label{display:block;padding:6px 8px;border:1px solid var(--line);border-radius:8px;margin:5px 0;cursor:pointer}
+.q input{margin-left:8px}
+.ok{background:var(--g2);color:var(--g);border-radius:10px;padding:10px;margin:10px 0}
+.err{background:var(--r2);color:var(--r);border-radius:10px;padding:10px;margin:10px 0}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:right;vertical-align:top}
+th{background:#faf9f5;position:sticky;top:0}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.tabs button{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.tabs button.on{background:var(--g);color:#fff;border-color:var(--g)}
+.scroll{overflow:auto;max-height:70vh}
+.mx td,.mx th{text-align:center;padding:4px 6px;white-space:nowrap}
+.mx td:first-child,.mx th:first-child{text-align:right;position:sticky;right:0;background:#fff}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pcard{border:1px dashed #888;border-radius:8px;padding:10px;page-break-inside:avoid}
+.pcard .boxes span{display:inline-block;width:22px;height:22px;border:1px solid #444;margin:2px;text-align:center;font-size:.7rem;line-height:22px}
+@media print{body{background:#fff}.noprint{display:none!important}.pcard{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="config.js"></script>
+<script>
+/* ============ أدوات عامة ============ */
+const CFG = window.CONFIG || {};
+const S = { code: localStorage.getItem('code') || '', me: null, ls: [] };
+const A = { pass: sessionStorage.getItem('apass') || '', data: null, tab: 'report' };
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const show = h => { document.getElementById('app').innerHTML = h; window.scrollTo(0, 0); };
+const loading = '<p class="muted">جارٍ التحميل…</p>';
+const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+async function rpc(fn, args) {
+  const h = { 'Content-Type': 'application/json', 'apikey': CFG.key };
+  if (CFG.key && CFG.key.startsWith('eyJ')) h['Authorization'] = 'Bearer ' + CFG.key;
+  const r = await fetch(CFG.url + '/rest/v1/rpc/' + fn, { method: 'POST', headers: h, body: JSON.stringify(args || {}) });
+  const t = await r.text(); let d = null;
+  try { d = t ? JSON.parse(t) : null; } catch (e) { d = t; }
+  if (!r.ok) throw new Error((d && d.message) || ('http_' + r.status));
+  return d;
+}
+function msg(e) {
+  const m = String((e && e.message) || e);
+  if (m.startsWith('too_early')) return 'لم يمضِ الوقت الأدنى للقراءة بعد.';
+  if (m === 'bad_code') return 'الرمز غير صحيح أو معطّل.';
+  if (m === 'bad_admin') return 'كلمة مرور المسؤول غير صحيحة.';
+  if (m === 'not_leader') return 'هذه الميزة للمشرفين فقط.';
+  if (m === 'no_lesson') return 'الدرس غير موجود.';
+  if (m.startsWith('http_') || m.includes('Failed to fetch')) return 'تعذّر الاتصال بالخادم. تحقق من الإنترنت أو من إعدادات config.js.';
+  return 'حدث خطأ: ' + m;
+}
+const errBox = (e, retry) => '<div class="err">' + esc(msg(e)) + '</div>' + (retry ? '<button onclick="' + retry + '">إعادة المحاولة</button>' : '');
+
+/* ============ التوجيه ============ */
+function route() {
+  const h = location.hash;
+  if (h.startsWith('#admin')) return adminEntry();
+  const m = h.match(/#m=([A-Za-z0-9]+)/);
+  if (m) { S.code = m[1].toUpperCase(); localStorage.setItem('code', S.code); history.replaceState(null, '', location.pathname); }
+  if (S.code) return home(); login();
+}
+window.addEventListener('hashchange', route);
+
+/* ============ دخول العضو ============ */
+function login(note) {
+  show('<h1>متابعة القراءة</h1><div class="card"><p>أدخل رمزك الشخصي (6 خانات) الذي وصلك من المشرف، أو افتح الرابط الشخصي الخاص بك مباشرة.</p>' +
+    (note ? '<div class="err">' + esc(note) + '</div>' : '') +
+    '<input type="text" id="c" placeholder="مثال: K7M2QP" maxlength="12" style="direction:ltr;text-align:center;letter-spacing:3px;font-size:1.2rem">' +
+    '<p><button onclick="doLogin()">دخول</button></p></div>');
+  const i = $('#c'); if (i) i.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+}
+function doLogin() {
+  const v = ($('#c').value || '').trim().toUpperCase(); if (!v) return;
+  S.code = v; localStorage.setItem('code', v); home();
+}
+function logout() { localStorage.removeItem('code'); S.code = ''; login(); }
+
+/* ============ الصفحة الرئيسية للعضو ============ */
+async function home() {
+  show(loading);
+  try {
+    const d = await rpc('my_status', { p_code: S.code });
+    S.me = d.member; S.ls = d.lessons || [];
+    renderHome();
+  } catch (e) {
+    if (String(e.message) === 'bad_code') { localStorage.removeItem('code'); S.code = ''; return login('الرمز غير صحيح أو معطّل.'); }
+    show(errBox(e, 'home()'));
+  }
+}
+function renderHome() {
+  const done = S.ls.filter(l => l.done).length, tot = S.ls.length, today = todayStr();
+  const pct = tot ? Math.round(100 * done / tot) : 0;
+  let h = '<div class="row"><div class="grow"><h1>أهلاً ' + esc(S.me.name) + '</h1>' +
+    (S.me.leader ? '<span class="badge b-wait">مشرف مجموعة' + (S.me.grp ? ' — ' + esc(S.me.grp) : '') + '</span>' : '') +
+    '</div><button class="sec sm" onclick="logout()">خروج</button></div>' +
+    '<div class="card"><div class="row"><b>رصيدك:</b> ' + done + ' من ' + tot + ' درساً (' + pct + '%)</div><div class="bar"><i style="width:' + pct + '%"></i></div></div>';
+  if (!tot) h += '<p class="muted">لا توجد دروس بعد.</p>';
+  S.ls.forEach(l => {
+    const late = !l.done && l.due && l.due < today;
+    let b = l.done ? '<span class="badge b-ok">تم' + (l.source === 'group' ? ' (جماعي)' : l.source === 'manual' ? ' (يدوي)' : '') + '</span>'
+      : late ? '<span class="badge b-late">متأخر</span>' : '<span class="badge b-wait">لم يُقرأ</span>';
+    h += '<div class="card lesson" onclick="lesson(' + l.id + ')"><div><b>' + l.id + '. ' + esc(l.title) + '</b><div class="muted">نحو ' + l.minutes + ' دقيقة' +
+      (l.due ? ' · الموعد ' + esc(l.due) : '') + '</div></div>' + b + '</div>';
+  });
+  show(h);
+}
+
+/* ============ شاشة الدرس ============ */
+let _iv = null;
+async function lesson(id) {
+  show(loading); clearInterval(_iv);
+  let d;
+  try { d = await rpc('get_lesson', { p_code: S.code, p_lesson: id }); } catch (e) { return show('<button class="link" onclick="home()">← الدروس</button>' + errBox(e, 'lesson(' + id + ')')); }
+  const t0 = Date.now();
+  const paras = String(d.body).split(/\n\s*\n/).map(p => '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>').join('');
+  let h = '<button class="link" onclick="clearInterval(_iv);home()">← الدروس</button><h2>' + d.id + '. ' + esc(d.title) + '</h2>' +
+    '<div class="muted">نحو ' + d.minutes + ' دقيقة قراءة</div>' +
+    '<div class="row noprint" style="margin:8px 0"><button class="sec sm" onclick="fs(1)">أ+</button><button class="sec sm" onclick="fs(-1)">أ−</button></div>' +
+    '<div class="body" id="body">' + paras + '</div>';
+  if (d.done) { h += '<div class="ok">سبق تسجيل هذا الدرس في رصيدك ✓</div>'; return show(h); }
+  if (d.leader) h += '<div class="card"><label><input type="checkbox" id="grp"> أقرأ لمجموعة، وسأسجّل الحاضرين بعد الأسئلة</label></div>';
+  h += '<p><button id="done" disabled onclick="check(' + id + ')">أنهيت القراءة</button></p><p class="muted">يُفتح الزر بعد الوقت الأدنى للقراءة، ثم تظهر أسئلة قصيرة.</p>';
+  show(h);
+  const left = () => Math.max(0, Math.ceil(d.min_seconds - d.elapsed - (Date.now() - t0) / 1000));
+  const tick = () => {
+    const b = document.getElementById('done'); if (!b) { clearInterval(_iv); return; }
+    const s = left(); b.disabled = s > 0;
+    b.textContent = s > 0 ? 'أنهيت القراءة (متاح بعد ' + fmt(s) + ')' : 'أنهيت القراءة';
+  };
+  tick(); _iv = setInterval(tick, 1000);
+}
+let _fs = 1.15;
+function fs(d) { _fs = Math.min(2, Math.max(.9, _fs + d * .1)); const b = $('#body'); if (b) b.style.fontSize = _fs + 'rem'; }
+
+async function check(id) {
+  const isG = !!(document.getElementById('grp') && document.getElementById('grp').checked);
+  try {
+    const qs = await rpc('get_check', { p_code: S.code, p_lesson: id });
+    const members = isG ? (await rpc('group_members', { p_code: S.code, p_lesson: id })) || [] : [];
+    renderCheck(id, qs || [], members, isG);
+  } catch (e) { alert(msg(e)); }
+}
+function renderCheck(id, qs, members, isG) {
+  clearInterval(_iv);
+  let h = '<h2>أسئلة تحقق قصيرة</h2><p class="muted">أجب عما قرأته في الدرس. إن أخطأت فراجع الدرس وستظهر لك أسئلة أخرى.</p>';
+  if (!qs.length) h += '<div class="ok">لا أسئلة لهذا الدرس؛ يكفي الإرسال.</div>';
+  qs.forEach((q, n) => {
+    h += '<div class="card q" data-q="' + q.i + '"><b>' + (n + 1) + '. ' + esc(q.q) + '</b>' +
+      (q.options || []).map((o, k) => '<label><input type="radio" name="q' + q.i + '" value="' + k + '">' + esc(o) + '</label>').join('') + '</div>';
+  });
+  if (isG) {
+    h += '<div class="card"><h3>الحاضرون معك في القراءة</h3>';
+    if (!members.length) h += '<p class="muted">لا أعضاء آخرون في مجموعتك.</p>';
+    else {
+      h += '<p><button class="sec sm" onclick="document.querySelectorAll(\'.mem:not(:disabled)\').forEach(c=>c.checked=true)">تحديد الكل</button></p>';
+      members.forEach(m => {
+        h += '<label style="display:block"><input type="checkbox" class="mem" value="' + m.id + '"' + (m.done ? ' disabled' : '') + '> ' + esc(m.name) + (m.done ? ' <span class="badge b-ok">مسجّل مسبقاً</span>' : '') + '</label>';
+      });
+    }
+    h += '</div>';
+  }
+  h += '<p><button onclick="send(' + id + ',' + isG + ')">إرسال وتسجيل الدرس</button> <button class="sec" onclick="lesson(' + id + ')">← العودة للدرس</button></p>';
+  show(h);
+}
+async function send(id, isG) {
+  const ans = {};
+  document.querySelectorAll('[data-q]').forEach(el => { const r = el.querySelector('input:checked'); if (r) ans[el.dataset.q] = +r.value; });
+  try {
+    let res;
+    if (isG) {
+      const mem = [...document.querySelectorAll('.mem:checked')].map(c => +c.value);
+      res = await rpc('submit_group', { p_code: S.code, p_lesson: id, p_answers: ans, p_members: mem });
+    } else res = await rpc('submit_read', { p_code: S.code, p_lesson: id, p_answers: ans });
+    if (res && res.ok) {
+      show('<div class="ok"><h2>تم تسجيل الدرس في رصيدك ✓</h2>' + (isG ? '<p>سُجّل لـ ' + (res.credited || 0) + ' من الحاضرين.</p>' : '') + '</div><p><button onclick="home()">العودة للدروس</button></p>');
+    } else {
+      show('<div class="err"><h3>لم تكتمل الإجابات الصحيحة</h3><p>راجع الدرس ثم جرّب مرة أخرى بأسئلة مختلفة.</p></div><p><button onclick="check(' + id + ')">أسئلة جديدة</button> <button class="sec" onclick="lesson(' + id + ')">مراجعة الدرس</button></p>');
+    }
+  } catch (e) { alert(msg(e)); }
+}
+
+/* ============ المسؤول ============ */
+function adminEntry() {
+  if (A.pass) return adminLoad();
+  show('<h1>لوحة المسؤول</h1><div class="card"><input type="password" id="ap" placeholder="كلمة مرور المسؤول"><p><button onclick="adminLogin()">دخول</button></p></div>');
+  const i = $('#ap'); if (i) i.addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
+}
+function adminLogin() { A.pass = $('#ap').value; sessionStorage.setItem('apass', A.pass); adminLoad(); }
+function adminOut() { A.pass = ''; sessionStorage.removeItem('apass'); location.hash = ''; login(); }
+async function adminLoad() {
+  show(loading);
+  try { A.data = await rpc('admin_report', { p_pass: A.pass }); adminRender(); }
+  catch (e) { if (String(e.message) === 'bad_admin') { A.pass = ''; sessionStorage.removeItem('apass'); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); }
+}
+function calc() {
+  const d = A.data, today = todayStr(), act = d.members.filter(m => m.active), map = {};
+  d.readings.forEach(r => { map[r.m + '_' + r.l] = r; });
+  const perLesson = d.lessons.map(l => {
+    const n = act.filter(m => map[m.id + '_' + l.id]).length;
+    return Object.assign({}, l, { n, total: act.length, pct: act.length ? Math.round(100 * n / act.length) : 0, late: !!(l.due && l.due < today) });
+  });
+  const perMember = act.map(m => {
+    const done = d.lessons.filter(l => map[m.id + '_' + l.id]).length;
+    const late = d.lessons.filter(l => l.due && l.due < today && !map[m.id + '_' + l.id]).length;
+    const mine = d.readings.filter(r => r.m === m.id).map(r => r.t).sort();
+    return Object.assign({}, m, { done, late, tot: d.lessons.length, pct: d.lessons.length ? Math.round(100 * done / d.lessons.length) : 0, last: mine.length ? mine[mine.length - 1].slice(0, 10) : '—' });
+  });
+  return { map, perLesson, perMember, act };
+}
+function adminRender() {
+  const tabs = [['report', 'التقرير'], ['matrix', 'الجدول الكامل'], ['members', 'الأعضاء'], ['lessons', 'الدروس'], ['manual', 'تسجيل يدوي']];
+  let h = '<div class="row noprint"><div class="grow"><h1>لوحة المسؤول</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
+    tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
+  h += ({ report: tReport, matrix: tMatrix, members: tMembers, lessons: tLessons, manual: tManual })[A.tab]();
+  show(h);
+}
+function tReport() {
+  const c = calc();
+  let h = '<h3>إنجاز كل درس</h3><div class="scroll"><table><tr><th>الدرس</th><th>قرأه</th><th>النسبة</th><th></th></tr>';
+  c.perLesson.forEach(l => {
+    h += '<tr><td>' + l.id + '. ' + esc(l.title) + (l.due ? '<div class="muted">الموعد ' + esc(l.due) + '</div>' : '') + '</td><td>' + l.n + ' / ' + l.total + '</td><td>' + l.pct + '%</td><td style="width:90px"><div class="bar"><i style="width:' + l.pct + '%"></i></div></td></tr>';
+  });
+  h += '</table></div><h3>الأعضاء (الأكثر تأخراً أولاً)</h3><div class="scroll"><table><tr><th>الاسم</th><th>المجموعة</th><th>الرصيد</th><th>متأخر</th><th>آخر نشاط</th></tr>';
+  c.perMember.slice().sort((a, b) => b.late - a.late || a.pct - b.pct).forEach(m => {
+    h += '<tr><td>' + esc(m.name) + '</td><td>' + esc(m.grp) + '</td><td>' + m.done + '/' + m.tot + ' (' + m.pct + '%)</td><td>' + (m.late ? '<span class="badge b-late">' + m.late + '</span>' : '0') + '</td><td>' + esc(m.last) + '</td></tr>';
+  });
+  return h + '</table></div><p><button class="sec" onclick="csv()">تصدير CSV</button></p>';
+}
+function tMatrix() {
+  const c = calc(), d = A.data;
+  let h = '<p class="muted">✓ فردي · ● جماعي · ✎ يدوي · ✗ متأخر · – لم يحن موعده</p><div class="scroll"><table class="mx"><tr><th>العضو</th>' + d.lessons.map(l => '<th>' + l.id + '</th>').join('') + '</tr>';
+  const today = todayStr();
+  c.act.forEach(m => {
+    h += '<tr><td>' + esc(m.name) + '</td>' + d.lessons.map(l => {
+      const r = c.map[m.id + '_' + l.id];
+      if (r) return '<td title="' + esc(String(r.t).slice(0, 10)) + '">' + ({ individual: '✓', group: '●', manual: '✎' })[r.s] + '</td>';
+      return '<td>' + (l.due && l.due < today ? '<span style="color:#b3402a">✗</span>' : '–') + '</td>';
+    }).join('') + '</tr>';
+  });
+  return h + '</table></div>';
+}
+function csv() {
+  const c = calc(), d = A.data;
+  const rows = [['الاسم', 'المجموعة', 'الرمز'].concat(d.lessons.map(l => 'درس ' + l.id)).concat(['المنجز', 'المتأخر'])];
+  c.perMember.forEach(m => rows.push([m.name, m.grp, m.code].concat(d.lessons.map(l => { const r = c.map[m.id + '_' + l.id]; return r ? ({ individual: 'فردي', group: 'جماعي', manual: 'يدوي' })[r.s] : ''; })).concat([m.done, m.late])));
+  const t = '﻿' + rows.map(r => r.map(x => '"' + String(x).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/csv;charset=utf-8' })); a.download = 'reading-report-' + todayStr() + '.csv'; a.click();
+}
+const baseUrl = () => location.origin + location.pathname;
+function tMembers() {
+  const d = A.data;
+  let h = '<div class="card"><h3>إضافة أعضاء</h3><p class="muted">سطر لكل عضو بالصيغة: الاسم | المجموعة | م (اكتب «م» إن كان مشرف مجموعة)</p><textarea id="newm" placeholder="أحمد علي | الشمال | م&#10;سعيد حسن | الشمال&#10;خالد | الجنوب"></textarea><p><button onclick="addMembers()">إضافة</button> <button class="sec" onclick="printCards()">طباعة البطاقات</button></p></div>';
+  h += '<div class="scroll"><table><tr><th>الاسم</th><th>المجموعة</th><th>الرمز</th><th></th></tr>';
+  d.members.forEach(m => {
+    h += '<tr style="' + (m.active ? '' : 'opacity:.45') + '"><td>' + esc(m.name) + (m.leader ? ' <span class="badge b-wait">مشرف</span>' : '') + '</td><td>' + esc(m.grp) + '</td><td style="direction:ltr">' + esc(m.code) + '</td><td class="row">' +
+      '<button class="sec sm" onclick="copyLink(\'' + m.code + '\')">نسخ الرابط</button>' +
+      '<button class="sec sm" onclick="toggleLeader(' + m.id + ',' + !m.leader + ')">' + (m.leader ? 'إلغاء الإشراف' : 'جعله مشرفاً') + '</button>' +
+      '<button class="sec sm" onclick="editMember(' + m.id + ')">تعديل</button>' +
+      '<button class="sec sm" onclick="toggleActive(' + m.id + ',' + !m.active + ')">' + (m.active ? 'تعطيل' : 'تفعيل') + '</button></td></tr>';
+  });
+  return h + '</table></div>';
+}
+async function addMembers() {
+  const rows = $('#newm').value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(p => p[0]).map(p => ({ name: p[0], grp: p[1] || '', leader: /^(م|مشرف|1|yes)$/i.test(p[2] || '') }));
+  if (!rows.length) return;
+  try { await rpc('admin_add_members', { p_pass: A.pass, p_rows: rows }); await adminLoad(); } catch (e) { alert(msg(e)); }
+}
+function copyLink(code) {
+  const u = baseUrl() + '#m=' + code;
+  (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => alert('نُسخ الرابط:\n' + u)).catch(() => prompt('انسخ الرابط:', u));
+}
+async function memberUpd(id, o) {
+  const m = A.data.members.find(x => x.id === id);
+  try { await rpc('admin_member_update', { p_pass: A.pass, p_id: id, p_name: o.name != null ? o.name : m.name, p_grp: o.grp != null ? o.grp : m.grp, p_leader: o.leader != null ? o.leader : m.leader, p_active: o.active != null ? o.active : m.active }); await adminLoad(); } catch (e) { alert(msg(e)); }
+}
+const toggleLeader = (id, v) => memberUpd(id, { leader: v });
+const toggleActive = (id, v) => memberUpd(id, { active: v });
+function editMember(id) {
+  const m = A.data.members.find(x => x.id === id);
+  const n = prompt('الاسم:', m.name); if (n === null) return;
+  const g = prompt('المجموعة:', m.grp); if (g === null) return;
+  memberUpd(id, { name: n, grp: g });
+}
+function printCards() {
+  const d = A.data, base = baseUrl();
+  let h = '<div class="noprint row"><button onclick="window.print()">طباعة</button><button class="sec" onclick="adminRender()">رجوع</button></div><h2>بطاقات المتابعة</h2><div class="cards">';
+  d.members.filter(m => m.active).forEach(m => {
+    h += '<div class="pcard"><b>' + esc(m.name) + '</b> <span class="muted">' + esc(m.grp) + '</span><div style="direction:ltr;text-align:right">الرمز: <b>' + esc(m.code) + '</b></div><div class="muted" style="direction:ltr;text-align:right;font-size:.7rem">' + esc(base) + '#m=' + esc(m.code) + '</div><div class="boxes">' +
+      d.lessons.map(l => '<span>' + l.id + '</span>').join('') + '</div><div class="muted">ضع علامة على الدرس المقروء ووقّع المشرف</div></div>';
+  });
+  show(h + '</div>');
+}
+function tLessons() {
+  const d = A.data;
+  let h = '<div class="card"><h3>استيراد الدروس</h3><p class="muted">الصق ملف JSON (انظر lessons.json) أو اختر الملف. الاستيراد يحدّث الدروس ذات الأرقام نفسها.</p><input type="file" accept=".json" onchange="loadFile(this)"><textarea id="lj" placeholder="[ { &quot;n&quot;: 1, &quot;title&quot;: &quot;…&quot;, &quot;body&quot;: &quot;…&quot;, &quot;minutes&quot;: 15, &quot;due&quot;: &quot;2026-12-01&quot;, &quot;questions&quot;: [ … ] } ]" style="margin-top:8px"></textarea><p><button onclick="importLessons()">استيراد</button></p></div>';
+  h += '<div class="scroll"><table><tr><th>#</th><th>العنوان</th><th>الدقائق</th><th>الموعد</th><th>الأسئلة</th></tr>';
+  d.lessons.forEach(l => { h += '<tr><td>' + l.id + '</td><td>' + esc(l.title) + '</td><td>' + l.minutes + '</td><td>' + esc(l.due || '—') + '</td><td>' + (l.nq < 2 ? '<span class="badge b-late">' + l.nq + '</span>' : l.nq) + '</td></tr>'; });
+  return h + '</table></div><p class="muted">يُنصح بألا يقل بنك أسئلة الدرس عن 4 أسئلة حتى تتنوع الأسئلة المعروضة.</p>';
+}
+function loadFile(inp) { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $('#lj').value = r.result; }; r.readAsText(f, 'utf-8'); }
+async function importLessons() {
+  let j; try { j = JSON.parse($('#lj').value); } catch (e) { return alert('صيغة JSON غير صحيحة.'); }
+  if (!Array.isArray(j)) return alert('يجب أن يكون الملف مصفوفة دروس.');
+  try { const n = await rpc('admin_import_lessons', { p_pass: A.pass, p_lessons: j }); alert('تم استيراد ' + n + ' درساً.'); await adminLoad(); } catch (e) { alert(msg(e)); }
+}
+function tManual() {
+  const d = A.data;
+  const mo = d.members.filter(m => m.active).map(m => '<option value="' + m.id + '">' + esc(m.name) + (m.grp ? ' — ' + esc(m.grp) : '') + '</option>').join('');
+  const lo = d.lessons.map(l => '<option value="' + l.id + '">' + l.id + '. ' + esc(l.title) + '</option>').join('');
+  return '<div class="card"><h3>تسجيل يدوي (لمن يقرأ من الكتاب الورقي أو بلا إنترنت)</h3><p class="muted">يُسجَّل بوسم «يدوي» ليتميز عن القراءة الموثّقة.</p><p><select id="mm">' + mo + '</select></p><p><select id="ml">' + lo + '</select></p><p><input type="text" id="mn" placeholder="ملاحظة (مثلاً: تحقق شفهي بالهاتف)"></p><p><button onclick="manual(true)">تسجيل الدرس له</button> <button class="danger" onclick="manual(false)">إلغاء تسجيل</button></p></div>';
+}
+async function manual(add) {
+  const m = +$('#mm').value, l = +$('#ml').value;
+  if (!m || !l) return;
+  try {
+    if (add) await rpc('admin_credit', { p_pass: A.pass, p_member: m, p_lesson: l, p_note: $('#mn').value });
+    else { if (!confirm('إلغاء تسجيل هذا الدرس لهذا العضو؟')) return; await rpc('admin_uncredit', { p_pass: A.pass, p_member: m, p_lesson: l }); }
+    await adminLoad(); A.tab = 'manual'; adminRender(); alert('تم.');
+  } catch (e) { alert(msg(e)); }
+}
+
+route();
+</script>
+</body>
+</html>

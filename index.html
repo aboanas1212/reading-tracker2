@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta name="build" content="20261110-235330">
+<meta name="build" content="20261111-002438">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -831,6 +831,42 @@ var WKS = null;
   document.head.appendChild(st);
 })();
 
+/* == weekui_v2 == */
+(function () {
+  var st = document.createElement('style');
+  st.setAttribute('data-id', 'weekui_v2');
+  st.textContent = [
+    '.wk-prog{position:sticky;top:0;z-index:30;padding:10px 14px;box-shadow:0 4px 14px rgba(0,0,0,.08)}',
+    '.wk-ph{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}',
+    '.wk-ph b{font-size:1.25rem;color:var(--g1)}',
+    '.wk-item{flex-wrap:nowrap;padding:9px 12px;gap:10px;margin:6px 0}',
+    '.wk-no{width:24px;height:24px;font-size:.78rem}',
+    '.wk-ic{flex:none;font-size:1.45rem;width:34px;text-align:center}',
+    '.wk-t{min-width:0;font-size:.95rem;line-height:1.55}',
+    '.wk-btns{flex:none;gap:8px}',
+    '.wk-btns button{width:44px;height:44px;border-radius:50%;padding:0;font-size:1.3rem;font-weight:800;display:flex;align-items:center;justify-content:center}',
+    '.wk-spacer{height:130px}',
+    '.wk-dock{position:fixed;bottom:0;left:0;right:0;z-index:40;background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.14);padding:10px 12px}',
+    '.wk-dk{max-width:760px;margin:0 auto;display:flex;gap:8px;align-items:center}',
+    '.wk-dk button{padding:12px 14px;font-weight:700;border-radius:12px}',
+    '.wk-dk #wksend{flex:1;font-size:1.05rem}',
+    '.wk-dock .wk-err{max-width:760px;margin:0 auto 6px}',
+    '.wk-err:empty{display:none}',
+    '@media(max-width:560px){.wk-btns{width:auto}.wk-btns button{flex:none}}'
+  ].join('');
+  document.head.appendChild(st);
+})();
+function wkIco(t, k) {
+  var s = String(t || ''), m = [
+    ['صلا', '🕌'], ['قرآن', '📖'], ['قران', '📖'], ['قراء', '📚'], ['كتاب', '📚'], ['ذكر', '📿'], ['أذكار', '📿'], ['اذكار', '📿'],
+    ['صدق', '💝'], ['صيام', '🌙'], ['صوم', '🌙'], ['قيام', '🌟'], ['وتر', '🌟'], ['والد', '💞'], ['بر ', '💞'], ['رحم', '🤝'],
+    ['صلة', '🤝'], ['علم', '🎓'], ['درس', '🎓'], ['رياض', '🏃'], ['مشي', '🏃'], ['نوم', '😴'], ['دعاء', '🤲'], ['استغفار', '🤲'],
+    ['حضور', '👥'], ['لقاء', '👥'], ['نصح', '💬'], ['تطوع', '🙌']
+  ];
+  for (var i = 0; i < m.length; i++) { if (s.indexOf(m[i][0]) >= 0) return m[i][1]; }
+  var d = ['🌱', '⭐', '🎯', '💡', '🌿', '🏅', '✨'];
+  return d[(k - 1) % d.length];
+}
 function wkKey(w) { return 'wk_draft_' + S.code + '_' + w; }
 function wkLoad(w) { try { var r = localStorage.getItem(wkKey(w)); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
 function wkSave(w, o) { try { localStorage.setItem(wkKey(w), JSON.stringify(o)); } catch (e) {} }
@@ -952,20 +988,20 @@ function wkRenderWeek(d) {
   if (d.submitted) h += '<div class="ok">✓ أُرسل هذا الأسبوع ولا يمكن تغيير إجاباته.</div>';
   else if (!d.editable) h += '<p class="muted">انتهت مدة الإجابة عن هذا الأسبوع، وهو للاطلاع فقط.</p>';
   else h += '<p class="muted">اختر ✓ أو ✕ لكل بند ثم اضغط «إرسال». لا يُحفظ شيء عند الخادم قبل الإرسال، ويبقى اختيارك على جهازك.</p>';
-  h += '<div class="card"><div class="bar"><i id="wkbar" style="width:0%"></i></div><div id="wktxt" class="muted" style="margin-top:6px"></div></div>';
-  if (d.editable && its.length) h += '<div class="row"><button class="sec sm" onclick="wkAll(true)">✓ تحديد الكل</button><button class="sec sm" onclick="wkAll(null)">إلغاء الكل</button></div>';
+  h += '<div class="card wk-prog"><div class="wk-ph"><b id="wkcnt">0 / ' + its.length + '</b><span id="wktxt" class="muted"></span></div><div class="bar"><i id="wkbar" style="width:0%"></i></div></div>';
+  if (d.editable && its.length) h += '';
   if (!its.length) h += '<p class="muted">لم تُضَف بنود المتابعة بعد.</p>';
   var k = 0, dis = d.editable ? '' : ' disabled';
   cats.forEach(function (c) {
     if (c) h += '<h3 class="wk-cat">' + esc(c) + '</h3>';
     its.filter(function (i) { return (i.cat || '') === c; }).forEach(function (i) {
       k++;
-      h += '<div class="card wk-item" id="wki' + i.id + '" data-st=""><div class="wk-no">' + k + '</div><div class="grow wk-t">' + esc(i.title) + '</div>' +
-        '<div class="wk-btns"><button class="wk-y"' + dis + ' onclick="wkSet(' + i.id + ',true)">✓ نفّذتُ</button>' +
-        '<button class="wk-n"' + dis + ' onclick="wkSet(' + i.id + ',false)">✕ لم أنفّذ</button></div></div>';
+      h += '<div class="card wk-item" id="wki' + i.id + '" data-st=""><div class="wk-no">' + k + '</div><div class="wk-ic">' + wkIco(i.title, k) + '</div><div class="grow wk-t">' + esc(i.title) + '</div>' +
+        '<div class="wk-btns"><button class="wk-y" title="نفّذتُ" aria-label="نفّذتُ"' + dis + ' onclick="wkSet(' + i.id + ',true)">✓</button>' +
+        '<button class="wk-n" title="لم أنفّذ" aria-label="لم أنفّذ"' + dis + ' onclick="wkSet(' + i.id + ',false)">✕</button></div></div>';
     });
   });
-  if (d.editable && its.length) h += '<div class="card wk-send"><div id="wkmsg" class="wk-err"></div><button id="wksend" onclick="wkAsk()">إرسال الأسبوع</button></div>';
+  if (d.editable && its.length) h += '<div class="wk-spacer"></div><div class="wk-dock"><div id="wkmsg" class="wk-err"></div><div class="wk-dk"><button class="sec sm" onclick="wkAll(true)">✓ الكل</button><button class="sec sm" onclick="wkAll(null)">↺ مسح</button><button id="wksend" onclick="wkAsk()">إرسال الأسبوع</button></div></div>';
   show(h); wkPaint();
 }
 
@@ -985,7 +1021,7 @@ function wkPaint() {
   var pct = tot ? Math.round(100 * (y + n) / tot) : 0;
   var bar = document.getElementById('wkbar'), tx = document.getElementById('wktxt'), m = document.getElementById('wkmsg');
   if (bar) bar.style.width = pct + '%';
-  if (tx) tx.textContent = 'أجبتَ عن ' + (y + n) + ' من ' + tot + ' · نفّذتَ ' + y + ' · لم تنفّذ ' + n;
+  if (tx) tx.textContent = (y + n) === tot ? '🎉 أحسنت! أكملت كل البنود' : pct >= 50 ? '💪 أنت في منتصف الطريق' : (y + n) > 0 ? '🌱 بداية موفقة' : 'ابدأ بأول بند'; var ce = document.getElementById('wkcnt'); if (ce) ce.textContent = (y + n) + ' / ' + tot; var sb = document.getElementById('wksend'); if (sb) sb.textContent = (y + n) === tot ? 'إرسال الأسبوع ✔' : 'إرسال (' + (y + n) + '/' + tot + ')';
   if (m && (y + n) === tot) m.textContent = '';
 }
 
@@ -1046,6 +1082,173 @@ async function week(w) {
     wkRenderWeek(await rpc('my_week', { p_code: S.code, p_week: w }));
   } catch (e) { show('<button class="link" onclick="home()">← الرئيسية</button>' + errBox(e, 'week()')); }
 }
+</script>
+<script>/* == weekui_v3 == */
+(function () {
+  var st = document.createElement('style');
+  st.setAttribute('data-id', 'weekui_v3');
+  st.textContent = [
+    '.wk3-note{background:#f0faf4;color:#1f3d2b;border:1px solid #cfe5d6;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:.92rem;line-height:1.7}',
+    '.wk3-note.ok3{background:#dff3e6;color:#064e2b;font-weight:700;border-color:#9fd3b2}',
+    '.wk3-prog{position:sticky;top:0;z-index:30;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 14px 12px;margin:8px 0;box-shadow:0 6px 18px rgba(6,78,43,.12);transition:background .3s,border-color .3s}',
+    '.wk3-prog.full{background:linear-gradient(135deg,#eaf7ef,#fff);border-color:#22a861;box-shadow:0 0 0 3px rgba(34,168,97,.18),0 6px 18px rgba(6,78,43,.12)}',
+    '.wk3-ph{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}',
+    '.wk3-ph b#wk3n{font-size:1.5rem;color:var(--g1)}',
+    '.wk3-of{color:#5b7466;font-weight:600}',
+    '.wk3-t2{font-size:.9rem;color:#35523f;text-align:center;flex:1}',
+    '.wk3-pc{font-size:1rem;color:var(--o1)}',
+    '.wk3-seg{display:flex;gap:3px;direction:rtl}',
+    '.wk3-seg i{flex:1;height:9px;border-radius:5px;background:#e4efe7;transition:background .25s,transform .25s}',
+    '.wk3-seg i.on{background:linear-gradient(90deg,var(--g3),var(--g1));transform:scaleY(1.25)}',
+    '.wk3-cat{display:flex;justify-content:space-between;align-items:center;margin:18px 4px 6px;color:var(--o1);font-weight:800}',
+    '.wk3-cat em{font-style:normal;font-size:.82rem;background:#fff3e3;color:var(--o1);border-radius:999px;padding:2px 10px}',
+    '.wk3-row{display:flex;align-items:center;gap:10px;padding:8px 12px;margin:6px 0;background:#fff;border:1px solid var(--line);border-right:5px solid var(--line);border-radius:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:background .18s,border-color .18s}',
+    '.wk3-row[data-on="1"]{background:#f0faf4;border-right-color:var(--g3)}',
+    '.wk3-row[data-ro="1"]{cursor:default}',
+    '.wk3-ck{flex:none;width:36px;height:36px;border-radius:50%;border:2.5px solid #b9cfc0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;color:transparent;transition:all .18s}',
+    '.wk3-row[data-on="1"] .wk3-ck{background:linear-gradient(135deg,var(--g3),var(--g1));border-color:var(--g1);color:#fff;transform:scale(1.06)}',
+    '.wk3-ic{display:none}',
+    '.wk3-tx{flex:1;min-width:0;font-size:.95rem;line-height:1.55}',
+    '.wk3-no{flex:none;color:#8aa093;font-size:.8rem;font-weight:700;width:20px;text-align:center}',
+    '.wk3-sp{height:120px}',
+    '.wk3-dock{position:fixed;bottom:0;left:0;right:0;z-index:40;background:rgba(255,255,255,.98);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.14);padding:10px 12px calc(10px + env(safe-area-inset-bottom))}',
+    '.wk3-dock .wk-err{max-width:760px;margin:0 auto 6px}',
+    '.wk3-dk{max-width:760px;margin:0 auto;display:flex;gap:8px;align-items:stretch}',
+    '.wk3-dk button{border-radius:12px;padding:12px 14px;font-weight:700;min-height:46px}',
+    '.wk3-dk .wk3-s{background:#fff;color:var(--g1);border:1.5px solid var(--g2);flex:none}',
+    '.wk3-dk .wk3-go{flex:1;font-size:1.02rem}'
+  ].join('');
+  document.head.appendChild(st);
+})();
+
+function wkIco(t, k) {
+  var s = String(t || ''), m = [
+    ['تشجيع', '📣'], ['توصية', '📝'], ['كتابة', '📝'], ['حضور', '👥'], ['لقاء', '👥'], ['رياض', '🏃'], ['لياقة', '🏃'],
+    ['مشاركة', '🤝'], ['خدمة', '🌍'], ['صلا', '🕌'], ['قرآن', '📖'], ['قران', '📖'], ['قراء', '📚'], ['كتاب', '📚'],
+    ['ذكر', '📿'], ['أذكار', '📿'], ['صدق', '💝'], ['صيام', '🌙'], ['قيام', '🌟'], ['والد', '💞'], ['رحم', '🤝'],
+    ['علم', '🎓'], ['درس', '🎓'], ['تعلم', '🎓'], ['نوم', '😴'], ['دعاء', '🤲'], ['استغفار', '🤲'], ['تطوع', '🙌'], ['نصح', '💬']
+  ];
+  for (var i = 0; i < m.length; i++) { if (s.indexOf(m[i][0]) >= 0) return m[i][1]; }
+  var d = ['🌱', '⭐', '🎯', '💡', '🌿', '🏅', '✨'];
+  return d[(k - 1) % d.length];
+}
+
+function wk3Key(e, id) { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); wkSet(id); } }
+
+function wkRenderWeek(d) {
+  var its = d.items || [], a = {}, valid = {};
+  its.forEach(function (i) { valid[i.id] = 1; if (i.ans && i.on) a[i.id] = true; });
+  var ed = !!d.editable;
+  var dr = ed ? wkLoad(d.week) : null;
+  if (dr && dr.a) Object.keys(dr.a).forEach(function (k) { if (valid[k]) { if (dr.a[k]) a[k] = true; else delete a[k]; } });
+  var cats = [];
+  its.forEach(function (i) { var c = i.cat || ''; if (cats.indexOf(c) < 0) cats.push(c); });
+  WKS = { week: d.week, editable: ed, items: its, a: a, cats: cats };
+  var tot = its.length;
+  var h = '<button class="link" onclick="week()">← الأسابيع</button><h2>أسبوع يبدأ السبت ' + esc(d.week) + (d.week === d.current ? ' (الحالي)' : '') + '</h2>';
+  if (d.submitted) h += '<div class="wk3-note ok3">✓ أُرسل هذا الأسبوع ولا يمكن تغيير إجاباته.</div>';
+  else if (!ed) h += '<div class="wk3-note">انتهت مدة الإجابة عن هذا الأسبوع، وهو للاطلاع فقط.</div>';
+  else h += '<div class="wk3-note">اضغط الدائرة أمام كل بند نفّذتَه. ما تتركه فارغاً يُحسب «لم أنفّذ». لا يُرسل شيء قبل زر الإرسال، ويبقى اختيارك على جهازك.</div>';
+  if (!tot) { show(h + '<p class="muted">لم تُضَف بنود المتابعة بعد.</p>'); return; }
+  var seg = ''; for (var s = 0; s < tot; s++) seg += '<i></i>';
+  h += '<div class="wk3-prog" id="wk3prog"><div class="wk3-ph"><div><b id="wk3n">0</b><span class="wk3-of"> / ' + tot + '</span></div><span id="wk3t" class="wk3-t2"></span><b id="wk3p" class="wk3-pc">0%</b></div><div class="wk3-seg" id="wk3seg">' + seg + '</div></div>';
+  var k = 0;
+  cats.forEach(function (c, ci) {
+    var list = its.filter(function (i) { return (i.cat || '') === c; });
+    if (c) h += '<div class="wk3-cat"><span>' + esc(c) + '</span><em data-wk3c="' + ci + '"></em></div>';
+    list.forEach(function (i) {
+      k++;
+      h += '<div class="wk3-row" id="wki' + i.id + '" role="checkbox" aria-checked="false" data-on="0"' +
+        (ed ? ' tabindex="0" onclick="wkSet(' + i.id + ')" onkeydown="wk3Key(event,' + i.id + ')"' : ' data-ro="1"') + '>' +
+        '<div class="wk3-ck">✓</div><div class="wk3-tx">' + esc(i.title) + '</div><div class="wk3-no">' + k + '</div></div>';
+    });
+  });
+  if (ed) h += '<div class="wk3-sp"></div><div class="wk3-dock"><div id="wkmsg" class="wk-err"></div><div class="wk3-dk"><button class="wk3-s" onclick="wkAll(true)">✓ الكل</button><button class="wk3-s" onclick="wkAll(null)">↺ مسح</button><button id="wksend" class="wk3-go" onclick="wkAsk()">إرسال</button></div></div>';
+  show(h); wkPaint();
+}
+
+function wkPaint() {
+  if (!WKS) return;
+  var tot = WKS.items.length, y = 0, per = {};
+  WKS.items.forEach(function (i) {
+    var on = WKS.a[i.id] === true, c = i.cat || '';
+    if (on) y++;
+    per[c] = per[c] || { t: 0, y: 0 }; per[c].t++; if (on) per[c].y++;
+    var el = document.getElementById('wki' + i.id);
+    if (el) { el.setAttribute('data-on', on ? '1' : '0'); el.setAttribute('aria-checked', on ? 'true' : 'false'); }
+  });
+  var segs = document.querySelectorAll('#wk3seg i');
+  for (var s = 0; s < segs.length; s++) segs[s].classList.toggle('on', s < y);
+  WKS.cats.forEach(function (c, ci) {
+    var em = document.querySelector('[data-wk3c="' + ci + '"]');
+    if (em && per[c]) em.textContent = per[c].y + ' / ' + per[c].t;
+  });
+  var pct = tot ? Math.round(100 * y / tot) : 0, full = tot > 0 && y === tot;
+  var n = document.getElementById('wk3n'), p = document.getElementById('wk3p'), t = document.getElementById('wk3t'), pr = document.getElementById('wk3prog'), sb = document.getElementById('wksend');
+  if (n) n.textContent = y;
+  if (p) p.textContent = pct + '%';
+  if (t) t.textContent = full ? 'اكتملت جميع البنود' : pct >= 70 ? 'تقدّم ممتاز' : pct >= 35 ? 'تقدّم جيد' : y > 0 ? 'بداية موفقة' : (WKS.editable ? 'ابدأ بتحديد البنود المنفّذة' : '');
+  if (pr) pr.classList.toggle('full', full);
+  if (sb) sb.textContent = 'إرسال الأسبوع (' + y + '/' + tot + ')';
+}
+
+function wkSet(id) {
+  if (!WKS || !WKS.editable) return;
+  if (WKS.a[id] === true) delete WKS.a[id]; else WKS.a[id] = true;
+  wkPaint(); wkDraftSave();
+}
+
+function wkAll(v) {
+  if (!WKS || !WKS.editable) return;
+  WKS.items.forEach(function (i) { if (v === null) delete WKS.a[i.id]; else WKS.a[i.id] = true; });
+  wkPaint(); wkDraftSave();
+}
+
+function wkAsk() {
+  if (!WKS || !WKS.editable) return;
+  wkClose();
+  var tot = WKS.items.length, y = WKS.items.filter(function (i) { return WKS.a[i.id] === true; }).length;
+  var warn = y === 0 ? '<p class="wk-err">لم تحدّد أي بند. هل أنت متأكد من الإرسال؟</p>' : '';
+  document.body.insertAdjacentHTML('beforeend', '<div class="wk-ov" id="wkov"><div class="wk-md"><h3>تأكيد الإرسال</h3><p>نفّذتَ <b>' + y + '</b> من <b>' + tot + '</b> بنداً، وما لم تحدّده يُحسب «لم أنفّذ».</p>' + warn + '<p class="muted">بعد الإرسال لا يمكنك تغيير إجابات هذا الأسبوع.</p><div class="row"><button id="wkok" onclick="wkSend()">تأكيد الإرسال</button><button class="sec" onclick="wkClose()">رجوع</button></div></div></div>');
+}
+</script>
+<script>/* == weekui_v4 == */
+(function () {
+  function pv() { return /(^|[#&])preview(&|$)/.test(location.hash.replace(/^#/, '')); }
+  function run() {
+    if (!pv() || typeof wkRenderWeek !== 'function') return;
+    var t = ['حضور اللقاء الأسبوعي في المجموعة', 'ممارسة الرياضة والتدريب والمحافظة على اللياقة البدنية', 'المشاركة العملية في خدمة المجتمع في منطقتك المحددة', 'تشجيع من حولك من أفراد المجتمع على المشاركة في الخدمة', 'كتابة التوصية الشخصية', 'حفظ المقرر القرآني ومراجعته'];
+    var c = ['اللقاء واللياقة', 'اللقاء واللياقة', 'خدمة المجتمع', 'خدمة المجتمع', 'النمو والعلم', 'النمو والعلم'];
+    var items = t.map(function (x, i) { return { id: 9000 + i, title: x, cat: c[i], ans: false, on: false }; });
+    try { S.code = S.code || 'preview'; } catch (e) {}
+    wkRenderWeek({ week: '2026-11-14', current: '2026-11-14', editable: true, submitted: false, items: items });
+    var n = document.createElement('div');
+    n.style.cssText = 'background:#fff3e3;color:#7a3a00;border:1px solid #f7b955;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:.9rem';
+    n.textContent = 'وضع المعاينة: عرض تجريبي لطالب جديد، لا يُرسل شيء إلى الخادم.';
+    var a = document.getElementById('app'); if (a) a.insertBefore(n, a.firstChild);
+  }
+  window.wkPreviewRun = run;
+  window.addEventListener('load', function () { setTimeout(run, 600); });
+  window.addEventListener('hashchange', function () { setTimeout(run, 100); });
+})();
+</script>
+<script>/* == weekui_v5 == */
+(function () {
+  var st = document.createElement('style');
+  st.setAttribute('data-id', 'weekui_v5');
+  st.textContent = [
+    '.wk3-row{margin:0;border:1px solid var(--line);border-top:0;border-radius:0;box-shadow:none;padding:7px 14px;gap:12px;background:#fff}',
+    '.wk3-row[data-on="1"]{background:#eef8f1;border-right:1px solid var(--line)}',
+    '.wk3-cat{margin:0;padding:8px 14px;background:#f1f6f2;border:1px solid var(--line);border-top:0;font-size:.86rem}',
+    '.wk3-prog + .wk3-cat,.wk3-prog + .wk3-row{border-top:1px solid var(--line);border-radius:14px 14px 0 0;margin-top:10px}',
+    '.wk3-sp{border-top:1px solid var(--line);height:130px}',
+    '.wk3-no{order:0;width:22px;font-size:.74rem}',
+    '.wk3-tx{order:1;font-size:.86rem;line-height:1.4}',
+    '.wk3-ck{order:2;width:28px;height:28px;font-size:.95rem;border-width:2px;margin-right:auto}',
+    '.wk3-ic{display:none}'
+  ].join('');
+  document.head.appendChild(st);
+})();
 </script>
 <script>/* == ver_v1 == */
 (function () {

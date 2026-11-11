@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261111-031714">
+<meta name="build" content="20261111-040301">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -161,7 +161,6 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const show = h => { document.getElementById('app').innerHTML = h; window.scrollTo(0, 0); };
 const loading = '<p class="muted">جارٍ التحميل…</p>';
-const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 async function rpc(fn, args) {
@@ -197,70 +196,7 @@ const errBox = (e, retry) => '<div class="err">' + esc(msg(e)) + '</div>' + (ret
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mk); else mk();
 })();
-function brandStat(cls, n, t) { return '<div class="bst ' + cls + '"><div class="bn">' + n + '</div><div class="bl">' + t + '</div></div>'; }
-function statCards(done, tot, today) {
-  const late = S.ls.filter(l => !l.done && l.due && l.due < today).length;
-  const left = Math.max(0, tot - done - late);
-  const pct = tot ? Math.round(100 * done / tot) : 0;
-  return '<div class="bstats">' + brandStat('s1', done, 'أنجزتَ') + brandStat('s2', left, 'المتبقي') + brandStat('s3', late, 'متأخر') + '</div>' +
-    '<div class="card"><div class="row"><b>رصيدك: ' + pct + '%</b><span class="muted">' + done + ' من ' + tot + ' درساً</span></div><div class="bar"><i style="width:' + pct + '%"></i></div></div>';
-}
-function brandStats(c) {
-  const ms = c.perMember || [], n = ms.length;
-  const avg = n ? Math.round(ms.reduce((a, m) => a + (m.pct || 0), 0) / n) : 0;
-  const late = ms.filter(m => m.late > 0).length;
-  const top = ms.filter(m => m.done > 0).slice().sort((a, b) => b.pct - a.pct || b.done - a.done || String(a.name).localeCompare(String(b.name), 'ar')).slice(0, 3);
-  let h = '<div class="bstats">' + brandStat('s1', n, 'الأعضاء') + brandStat('s2', avg + '%', 'متوسط الإنجاز') + brandStat('s3', late, 'أعضاء متأخرون') + '</div>';
-  if (top.length) {
-    const med = ['🥇', '🥈', '🥉'], lb = ['الأول', 'الثاني', 'الثالث'];
-    h += '<div class="bpod"><h3>🏆 صدارة المتابعة</h3><div class="bpg">' + top.map((m, i) =>
-      '<div class="bpc p' + (i + 1) + '"><div class="bm">' + med[i] + '</div><div class="bsb">' + lb[i] + '</div><div class="bnm">' + esc(m.name) + '</div><div class="bpt">' + m.pct + '%</div><div class="bsb">' + m.done + ' / ' + m.tot + '</div></div>').join('') + '</div></div>';
-  }
-  return h;
-}
 /* == member_v1 == */
-const _cnt = a => ({ done: a.filter(l => l.done).length, tot: a.length });
-function dlBtn(id) {
-  const l = (S.ls || []).find(x => x.id === id);
-  return (l && l.has_file && l.dl) ? '<div class="row noprint" style="margin:6px 0"><button class="sec sm" onclick="dlFile(' + id + ')">⬇ تحميل الملف الأصلي</button></div>' : '';
-}
-async function dlFile(id) {
-  try {
-    const f = await rpc('get_lesson_file', { p_code: S.code, p_lesson: id });
-    const bin = atob(f.data), u = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([u], { type: f.mime })); a.download = f.name; a.click();
-  } catch (e) { alert(String(e.message) === 'no_download' ? 'التحميل غير متاح لهذا الدرس.' : msg(e)); }
-}
-function renderHome() {
-  const done = S.ls.filter(l => l.done).length, tot = S.ls.length, today = todayStr();
-  let h = '<div class="row"><div class="grow"><h1>أهلاً ' + esc(S.me.name) + '</h1>' +
-    (S.me.leader ? '<span class="badge b-wait">مشرف مجموعة' + (S.me.grp ? ' — ' + esc(S.me.grp) : '') + '</span>' : '') +
-    '</div><button class="sec sm" onclick="logout()">خروج</button></div>' + statCards(done, tot, today);
-  const cs = (S.cs || []).slice();
-  if (S.ls.some(l => !l.course_id)) cs.push({ id: 0, title: 'دروس أخرى' });
-  if (!tot) h += '<p class="muted">لا توجد دروس منشورة بعد.</p>';
-  cs.forEach(c => {
-    const a = S.ls.filter(l => (l.course_id || 0) === c.id); if (!a.length) return;
-    const k = _cnt(a), pct = Math.round(100 * k.done / k.tot), late = a.filter(l => !l.done && l.due && l.due < today).length;
-    h += '<div class="card lesson" onclick="course(' + c.id + ')"><div class="grow"><b>' + esc(c.title) + '</b><div class="muted">' + k.done + ' من ' + k.tot + ' دروس' + (late ? ' · متأخر ' + late : '') + '</div><div class="bar"><i style="width:' + pct + '%"></i></div></div><span class="badge ' + (k.done === k.tot ? 'b-ok' : 'b-wait') + '">' + pct + '%</span></div>';
-  });
-  h += '<div class="card lesson" onclick="week()"><div><b>📋 المتابعة الأسبوعية</b><div class="muted">القيم والأخلاق: ضع علامة على ما طبّقته هذا الأسبوع</div></div><span class="badge b-wait">فتح</span></div>';
-  show(h);
-}
-function course(cid) {
-  const c = cid ? (S.cs || []).find(x => x.id === cid) : { title: 'دروس أخرى' };
-  const a = S.ls.filter(l => (l.course_id || 0) === cid), today = todayStr();
-  let h = '<button class="link" onclick="home()">← المواد</button><h2>' + esc(c ? c.title : '') + '</h2>';
-  a.forEach(l => {
-    const late = !l.done && l.due && l.due < today;
-    const b = l.done ? '<span class="badge b-ok">تم' + (l.source === 'group' ? ' (جماعي)' : l.source === 'manual' ? ' (يدوي)' : '') + '</span>'
-      : late ? '<span class="badge b-late">متأخر</span>' : '<span class="badge b-wait">لم يُقرأ</span>';
-    h += '<div class="card lesson" onclick="lesson(' + l.id + ')"><div><b>' + l.no + '. ' + esc(l.title) + '</b><div class="muted">نحو ' + l.minutes + ' دقيقة' + (l.due ? ' · الموعد ' + esc(l.due) : '') + (l.has_file && l.dl ? ' · ملف للتحميل ⬇' : '') + '</div></div>' + b + '</div>';
-  });
-  show(h);
-}
 
 /* == week_v2 == */
 
@@ -299,95 +235,13 @@ function doLogin() {
   const v = ($('#c').value || '').trim().toUpperCase(); if (!v) return;
   S.code = v; localStorage.setItem('code', v); home();
 }
-function logout() { localStorage.removeItem('code'); S.code = ''; login(); }
 
 /* ============ الصفحة الرئيسية للعضو ============ */
-async function home() {
-  show(loading);
-  try {
-    const d = await rpc('my_status', { p_code: S.code });
-    S.me = d.member; S.ls = d.lessons || []; S.cs = d.courses || [];
-    renderHome();
-  } catch (e) {
-    if (String(e.message) === 'bad_code') { localStorage.removeItem('code'); S.code = ''; return login('الرمز غير صحيح أو معطّل.'); }
-    show(errBox(e, 'home()'));
-  }
-}
+/* == cleanup_lessons_v1 == */ function home() { if (typeof week === 'function') return week(); setTimeout(home, 50); }
 
 
 /* ============ شاشة الدرس ============ */
-let _iv = null;
-async function lesson(id) {
-  show(loading); clearInterval(_iv);
-  let d;
-  try { d = await rpc('get_lesson', { p_code: S.code, p_lesson: id }); } catch (e) { return show('<button class="link" onclick="home()">← الدروس</button>' + errBox(e, 'lesson(' + id + ')')); }
-  const t0 = Date.now();
-  const paras = String(d.body).split(/\n\s*\n/).map(p => { p = p.trim(); const im = p.match(/^\[\[img:(data:image\/jpeg;base64,[A-Za-z0-9+\/=]+)\]\]$/); return im ? '<img src="' + im[1] + '" alt="" style="width:100%;display:block;margin:8px 0;border-radius:8px">' : '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>'; }).join('');
-  let h = '<button class="link" onclick="clearInterval(_iv);home()">← الدروس</button><h2>' + d.id + '. ' + esc(d.title) + '</h2>' +
-    '<div class="muted">نحو ' + d.minutes + ' دقيقة قراءة</div>' + dlBtn(d.id) +
-    '<div class="row noprint" style="margin:8px 0"><button class="sec sm" onclick="fs(1)">أ+</button><button class="sec sm" onclick="fs(-1)">أ−</button></div>' +
-    '<div class="body" id="body">' + paras + '</div>';
-  if (d.done) { h += '<div class="ok">سبق تسجيل هذا الدرس في رصيدك ✓</div>'; return show(h); }
-  if (d.leader) h += '<div class="card"><label><input type="checkbox" id="grp"> أقرأ لمجموعة، وسأسجّل الحاضرين بعد الأسئلة</label></div>';
-  h += '<p><button id="done" disabled onclick="check(' + id + ')">أنهيت القراءة</button></p><p class="muted">يُفتح الزر بعد الوقت الأدنى للقراءة، ثم تظهر أسئلة قصيرة.</p>';
-  show(h);
-  const left = () => Math.max(0, Math.ceil(d.min_seconds - d.elapsed - (Date.now() - t0) / 1000));
-  const tick = () => {
-    const b = document.getElementById('done'); if (!b) { clearInterval(_iv); return; }
-    const s = left(); b.disabled = s > 0;
-    b.textContent = s > 0 ? 'أنهيت القراءة (متاح بعد ' + fmt(s) + ')' : 'أنهيت القراءة';
-  };
-  tick(); _iv = setInterval(tick, 1000);
-}
-let _fs = 1.15;
-function fs(d) { _fs = Math.min(2, Math.max(.9, _fs + d * .1)); const b = $('#body'); if (b) b.style.fontSize = _fs + 'rem'; }
 
-async function check(id) {
-  const isG = !!(document.getElementById('grp') && document.getElementById('grp').checked);
-  try {
-    const qs = await rpc('get_check', { p_code: S.code, p_lesson: id });
-    const members = isG ? (await rpc('group_members', { p_code: S.code, p_lesson: id })) || [] : [];
-    renderCheck(id, qs || [], members, isG);
-  } catch (e) { alert(msg(e)); }
-}
-function renderCheck(id, qs, members, isG) {
-  clearInterval(_iv);
-  let h = '<h2>أسئلة تحقق قصيرة</h2><p class="muted">أجب عما قرأته في الدرس. إن أخطأت فراجع الدرس وستظهر لك أسئلة أخرى.</p>';
-  if (!qs.length) h += '<div class="ok">لا أسئلة لهذا الدرس؛ يكفي الإرسال.</div>';
-  qs.forEach((q, n) => {
-    h += '<div class="card q" data-q="' + q.i + '"><b>' + (n + 1) + '. ' + esc(q.q) + '</b>' +
-      (q.options || []).map((o, k) => '<label><input type="radio" name="q' + q.i + '" value="' + k + '">' + esc(o) + '</label>').join('') + '</div>';
-  });
-  if (isG) {
-    h += '<div class="card"><h3>الحاضرون معك في القراءة</h3>';
-    if (!members.length) h += '<p class="muted">لا أعضاء آخرون في مجموعتك.</p>';
-    else {
-      h += '<p><button class="sec sm" onclick="document.querySelectorAll(\'.mem:not(:disabled)\').forEach(c=>c.checked=true)">تحديد الكل</button></p>';
-      members.forEach(m => {
-        h += '<label style="display:block"><input type="checkbox" class="mem" value="' + m.id + '"' + (m.done ? ' disabled' : '') + '> ' + esc(m.name) + (m.done ? ' <span class="badge b-ok">مسجّل مسبقاً</span>' : '') + '</label>';
-      });
-    }
-    h += '</div>';
-  }
-  h += '<p><button onclick="send(' + id + ',' + isG + ')">إرسال وتسجيل الدرس</button> <button class="sec" onclick="lesson(' + id + ')">← العودة للدرس</button></p>';
-  show(h);
-}
-async function send(id, isG) {
-  const ans = {};
-  document.querySelectorAll('[data-q]').forEach(el => { const r = el.querySelector('input:checked'); if (r) ans[el.dataset.q] = +r.value; });
-  try {
-    let res;
-    if (isG) {
-      const mem = [...document.querySelectorAll('.mem:checked')].map(c => +c.value);
-      res = await rpc('submit_group', { p_code: S.code, p_lesson: id, p_answers: ans, p_members: mem });
-    } else res = await rpc('submit_read', { p_code: S.code, p_lesson: id, p_answers: ans });
-    if (res && res.ok) {
-      show('<div class="ok"><h2>تم تسجيل الدرس في رصيدك ✓</h2>' + (isG ? '<p>سُجّل لـ ' + (res.credited || 0) + ' من الحاضرين.</p>' : '') + '</div><p><button onclick="home()">العودة للدروس</button></p>');
-    } else {
-      show('<div class="err"><h3>لم تكتمل الإجابات الصحيحة</h3><p>راجع الدرس ثم جرّب مرة أخرى بأسئلة مختلفة.</p></div><p><button onclick="check(' + id + ')">أسئلة جديدة</button> <button class="sec" onclick="lesson(' + id + ')">مراجعة الدرس</button></p>');
-    }
-  } catch (e) { alert(msg(e)); }
-}
 
 /* ============ المسؤول ============ */
 function adminEntry() {
@@ -403,52 +257,13 @@ async function adminLoad() {
   try { A.L = null; A.W = null; A.data = await rpc('admin_report', { p_pass: A.pass }); adminRender(); }
   catch (e) { if (String(e.message) === 'bad_admin') { A.pass = ''; sessionStorage.removeItem('apass'); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); }
 }
-function calc() {
-  const d = A.data, today = todayStr(), act = d.members.filter(m => m.active), map = {};
-  d.readings.forEach(r => { map[r.m + '_' + r.l] = r; });
-  const perLesson = d.lessons.map(l => {
-    const n = act.filter(m => map[m.id + '_' + l.id]).length;
-    return Object.assign({}, l, { n, total: act.length, pct: act.length ? Math.round(100 * n / act.length) : 0, late: !!(l.due && l.due < today) });
-  });
-  const perMember = act.map(m => {
-    const done = d.lessons.filter(l => map[m.id + '_' + l.id]).length;
-    const late = d.lessons.filter(l => l.due && l.due < today && !map[m.id + '_' + l.id]).length;
-    const mine = d.readings.filter(r => r.m === m.id).map(r => r.t).sort();
-    return Object.assign({}, m, { done, late, tot: d.lessons.length, pct: d.lessons.length ? Math.round(100 * done / d.lessons.length) : 0, last: mine.length ? mine[mine.length - 1].slice(0, 10) : '—' });
-  });
-  return { map, perLesson, perMember, act };
-}
 function adminRender() {
-  const tabs = [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع'], ['report', 'تقرير الدروس'], ['matrix', 'الجدول الكامل'], ['members', 'الأعضاء'], ['lessons', 'الدروس'], ['manual', 'تسجيل يدوي']];
+  /* == cleanup_tabs_v1 == */ if (['wr', 'week', 'members'].indexOf(A.tab) < 0) A.tab = 'wr';
+  const tabs = [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع'], ['members', 'الأعضاء']];
   let h = '<div class="row noprint"><div class="grow"><h1>لوحة المسؤول</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
-  h += ({ report: tReport, matrix: tMatrix, wr: tWR, week: tWeek, members: tMembers, lessons: tLessons, manual: tManual })[A.tab]();
+  h += (({ wr: tWR, week: tWeek, members: tMembers })[A.tab] || tWR)();
   show(h);
-}
-function tReport() {
-  const c = calc();
-  let h = brandStats(c) + '<h3>إنجاز كل درس</h3><div class="scroll"><table><tr><th>الدرس</th><th>قرأه</th><th>النسبة</th><th></th></tr>';
-  c.perLesson.forEach(l => {
-    h += '<tr><td>' + l.id + '. ' + esc(l.title) + (l.due ? '<div class="muted">الموعد ' + esc(l.due) + '</div>' : '') + '</td><td>' + l.n + ' / ' + l.total + '</td><td>' + l.pct + '%</td><td style="width:90px"><div class="bar"><i style="width:' + l.pct + '%"></i></div></td></tr>';
-  });
-  h += '</table></div><h3>الأعضاء (الأكثر تأخراً أولاً)</h3><div class="scroll"><table><tr><th>الاسم</th><th>المجموعة</th><th>الرصيد</th><th>متأخر</th><th>آخر نشاط</th></tr>';
-  c.perMember.slice().sort((a, b) => b.late - a.late || a.pct - b.pct).forEach(m => {
-    h += '<tr><td>' + esc(m.name) + '</td><td>' + esc(m.grp) + '</td><td>' + m.done + '/' + m.tot + ' (' + m.pct + '%)</td><td>' + (m.late ? '<span class="badge b-late">' + m.late + '</span>' : '0') + '</td><td>' + esc(m.last) + '</td></tr>';
-  });
-  return h + '</table></div><p><button class="sec" onclick="csv()">تصدير CSV</button></p>';
-}
-function tMatrix() {
-  const c = calc(), d = A.data;
-  let h = '<p class="muted">✓ فردي · ● جماعي · ✎ يدوي · ✗ متأخر · – لم يحن موعده</p><div class="scroll"><table class="mx"><tr><th>العضو</th>' + d.lessons.map(l => '<th>' + l.id + '</th>').join('') + '</tr>';
-  const today = todayStr();
-  c.act.forEach(m => {
-    h += '<tr><td>' + esc(m.name) + '</td>' + d.lessons.map(l => {
-      const r = c.map[m.id + '_' + l.id];
-      if (r) return '<td title="' + esc(String(r.t).slice(0, 10)) + '">' + ({ individual: '✓', group: '●', manual: '✎' })[r.s] + '</td>';
-      return '<td>' + (l.due && l.due < today ? '<span style="color:#b3402a">✗</span>' : '–') + '</td>';
-    }).join('') + '</tr>';
-  });
-  return h + '</table></div>';
 }
 
 /* == adminweek_v1 == */
@@ -903,12 +718,6 @@ function tWR() {
     '<input type="text" placeholder="ابحث في الفروع والمجموعات والأعضاء" value="' + esc(A.rq) + '" oninput="wrSearch(this.value)">' +
     '<div id="wr-tree" style="max-height:300px;overflow:auto;margin-top:8px">' + wrTree() + '</div></div>' +
     '<div id="wr-out">' + wrOut() + '</div>';
-}function csv() {
-  const c = calc(), d = A.data;
-  const rows = [['الاسم', 'المجموعة', 'الرمز'].concat(d.lessons.map(l => 'درس ' + l.id)).concat(['المنجز', 'المتأخر'])];
-  c.perMember.forEach(m => rows.push([m.name, m.grp, m.code].concat(d.lessons.map(l => { const r = c.map[m.id + '_' + l.id]; return r ? ({ individual: 'فردي', group: 'جماعي', manual: 'يدوي' })[r.s] : ''; })).concat([m.done, m.late])));
-  const t = '﻿' + rows.map(r => r.map(x => '"' + String(x).replace(/"/g, '""') + '"').join(',')).join('\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/csv;charset=utf-8' })); a.download = 'reading-report-' + todayStr() + '.csv'; a.click();
 }
 const baseUrl = () => location.origin + location.pathname;
 function tMembers() {
@@ -955,191 +764,8 @@ function printCards() {
   show(h + '</div>');
 }
 /* == lessons_v1 == */
-function fmtSize(b) { b = Number(b) || 0; return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.round(b / 1024) + ' KB'; }
-function lmsg(e) {
-  const m = String((e && e.message) || e);
-  if (m === 'has_readings') return 'غير مسموح: سُجّلت قراءات، وهذا يحمي أرصدة الأعضاء.';
-  return msg(e);
-}
-async function loadL() {
-  if (A.Lbusy) return; A.Lbusy = true;
-  try { A.L = await rpc('admin_lessons', { p_pass: A.pass }); }
-  catch (e) { A.L = { lessons: [], total_bytes: 0 }; alert(lmsg(e)); }
-  A.Lbusy = false;
-  if (A.tab === 'lessons') adminRender();
-}
-async function lMove(id, dir) {
-  try { await rpc('admin_lesson_move', { p_pass: A.pass, p_id: id, p_dir: dir }); } catch (e) { alert(lmsg(e)); }
-  await adminLoad();
-}
-async function lRenum() {
-  if (!confirm('إعادة ترقيم الدروس 1، 2، 3... بالترتيب الحالي؟')) return;
-  try { await rpc('admin_lessons_renumber', { p_pass: A.pass }); alert('تمت إعادة الترقيم.'); } catch (e) { alert(lmsg(e)); }
-  await adminLoad();
-}
-async function lDel(id) {
-  if (!confirm('حذف الدرس ' + id + ' نهائياً؟')) return;
-  try { await rpc('admin_lesson_delete', { p_pass: A.pass, p_id: id, p_force: false }); }
-  catch (e) {
-    if (String(e.message) === 'has_readings') {
-      if (confirm('لهذا الدرس قراءات مسجّلة وستُحذف معه. تأكيد الحذف؟')) {
-        try { await rpc('admin_lesson_delete', { p_pass: A.pass, p_id: id, p_force: true }); } catch (e2) { alert(lmsg(e2)); }
-      }
-    } else alert(lmsg(e));
-  }
-  await adminLoad();
-}
-async function lEdit(id) {
-  const l = (A.L.lessons || []).find(x => x.id === id); if (!l) return;
-  const t = prompt('عنوان الدرس:', l.title); if (t === null) return;
-  const m = prompt('المدة بالدقائق:', l.minutes); if (m === null) return;
-  const due = prompt('الموعد (YYYY-MM-DD) أو اتركه فارغاً:', l.due || ''); if (due === null) return;
-  const mi = parseInt(m, 10); if (!mi || mi < 1) return alert('المدة غير صحيحة.');
-  const ms = mi === l.minutes ? l.min_seconds : Math.round(mi * 60 * 0.4);
-  try { await rpc('admin_lesson_update', { p_pass: A.pass, p_id: id, p_title: t, p_minutes: mi, p_min_seconds: ms, p_due: due.trim(), p_course: null }); }
-  catch (e) { alert(lmsg(e)); }
-  await adminLoad();
-}
-async function lAdd() {
-  const t = ($('#nl_t').value || '').trim(), m = parseInt($('#nl_m').value, 10), b = ($('#nl_b').value || '').trim();
-  if (!t || !b || !m) return alert('اكتب العنوان والمدة ونص الدرس.');
-  const n = Math.max(0, ...(A.L.lessons || []).map(x => x.id)) + 1;
-  try { await rpc('admin_import_lessons', { p_pass: A.pass, p_lessons: [{ n: n, title: t, minutes: m, min_seconds: Math.round(m * 24), body: b, questions: [] }] }); alert('أُضيف الدرس رقم ' + n + '.'); }
-  catch (e) { alert(lmsg(e)); }
-  await adminLoad();
-}
-function tLessons() {
-  let h = '<div class="card"><h3>استيراد الدروس</h3><p class="muted">اختر ملفاً أو أكثر (PDF أو Word أو PowerPoint أو نص أو JSON) وسيُستورد مباشرة بعد تأكيدك. الدرس الأطول من 15 دقيقة يُقسَّم تلقائياً. الاستيراد يحدّث الدروس ذات الأرقام نفسها.</p><input type="file" accept=".json,.txt,.md,.docx,.pptx,.pdf,application/pdf,application/json,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation" multiple onchange="loadFile(this)"><textarea id="lj" placeholder="[ { &quot;n&quot;: 1, &quot;title&quot;: &quot;…&quot;, &quot;body&quot;: &quot;…&quot;, &quot;minutes&quot;: 15, &quot;due&quot;: &quot;2026-12-01&quot;, &quot;questions&quot;: [ … ] } ]" style="display:none"></textarea></div>';
-  if (!A.L) { loadL(); return h + '<p class="muted">جارٍ تحميل قائمة الدروس…</p>'; }
-  const L = A.L.lessons || [];
-  h += '<div class="card"><b>الدروس: ' + L.length + '</b> · الحجم الكلي ' + fmtSize(A.L.total_bytes) + ' من 500 MB (السعة المجانية)</div>';
-  h += '<div class="scroll"><table><tr><th>#</th><th>العنوان</th><th>الدقائق</th><th>الحجم</th><th>صور</th><th>أسئلة</th><th>قرّاء</th><th>الموعد</th><th></th></tr>';
-  L.forEach(l => {
-    h += '<tr><td>' + l.id + '</td><td>' + esc(l.title) + '</td><td>' + l.minutes + '</td><td>' + fmtSize(l.bytes) + '</td><td>' + (l.imgs || 0) + '</td><td>' +
-      (l.nq < 2 ? '<span class="badge b-late">' + l.nq + '</span>' : l.nq) + '</td><td>' + l.readers + '</td><td>' + esc(l.due || '—') + '</td><td style="white-space:nowrap">' +
-      '<button class="sec sm" onclick="lMove(' + l.id + ',-1)">▲</button> <button class="sec sm" onclick="lMove(' + l.id + ',1)">▼</button> ' +
-      '<button class="sec sm" onclick="lEdit(' + l.id + ')">تعديل</button> <button class="sec sm" onclick="lDel(' + l.id + ')">حذف</button></td></tr>';
-  });
-  h += '</table></div><p><button class="sec" onclick="lRenum()">إعادة الترقيم 1، 2، 3…</button></p>';
-  h += '<details class="card"><summary><b>إضافة درس نصي يدوياً</b></summary><p><input id="nl_t" placeholder="عنوان الدرس"></p><p><input id="nl_m" type="number" placeholder="المدة بالدقائق" value="10"></p><p><textarea id="nl_b" rows="8" placeholder="نص الدرس (فقرات تفصلها سطر فارغ)"></textarea></p><p><button onclick="lAdd()">إضافة</button></p></details>';
-  return h + '<p class="muted">الترتيب والترقيم والتعديل الجذري ممنوعة بعد تسجيل أي قراءة. يُنصح ببنك لا يقل عن 4 أسئلة لكل درس.</p>';
-}
 /* == import_v1 == */
-const _libs = {};
-const _CDN = 'https://cdnjs.cloudflare.com/ajax/libs/';
-function _lib(u) {
-  return _libs[u] || (_libs[u] = new Promise((ok, no) => {
-    const s = document.createElement('script'); s.src = u; s.onload = ok;
-    s.onerror = () => no(new Error('تعذّر تحميل مكتبة القراءة. تحقق من الإنترنت.'));
-    document.head.appendChild(s);
-  }));
-}
-async function _extract(f) {
-  const ext = f.name.split('.').pop().toLowerCase();
-  if (ext === 'txt' || ext === 'md') return await f.text();
-  const buf = await f.arrayBuffer();
-  if (ext === 'docx') {
-    await _lib(_CDN + 'mammoth/1.6.0/mammoth.browser.min.js');
-    return (await mammoth.extractRawText({ arrayBuffer: buf })).value;
-  }
-  if (ext === 'pptx') {
-    await _lib(_CDN + 'jszip/3.10.1/jszip.min.js');
-    const z = await JSZip.loadAsync(buf);
-    const names = Object.keys(z.files).filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n))
-      .sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
-    const out = [];
-    for (const n of names) {
-      const x = await z.file(n).async('string');
-      const ps = x.split('</a:p>').map(p => (p.match(/<a:t[^>]*>[^<]*<\/a:t>/g) || []).map(t => t.replace(/<[^>]+>/g, '')).join(''))
-        .map(t => t.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&').trim())
-        .filter(Boolean);
-      if (ps.length) out.push(ps.join('\n'));
-    }
-    return out.join('\n\n');
-  }
-  if (ext === 'pdf') {
-    await _lib(_CDN + 'pdf.js/3.11.174/pdf.min.js');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = _CDN + 'pdf.js/3.11.174/pdf.worker.min.js';
-    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    const pg = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const c = await (await pdf.getPage(i)).getTextContent();
-      pg.push(c.items.map(t => t.str).join(' '));
-    }
-/* == pdfimg_v1 == */
-    if (pg.join('').trim().length < 50 * pdf.numPages) {
-      const im = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i), vp = page.getViewport({ scale: 1.3 });
-        const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
-        const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
-        await page.render({ canvasContext: cx, viewport: vp }).promise;
-        im.push('[[img:' + cv.toDataURL('image/jpeg', 0.6) + ']]');
-      }
-      return im.join('\n\n');
-    }
-    return pg.join('\n\n');
-  }
-  throw new Error('صيغة غير مدعومة');
-}
 /* == direct_v1 == */
-function _split(t, max) {
-  const ps = t.split(/\n+/), parts = []; let cur = [], w = 0;
-  for (const p of ps) {
-    const c = p.split(/\s+/).length;
-    if (w + c > max && cur.length) { parts.push(cur.join('\n\n')); cur = []; w = 0; }
-    cur.push(p); w += c;
-  }
-  if (cur.length) parts.push(cur.join('\n\n'));
-  return parts;
-}
-async function _doImport(arr, notes) {
-  const sum = arr.map(l => l.n + '. ' + l.title + ' (' + (l.minutes || 15) + ' دقيقة)').join('\n');
-  const head = (notes && notes.length) ? notes.join('\n') + '\n\n' : '';
-  if (!confirm(head + 'سيُستورد ' + arr.length + ' درساً:\n' + sum + '\n\nمتابعة؟')) return;
-  try { const n = await rpc('admin_import_lessons', { p_pass: A.pass, p_lessons: arr }); alert('تم استيراد ' + n + ' درساً.'); await adminLoad(); }
-  catch (e) { alert(msg(e)); }
-}
-async function loadFile(inp) {
-  const fs = Array.from(inp.files || []); if (!fs.length) return;
-  const ta = $('#lj');
-  const ext0 = f => f.name.split('.').pop().toLowerCase();
-  if (fs.length === 1 && ext0(fs[0]) === 'json') { try { const j = JSON.parse(await fs[0].text()); if (!Array.isArray(j)) return alert('يجب أن يكون الملف مصفوفة دروس.'); await _doImport(j, []); } catch (e) { alert('صيغة JSON غير صحيحة.'); } return; }
-  const out = [], notes = [];
-  let n = Math.max(0, ...A.data.lessons.map(l => l.id)) + 1;
-  for (const f of fs) {
-    try {
-      if (ext0(f) === 'json') { notes.push(f.name + ': تُرك (JSON يُختار وحده)'); continue; }
-      let t = (await _extract(f)).replace(/\r\n/g, '\n').replace(/[ \t]+\n/g, '\n').trim();
-      if (!t) { notes.push(f.name + ': لا نص فيه (ربما ملف ممسوح ضوئياً)'); continue; }
-      const words = t.split(/\s+/).length, minutes = Math.max(1, Math.round(words / 180));
-      const isImg = t.includes('[[img:'); const parts = isImg ? _split(t, 7) : (minutes > 15 ? _split(t, 2500) : [t]); const base = f.name.replace(/\.[^.]+$/, ''); parts.forEach((pt, k) => { const m = isImg ? (pt.split('[[img:').length - 1) * 2 : Math.max(1, Math.round(pt.split(/\s+/).length / 180)); out.push({ n: n++, title: parts.length > 1 ? base + ' (الجزء ' + (k + 1) + ')' : base, minutes: m, due: '', body: pt, questions: [] }); });
-      notes.push(f.name + ': ' + words + ' كلمة، نحو ' + minutes + ' دقيقة' + (minutes > 15 ? ' (سيُقسَّم تلقائياً)' : ''));
-    } catch (e) { notes.push(f.name + ': فشل (' + (e.message || e) + ')'); }
-  }
-  if (out.length) await _doImport(out, notes); else alert(notes.join('\n'));
-  
-}
-async function importLessons() {
-  let j; try { j = JSON.parse($('#lj').value); } catch (e) { return alert('صيغة JSON غير صحيحة.'); }
-  if (!Array.isArray(j)) return alert('يجب أن يكون الملف مصفوفة دروس.');
-  try { const n = await rpc('admin_import_lessons', { p_pass: A.pass, p_lessons: j }); alert('تم استيراد ' + n + ' درساً.'); await adminLoad(); } catch (e) { alert(msg(e)); }
-}
-function tManual() {
-  const d = A.data;
-  const mo = d.members.filter(m => m.active).map(m => '<option value="' + m.id + '">' + esc(m.name) + (m.grp ? ' — ' + esc(m.grp) : '') + '</option>').join('');
-  const lo = d.lessons.map(l => '<option value="' + l.id + '">' + l.id + '. ' + esc(l.title) + '</option>').join('');
-  return '<div class="card"><h3>تسجيل يدوي (لمن يقرأ من الكتاب الورقي أو بلا إنترنت)</h3><p class="muted">يُسجَّل بوسم «يدوي» ليتميز عن القراءة الموثّقة.</p><p><select id="mm">' + mo + '</select></p><p><select id="ml">' + lo + '</select></p><p><input type="text" id="mn" placeholder="ملاحظة (مثلاً: تحقق شفهي بالهاتف)"></p><p><button onclick="manual(true)">تسجيل الدرس له</button> <button class="danger" onclick="manual(false)">إلغاء تسجيل</button></p></div>';
-}
-async function manual(add) {
-  const m = +$('#mm').value, l = +$('#ml').value;
-  if (!m || !l) return;
-  try {
-    if (add) await rpc('admin_credit', { p_pass: A.pass, p_member: m, p_lesson: l, p_note: $('#mn').value });
-    else { if (!confirm('إلغاء تسجيل هذا الدرس لهذا العضو؟')) return; await rpc('admin_uncredit', { p_pass: A.pass, p_member: m, p_lesson: l }); }
-    await adminLoad(); A.tab = 'manual'; adminRender(); alert('تم.');
-  } catch (e) { alert(msg(e)); }
-}
 
 route();
 </script>
@@ -1566,7 +1192,7 @@ async function week(w) {
     if (!tw) { wkRenderList(d); return; }
     wkSeenAdd(tw);
     wkRenderWeek(await rpc('my_week', { p_code: S.code, p_week: tw }));
-  } catch (e) { show('<button class="link" onclick="home()">← الرئيسية</button>' + errBox(e, 'week()')); }
+  } catch (e) { if (String(e.message) === 'bad_code') { localStorage.removeItem('code'); S.code = ''; return login('الرمز غير صحيح أو معطّل.'); } show(errBox(e, 'week()')); }
 }
 </script>
 <script>/* == weekui_v7 == */

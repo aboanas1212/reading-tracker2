@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261111-044943">
+<meta name="build" content="20261111-045533">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -890,7 +890,32 @@ function oOut() {
 function oCtl() {
   return '<div class="row" style="margin:8px 0"><button class="sm' + (A.om === 'exec' ? '' : ' sec') + '" onclick="oMetric(\'exec\')">نسبة التنفيذ</button> <button class="sm' + (A.om === 'sent' ? '' : ' sec') + '" onclick="oMetric(\'sent\')">نسبة الإرسال</button></div>';
 }
+/* == org_tree_v2 == */
+function oTog(id) { A.oc = A.oc || {}; A.oc[id] = !A.oc[id]; const t = document.getElementById('or-tree'); if (t) t.innerHTML = oTree(); }
 function oTree() {
+  const R = A.OR || {}, m = A.om || 'exec';
+  const col = function (p) { return p >= 75 ? '#1f7a4d' : p >= 50 ? '#d99a00' : '#b3402a'; };
+  const row = function (k, tag, tagbg, name, u, kids, open) {
+    const ser = oSer(u, m), v = ser.length ? ser[ser.length - 1] : null, sel = A.ok === k;
+    const tg = kids ? '<button class="sec sm" style="min-width:30px;padding:2px 6px" title="' + (open ? 'طيّ' : 'فتح') + '" onclick="event.stopPropagation();oTog(\'' + k + '\')">' + (open ? '▾' : '◂') + '</button>' : '<span style="display:inline-block;min-width:30px"></span>';
+    const bar = v === null ? '<span class="muted" style="flex:1">—</span>' : '<div style="flex:1;min-width:60px;height:8px;background:#e4efe7;border-radius:99px;overflow:hidden"><i style="display:block;height:100%;width:' + v + '%;background:' + col(v) + '"></i></div><b style="min-width:42px;direction:ltr;text-align:left">' + v + '%</b>' + (ser.length > 1 ? wrArr(ser) : '');
+    return '<div onclick="oSel(\'' + k + '\')" style="display:flex;align-items:center;gap:8px;padding:8px 10px;margin:4px 0;border-radius:12px;cursor:pointer;border:1.5px solid ' + (sel ? '#0f7a43' : '#d7e6dc') + ';background:' + (sel ? '#e8f4ec' : '#fff') + '">' + tg +
+      '<span style="font-size:.72rem;padding:1px 9px;border-radius:99px;background:' + tagbg + ';color:#fff;white-space:nowrap">' + tag + '</span>' +
+      '<span style="min-width:96px"><b>' + esc(name) + '</b> <span class="muted">(' + (u.n || 0) + ')</span></span>' + bar + '</div>';
+  };
+  let h = '<div class="muted" style="margin-bottom:4px">النسبة المعروضة: آخر أسبوع مكتمل. انقر أي صف لعرض تقريره ومقارنة ما تحته.</div>';
+  h += row('o', 'المؤسسة', '#064e2b', 'المؤسسة كلها', R.org || { n: 0 }, false, false);
+  h += '<div style="margin-right:16px;padding-right:10px;border-right:2px solid #7fb893">';
+  (R.branches || []).forEach(function (b) {
+    const gs = (R.groups || []).filter(function (g) { return g.branch_id === b.id; }), open = !(A.oc && A.oc['b:' + b.id]);
+    h += row('b:' + b.id, 'فرع', '#0f7a43', b.name, b, gs.length > 0, open);
+    if (gs.length && open) h += '<div style="margin-right:16px;padding-right:10px;border-right:2px solid #e8a35a">' + gs.map(function (g) { return row('g:' + g.id, 'مجموعة', '#c4570a', g.name, g, false, false); }).join('') + '</div>';
+  });
+  h += '</div>';
+  if (R.hidden && (R.hidden.branches || R.hidden.members)) h += '<div class="muted" style="margin-top:8px">خارج العرض لصغر الحجم: فروع ' + (R.hidden.branches || 0) + '، أعضاء ' + (R.hidden.members || 0) + '. الحد الأدنى لإظهار المجموعة: ' + (R.min_group || 3) + ' أعضاء.</div>';
+  return h;
+}
+function oTreeOld() {
   const R = A.OR;
   const btn = function (k, label, n, pad) { return '<div style="margin:3px ' + pad + 'px 3px 0"><button class="sm' + (A.ok === k ? '' : ' sec') + '" onclick="oSel(\'' + k + '\')">' + esc(label) + ' (' + (n || 0) + ')</button></div>'; };
   let h = btn('o', 'المؤسسة كلها', (R.org || {}).n, 0);
@@ -902,13 +927,13 @@ function oTree() {
 }
 function oRefresh() { const t = document.getElementById('or-tree'), o = document.getElementById('or-out'); if (t) t.innerHTML = oTree(); if (o) o.innerHTML = oOut(); }
 function oSel(k) { A.ok = k; oRefresh(); }
-function oMetric(m) { A.om = m; const c = document.getElementById('or-ctl'); if (c) c.innerHTML = oCtl(); const o = document.getElementById('or-out'); if (o) o.innerHTML = oOut(); }
+function oMetric(m) { A.om = m; const tr = document.getElementById('or-tree'); if (tr) tr.innerHTML = oTree(); const c = document.getElementById('or-ctl'); if (c) c.innerHTML = oCtl(); const o = document.getElementById('or-out'); if (o) o.innerHTML = oOut(); }
 function tOrgWR() {
   if (!A.om) A.om = 'exec'; if (!A.ok) A.ok = 'o';
   if (!A.OR) { oLoad(); return '<p class="muted">جارٍ تحميل تقارير المؤسسة…</p>'; }
   if (!(A.OR.weeks || []).length) return '<div class="card"><b>تقارير المؤسسة</b><p class="muted">لا توجد أسابيع مسجَّلة أو لا تتوفر بيانات بعد.</p><button class="sec sm" onclick="A.OR=null;adminRender()">تحديث البيانات</button></div>';
   return '<div class="card"><div class="row"><div class="grow"><b>تقارير متابعة الأسبوع</b><div class="muted">أرقام ومقارنات فقط، وتنتهي عند المجموعة. اختر مستوى لمقارنته.</div></div><button class="sec sm" onclick="A.OR=null;adminRender()">تحديث البيانات</button></div>' +
-    '<div id="or-ctl">' + oCtl() + '</div><div id="or-tree" style="max-height:300px;overflow:auto;margin-top:8px">' + oTree() + '</div></div><div id="or-out">' + oOut() + '</div>';
+    '<div id="or-ctl">' + oCtl() + '</div><div id="or-tree" style="margin-top:10px">' + oTree() + '</div></div><div id="or-out">' + oOut() + '</div>';
 }
 function tWR() { if (A.role !== 'branch') return tOrgWR();
   wrInit();

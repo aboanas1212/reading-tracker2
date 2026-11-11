@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261111-235015">
+<meta name="build" content="20261112-012650">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -185,7 +185,7 @@ function msg(e) {
   if (m === 'has_groups') return 'لا يمكن الحذف: يوجد مجموعات تابعة.';
   if (m === 'has_members') return 'لا يمكن الحذف: يوجد أعضاء تابعون.';
   if (m === 'name_required') return 'الاسم مطلوب.';
-  if (m === 'not_leader') return 'هذه الميزة للمشرفين فقط.';
+  if (m === 'no_period') return 'لم تُحدَّد فترة المتابعة بعد.'; if (m === 'period_overlap') return 'هذه الفترة تتداخل مع فترة أخرى.'; if (m === 'bad_range') return 'تاريخ النهاية يجب ألا يسبق البداية.'; if (m === 'period_started') return 'لا يمكن حذف فترة بدأت.'; if (m === 'dates_required') return 'حدّد تاريخ البداية والنهاية.'; if (m === 'not_leader') return 'هذه الميزة للمشرفين فقط.';
   if (m === 'no_lesson') return 'الدرس غير موجود.';
   if (m.startsWith('http_') || m.includes('Failed to fetch')) return 'تعذّر الاتصال بالخادم. تحقق من الإنترنت أو من إعدادات config.js.';
   return 'حدث خطأ: ' + m;
@@ -270,7 +270,7 @@ async function adminLogin() {
 }
 function adminOut() { const p = A.pass; adminClear(); if (p) { try { rpc('admin_logout', { p_pass: p }).catch(function () {}); } catch (_) {} } location.hash = ''; login(); }
 async function adminLoad() {
-  A.O = null; A.ob = null; A.og = null;
+  A.O = null; A.ob = null; A.og = null; A.PL = null;
 /* == members_branch_v1 == */ /* == group_role_ui_v1 == */ if (A.role === 'branch' || A.role === 'group') { show(loading); try { A.L = null; A.W = null; A.R = null; A.data = await rpc('admin_members', { p_pass: A.pass }); /* == group_access_ui_v1 == */ A.GA = null; if (A.role === 'branch') { try { A.GA = await rpc('admin_group_access_list', { p_pass: A.pass }); } catch (_) { A.GA = null; } } adminRender(); } catch (e) { if (String(e.message) === 'bad_admin') { adminClear(); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); } return; }
   show(loading);
   try { A.L = null; A.W = null; A.data = null; /* == adminload_org_v1 == */ adminRender(); }
@@ -278,10 +278,10 @@ async function adminLoad() {
 }
 function adminRender() {
 /* == roles_tabs_v1 == */ const grp = A.role === 'group', org = A.role !== 'branch' && !grp, ttl = grp ? 'لوحة المجموعة: ' + (A.groupName || '') : org ? 'لوحة المسؤول العام' : 'لوحة الفرع: ' + (A.branchName || '');
-const tabs = grp ? [['wr', 'تقارير المجموعة'], ['members', 'الأعضاء']] : org ? [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع']] : [['wr', 'تقارير الفرع'], ['week', 'الهيكل'], ['members', 'الأعضاء']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
+const tabs = grp ? [['wr', 'تقارير المجموعة'], ['members', 'الأعضاء']] : org ? [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع'], ['periods', 'الفترات']] : [['wr', 'تقارير الفرع'], ['week', 'الهيكل'], ['members', 'الأعضاء']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
   let h = '<div class="row noprint"><div class="grow"><h1>' + esc(ttl) + '</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
-  h += (({ wr: tWR, week: tWeek, members: tMembers })[A.tab] || tWR)();
+  h += (({ wr: tWR, week: tWeek, members: tMembers, periods: tPeriods })[A.tab] || tWR)();
   show(h);
 }
 
@@ -369,6 +369,38 @@ function tBranches() {
       '<button class="sec sm" onclick="brDel(' + b.branch_id + ')">حذف</button></td></tr>';
   });
   return h + '</table></div></div>';
+}
+/* == periods_ui_v1 == */
+function tPeriods() {
+  if (!A.PL) { plLoad(); return '<p class="muted">جارٍ تحميل الفترات…</p>'; }
+  let h = '<div class="card"><b>فترة المتابعة الشهرية</b><div class="muted">حدّد تاريخ البداية والنهاية (مثل 20/11 إلى 20/12). يُقسَّم الأسبوع كل 7 أيام من تاريخ البداية، وقد تكون الكتلة الأخيرة أقصر.</div><div class="row" style="margin-top:8px"><label>من <input type="date" id="plS"></label><label>إلى <input type="date" id="plE"></label><button onclick="plSave()">＋ إضافة فترة</button></div></div>';
+  if (!A.PL.length) return h + '<p class="muted">لم تُحدَّد أي فترة بعد. حتى تُحدَّد فترة لا يستطيع الأعضاء فتح بطاقة الأسبوع.</p>';
+  const today = new Date().toISOString().slice(0, 10);
+  h += '<div class="card scroll"><table><tr><th>من</th><th>إلى</th><th>الأسابيع</th><th>الحالة</th><th></th></tr>';
+  A.PL.forEach(p => {
+    const st = p.current ? '<span class="badge b-ok">الحالية</span>' : (String(p.start) > today ? '<span class="badge b-wait">قادمة</span>' : '<span class="muted">منتهية</span>');
+    h += '<tr><td>' + esc(p.start) + '</td><td>' + esc(p.end) + '</td><td>' + esc(p.weeks) + '</td><td>' + st + '</td><td class="row"><button class="sec sm" onclick="plEdit(' + p.id + ',\'' + esc(p.start) + '\',\'' + esc(p.end) + '\')">تعديل</button><button class="sec sm" onclick="plDel(' + p.id + ')">حذف</button></td></tr>';
+  });
+  return h + '</table></div>';
+}
+function plLoad() {
+  if (A.plBusy) return; A.plBusy = true;
+  return rpc('admin_periods', { p_pass: A.pass }).then(function (r) { A.PL = Array.isArray(r) ? r : []; }).catch(function (e) { A.PL = []; alert(msg(e)); }).then(function () { A.plBusy = false; if (A.tab === 'periods') adminRender(); });
+}
+async function plCall(args) { try { await rpc('admin_period_save', args); A.PL = null; adminRender(); } catch (x) { alert(msg(x)); } }
+async function plSave() {
+  const s = document.getElementById('plS').value, e = document.getElementById('plE').value;
+  if (!s || !e) { alert(msg('dates_required')); return; }
+  await plCall({ p_pass: A.pass, p_start: s, p_end: e });
+}
+async function plEdit(id, s, e) {
+  const a = prompt('تاريخ البداية (سنة-شهر-يوم):', s); if (!a) return;
+  const b = prompt('تاريخ النهاية (سنة-شهر-يوم):', e); if (!b) return;
+  await plCall({ p_pass: A.pass, p_start: a.trim(), p_end: b.trim(), p_id: id });
+}
+async function plDel(id) {
+  if (!confirm('حذف هذه الفترة؟')) return;
+  try { await rpc('admin_period_delete', { p_pass: A.pass, p_id: id }); A.PL = null; adminRender(); } catch (x) { alert(msg(x)); }
 }
 function tWeek() { if (A.role === 'branch') return tStruct(); return tBranches(); }
 /* WR_V1: تقارير متابعة الأسبوع */
@@ -961,7 +993,7 @@ function wkList(ws, cur) {
     } else {
       b = '<span class="badge wk-off">مغلق</span>'; sub = 'انتهت مدته دون إرسال';
     }
-    h += '<div class="card wk-row"><div><b>أسبوع يبدأ السبت ' + esc(x.week) + (x.week === cur ? ' (الحالي)' : '') + '</b><div class="muted">' + sub + '</div></div><div class="wk-r2">' + b + btn + '</div></div>';
+    h += '<div class="card wk-row"><div><b>أسبوع يبدأ ' + esc(x.week) + (x.week === cur ? ' (الحالي)' : '') + '</b><div class="muted">' + sub + '</div></div><div class="wk-r2">' + b + btn + '</div></div>';
   });
   return h;
 }
@@ -1185,7 +1217,7 @@ function wkRenderWeek(d) {
   its.forEach(function (i) { var c = i.cat || ''; if (cats.indexOf(c) < 0) cats.push(c); });
   WKS = { week: d.week, editable: ed, items: its, a: a, cats: cats };
   var tot = its.length, cur = d.week === d.current;
-  var h = '<button class="link" onclick="' + (cur ? 'home()' : 'week()') + '">' + (cur ? '← الرئيسية' : '← الأسبوع الحالي') + '</button><h2 class="wk6-h">أسبوع يبدأ السبت ' + esc(d.week) + (cur ? ' (الحالي)' : '') + '</h2>';
+  var h = '<button class="link" onclick="' + (cur ? 'home()' : 'week()') + '">' + (cur ? '← الرئيسية' : '← الأسبوع الحالي') + '</button><h2 class="wk6-h">أسبوع يبدأ ' + esc(d.week) + (cur ? ' (الحالي)' : '') + '</h2>';
   if (d.submitted) h += '<div class="wk3-note ok3">أُرسل هذا الأسبوع ولا يمكن تغيير إجاباته.</div>';
   else if (!ed) h += '<div class="wk3-note">انتهت مدة الإجابة عن هذا الأسبوع، وهو للاطلاع فقط.</div>';
   else h += '<div class="wk3-note">اضغط البند لتحديده «نفّذتُ». ما يُترك دون تحديد يُحسب «لم أنفّذ». لا يُرسل شيء قبل زر الإرسال.</div>';
@@ -1229,7 +1261,7 @@ async function week(w) {
     if (!tw) { wkRenderList(d); return; }
     wkSeenAdd(tw);
     wkRenderWeek(await rpc('my_week', { p_code: S.code, p_week: tw }));
-  } catch (e) { if (String(e.message) === 'bad_code') { localStorage.removeItem('code'); S.code = ''; return login('الرمز غير صحيح أو معطّل.'); } show(errBox(e, 'week()')); }
+  } catch (e) { if (String(e.message) === 'bad_code') { localStorage.removeItem('code'); S.code = ''; return login('الرمز غير صحيح أو معطّل.'); } if (String(e.message) === 'no_period') { show('<div class="card"><b>لم تُحدَّد فترة المتابعة بعد.</b><p class="muted">تواصل مع مسؤولك ليحدّد الفترة.</p></div>'); return; } show(errBox(e, 'week()')); }
 }
 </script>
 <script>/* == weekui_v7 == */

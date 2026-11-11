@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261112-014552">
+<meta name="build" content="20261112-021336">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -187,6 +187,7 @@ function msg(e) {
   if (m === 'name_required') return 'الاسم مطلوب.';
   if (m === 'no_period') return 'لم تُحدَّد فترة المتابعة بعد.'; if (m === 'period_overlap') return 'هذه الفترة تتداخل مع فترة أخرى.'; if (m === 'bad_range') return 'تاريخ النهاية يجب ألا يسبق البداية.'; if (m === 'period_started') return 'لا يمكن حذف فترة بدأت.'; if (m === 'dates_required') return 'حدّد تاريخ البداية والنهاية.'; if (m === 'not_leader') return 'هذه الميزة للمشرفين فقط.';
   if (m === 'no_lesson') return 'الدرس غير موجود.';
+  /* == reopen_ui_v1 == */ if (m === 'reason_required') return 'اكتب سبب الطلب (3 أحرف على الأقل).'; if (m === 'already_requested') return 'سبق تقديم طلب لهذا الأسبوع وهو بانتظار القرار.'; if (m === 'not_reopenable') return 'لا يمكن طلب إعادة فتح هذا الأسبوع.'; if (m === 'already_decided') return 'سبق اتخاذ القرار في هذا الطلب.';
   if (m.startsWith('http_') || m.includes('Failed to fetch')) return 'تعذّر الاتصال بالخادم. تحقق من الإنترنت أو من إعدادات config.js.';
   return 'حدث خطأ: ' + m;
 }
@@ -788,9 +789,46 @@ function tWR() { if (A.role !== 'branch' && A.role !== 'group') return tOrgWR();
     '<div id="wr-out">' + wrOut() + '</div>';
 }
 const baseUrl = () => location.origin + location.pathname;
+/* == reopen_ui_v1 == */
+function rqSt(x) { var q = x && x.req; if (q && typeof q === 'object') q = q.status; return q ? String(q) : ''; }
+async function rqAsk(w) {
+  var why = prompt('اكتب سبب طلب إعادة فتح هذا الأسبوع (يراه مسؤول مجموعتك ومسؤول فرعك):');
+  if (why === null) return;
+  why = String(why).trim();
+  try {
+    await rpc('request_reopen', { p_code: S.code, p_week: w, p_reason: why });
+    var d = await rpc('my_weeks', { p_code: S.code });
+    WKD = d; wkRenderList(d);
+    alert('أُرسل طلبك إلى مسؤول مجموعتك.');
+  } catch (e) { alert(wkMsg(e)); }
+}
+async function rqLoad() {
+  if (A.role !== 'group' && A.role !== 'branch') return;
+  try { A.rq = await rpc('admin_reopen_list', { p_pass: A.pass }); } catch (e) { A.rq = null; }
+  var el = document.getElementById('rqBox'); if (el) el.innerHTML = rqHtml();
+}
+function rqBox() {
+  if (A.role !== 'group' && A.role !== 'branch') return '';
+  setTimeout(rqLoad, 0);
+  return '<div id="rqBox">' + rqHtml() + '</div>';
+}
+function rqHtml() {
+  var L = A.rq; if (!L || !L.length) return '';
+  var can = A.role === 'group', n = L.filter(function (r) { return r.status === 'pending'; }).length;
+  var h = '<div class="card"><h3>طلبات إعادة فتح الأسابيع' + (n ? ' (' + n + ' بانتظار القرار)' : '') + '</h3>' + (can ? '' : '<p class="muted">للاطلاع فقط. القرار لمسؤول المجموعة.</p>') + '<div class="scroll"><table><tr><th>العضو</th><th>المجموعة</th><th>الأسبوع</th><th>العذر</th><th></th></tr>';
+  L.slice(0, 20).forEach(function (r) {
+    var st = r.status === 'pending' ? (can ? '<button class="sm" onclick="rqDecide(' + r.id + ',true)">موافقة</button> <button class="sec sm" onclick="rqDecide(' + r.id + ',false)">رفض</button>' : '<span class="badge b-wait">معلّق</span>') : r.status === 'approved' ? '<span class="badge b-ok">وُوفق عليه</span>' : '<span class="badge wk-off">رُفض</span>';
+    h += '<tr><td>' + esc(r.member) + '</td><td>' + esc(r.group || '') + '</td><td>' + esc(r.week) + '</td><td>' + esc(r.reason) + '</td><td class="row">' + st + '</td></tr>';
+  });
+  return h + '</table></div></div>';
+}
+async function rqDecide(id, ok) {
+  if (!confirm(ok ? 'الموافقة على إعادة فتح هذا الأسبوع لهذا العضو؟' : 'رفض هذا الطلب؟')) return;
+  try { await rpc('admin_reopen_decide', { p_pass: A.pass, p_id: id, p_approve: ok }); await rqLoad(); } catch (e) { alert(msg(e)); }
+}
 function tMembers() {
   const d = A.data;
-  let h = '<div class="card"><h3>إضافة أعضاء</h3><p class="muted">' + (A.role === 'group' ? 'سطر لكل عضو: الاسم فقط، أو «الاسم | | م» إن كان مشرفاً' : 'سطر لكل عضو بالصيغة: الاسم | المجموعة | م (اكتب «م» إن كان مشرف مجموعة)') + '</p><textarea id="newm" placeholder="أحمد علي | الشمال | م&#10;سعيد حسن | الشمال&#10;خالد | الجنوب"></textarea><p><button onclick="addMembers()">إضافة</button> <button class="sec" onclick="printCards()">طباعة البطاقات</button></p></div>';
+  let h = rqBox() + '<div class="card"><h3>إضافة أعضاء</h3><p class="muted">' + (A.role === 'group' ? 'سطر لكل عضو: الاسم فقط، أو «الاسم | | م» إن كان مشرفاً' : 'سطر لكل عضو بالصيغة: الاسم | المجموعة | م (اكتب «م» إن كان مشرف مجموعة)') + '</p><textarea id="newm" placeholder="أحمد علي | الشمال | م&#10;سعيد حسن | الشمال&#10;خالد | الجنوب"></textarea><p><button onclick="addMembers()">إضافة</button> <button class="sec" onclick="printCards()">طباعة البطاقات</button></p></div>';
   h += '<div class="scroll"><table><tr><th>الاسم</th><th>المجموعة</th><th>الرمز</th><th></th></tr>';
   d.members.forEach(m => {
     h += '<tr style="' + (m.active ? '' : 'opacity:.45') + '"><td>' + esc(m.name) + (m.leader ? ' <span class="badge b-wait">مشرف</span>' : '') + '</td><td>' + esc(m.grp) + '</td><td style="direction:ltr">' + esc(m.code) + '</td><td class="row">' +
@@ -914,7 +952,7 @@ function wkMsg(e) {
   var m = String((e && e.message) || e);
   if (m === 'incomplete') return 'بقيت بنود لم تجب عنها. أجب عن كل البنود ثم أرسل.';
   if (m === 'already_submitted') return 'سبق إرسال هذا الأسبوع ولا يمكن تغييره.';
-  if (m === 'week_locked') return 'انتهت مدة الإجابة عن هذا الأسبوع.';
+  if (m === 'week_locked') return 'انتهت مدة الإجابة عن هذا الأسبوع. يمكنك طلب إعادة فتحه من قائمة الأسابيع.';
   return msg(e);
 }
 
@@ -992,8 +1030,12 @@ function wkList(ws, cur) {
       else { b = '<span class="badge wk-wait">بانتظارك</span>'; sub = 'لم ترسل بعد'; btn = '<button class="sm" ' + go + '>فتح</button>'; }
     } else {
       b = '<span class="badge wk-off">مغلق</span>'; sub = 'انتهت مدته دون إرسال';
+      /* == reopen_ui_v1 == */ var rq0 = rqSt(x);
+      if (rq0 === 'pending') { b = '<span class="badge wk-wait">بانتظار الموافقة</span>'; sub = 'أُرسل طلب إعادة الفتح إلى مسؤول مجموعتك.'; }
+      else if (rq0 === 'rejected') { b = '<span class="badge wk-off">رُفض</span>'; sub = 'رُفض طلب إعادة الفتح.'; btn = '<button class="sec sm" onclick="rqAsk(\'' + esc(x.week) + '\')">إعادة الطلب</button>'; }
+      else { btn = '<button class="sec sm" onclick="rqAsk(\'' + esc(x.week) + '\')">طلب إعادة فتح</button>'; }
     }
-    h += '<div class="card wk-row"><div><b>أسبوع يبدأ ' + esc(x.week) + (x.week === cur ? ' (الحالي)' : '') + '</b><div class="muted">' + sub + '</div></div><div class="wk-r2">' + b + btn + '</div></div>';
+    /* == reopen_ui_v1 == */ if (x.status === 'open' && rqSt(x) === 'approved') { b = '<span class="badge wk-wait">أُعيد فتحه بإذن</span>'; } h += '<div class="card wk-row"><div><b>أسبوع يبدأ ' + esc(x.week) + (x.week === cur ? ' (الحالي)' : '') + '</b><div class="muted">' + sub + '</div></div><div class="wk-r2">' + b + btn + '</div></div>';
   });
   return h;
 }

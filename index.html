@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261112-012650">
+<meta name="build" content="20261112-014552">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -1111,7 +1111,7 @@ function wkPaint() {
   if (p) p.textContent = pct + '%';
   if (t) t.textContent = full ? 'اكتملت جميع البنود' : pct >= 70 ? 'تقدّم ممتاز' : pct >= 35 ? 'تقدّم جيد' : y > 0 ? 'بداية موفقة' : (WKS.editable ? 'ابدأ بتحديد البنود المنفّذة' : '');
   if (pr) pr.classList.toggle('full', full);
-  if (sb) sb.textContent = 'إرسال الأسبوع (' + y + '/' + tot + ')';
+  if (sb) sb.textContent = (WKS.sent ? 'إعادة إرسال الأسبوع (' : 'إرسال الأسبوع (') + y + '/' + tot + ')';
 }
 
 function wkSet(id) {
@@ -1131,7 +1131,7 @@ function wkAsk() {
   wkClose();
   var tot = WKS.items.length, y = WKS.items.filter(function (i) { return WKS.a[i.id] === true; }).length;
   var warn = y === 0 ? '<p class="wk-err">لم تحدّد أي بند. هل أنت متأكد من الإرسال؟</p>' : '';
-  document.body.insertAdjacentHTML('beforeend', '<div class="wk-ov" id="wkov"><div class="wk-md"><h3>تأكيد الإرسال</h3><p>نفّذتَ <b>' + y + '</b> من <b>' + tot + '</b> بنداً، وما لم تحدّده يُحسب «لم أنفّذ».</p>' + warn + '<p class="muted">بعد الإرسال لا يمكنك تغيير إجابات هذا الأسبوع.</p><div class="row"><button id="wkok" onclick="wkSend()">تأكيد الإرسال</button><button class="sec" onclick="wkClose()">رجوع</button></div></div></div>');
+  document.body.insertAdjacentHTML('beforeend', '<div class="wk-ov" id="wkov"><div class="wk-md"><h3>تأكيد الإرسال</h3><p>نفّذتَ <b>' + y + '</b> من <b>' + tot + '</b> بنداً، وما لم تحدّده يُحسب «لم أنفّذ».</p>' + warn + '<p class="muted">' + (WKS.week === WKS.cur ? 'يمكنك تعديل إجاباتك وإعادة الإرسال حتى نهاية هذا الأسبوع.' : 'بعد الإرسال لا يمكنك تغيير إجابات هذا الأسبوع.') + '</p><div class="row"><button id="wkok" onclick="wkSend()">تأكيد الإرسال</button><button class="sec" onclick="wkClose()">رجوع</button></div></div></div>');
 }
 </script>
 <script>/* == weekui_v4 == */
@@ -1215,10 +1215,10 @@ function wkRenderWeek(d) {
   if (dr && dr.a) Object.keys(dr.a).forEach(function (k) { if (valid[k]) { if (dr.a[k]) a[k] = true; else delete a[k]; } });
   var cats = [];
   its.forEach(function (i) { var c = i.cat || ''; if (cats.indexOf(c) < 0) cats.push(c); });
-  WKS = { week: d.week, editable: ed, items: its, a: a, cats: cats };
+  WKS = { week: d.week, cur: d.current, sent: !!d.submitted, editable: ed, items: its, a: a, cats: cats };
   var tot = its.length, cur = d.week === d.current;
   var h = '<button class="link" onclick="' + (cur ? 'home()' : 'week()') + '">' + (cur ? '← الرئيسية' : '← الأسبوع الحالي') + '</button><h2 class="wk6-h">أسبوع يبدأ ' + esc(d.week) + (cur ? ' (الحالي)' : '') + '</h2>';
-  if (d.submitted) h += '<div class="wk3-note ok3">أُرسل هذا الأسبوع ولا يمكن تغيير إجاباته.</div>';
+  /* == open_week_ui_v1 == */ if (d.submitted && ed) h += '<div class="wk3-note ok3">أُرسل أسبوعك. يمكنك تعديل إجاباتك وإعادة الإرسال حتى نهاية هذا الأسبوع.</div>'; else if (d.submitted) h += '<div class="wk3-note ok3">أُرسل هذا الأسبوع ولا يمكن تغيير إجاباته.</div>';
   else if (!ed) h += '<div class="wk3-note">انتهت مدة الإجابة عن هذا الأسبوع، وهو للاطلاع فقط.</div>';
   else h += '<div class="wk3-note">اضغط البند لتحديده «نفّذتُ». ما يُترك دون تحديد يُحسب «لم أنفّذ». لا يُرسل شيء قبل زر الإرسال.</div>';
   if (!tot) { show(h + '<p class="muted">لم تُضَف بنود المتابعة بعد.</p>'); return; }

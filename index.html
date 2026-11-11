@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261111-040301">
+<meta name="build" content="20261111-044943">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -156,7 +156,7 @@ window.onerror = function(msg, url, line) {
 /* ============ أدوات عامة ============ */
 const CFG = window.CONFIG || {};
 const S = { code: localStorage.getItem('code') || '', me: null, ls: [] };
-const A = { pass: sessionStorage.getItem('apass') || '', data: null, tab: 'report' };
+const A = { pass: sessionStorage.getItem('apass') || '', role: sessionStorage.getItem('arole') || '', branch: sessionStorage.getItem('abranch') || null, branchName: sessionStorage.getItem('abname') || '', data: null, tab: 'report' };
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const show = h => { document.getElementById('app').innerHTML = h; window.scrollTo(0, 0); };
@@ -176,7 +176,15 @@ function msg(e) {
   const m = String((e && e.message) || e);
   if (m.startsWith('too_early')) return 'لم يمضِ الوقت الأدنى للقراءة بعد.';
   if (m === 'bad_code') return 'الرمز غير صحيح أو معطّل.';
-  if (m === 'bad_admin') return 'كلمة مرور المسؤول غير صحيحة.';
+  if (m === 'bad_admin') return 'كلمة المرور أو رمز الفرع غير صحيح.';
+  if (m.startsWith('locked')) { const s = parseInt(m.split(':')[1], 10) || 0; return 'محاولات خاطئة كثيرة. انتظر ' + (s ? Math.ceil(s / 60) + ' دقيقة' : 'قليلاً') + ' ثم أعد المحاولة.'; }
+  if (m === 'forbidden') return 'هذه الصلاحية غير متاحة لحسابك.';
+  if (m === 'group_required') return 'يجب اختيار المجموعة.';
+  if (m === 'not_found') return 'العنصر غير موجود.';
+  if (m === 'duplicate_name') return 'الاسم مكرر.';
+  if (m === 'has_groups') return 'لا يمكن الحذف: يوجد مجموعات تابعة.';
+  if (m === 'has_members') return 'لا يمكن الحذف: يوجد أعضاء تابعون.';
+  if (m === 'name_required') return 'الاسم مطلوب.';
   if (m === 'not_leader') return 'هذه الميزة للمشرفين فقط.';
   if (m === 'no_lesson') return 'الدرس غير موجود.';
   if (m.startsWith('http_') || m.includes('Failed to fetch')) return 'تعذّر الاتصال بالخادم. تحقق من الإنترنت أو من إعدادات config.js.';
@@ -246,21 +254,32 @@ function doLogin() {
 /* ============ المسؤول ============ */
 function adminEntry() {
   if (A.pass) return adminLoad();
-  show('<h1>لوحة المسؤول</h1><div class="card"><input type="password" id="ap" placeholder="كلمة مرور المسؤول"><p><button onclick="adminLogin()">دخول</button></p></div>');
+  show('<h1>لوحة المسؤول</h1><div class="card"><input type="password" id="ap" placeholder="كلمة المرور أو رمز الفرع"><p><button onclick="adminLogin()">دخول</button></p></div>');
   const i = $('#ap'); if (i) i.addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
 }
-function adminLogin() { A.pass = $('#ap').value; sessionStorage.setItem('apass', A.pass); adminLoad(); }
-function adminOut() { A.pass = ''; sessionStorage.removeItem('apass'); location.hash = ''; login(); }
+/* == login_v1 == */ function adminClear() { A.pass = ''; A.role = ''; A.branch = null; A.branchName = ''; ['apass', 'arole', 'abranch', 'abname'].forEach(function (k) { sessionStorage.removeItem(k); }); }
+async function adminLogin() {
+  const s = String(($('#ap') || {}).value || '').trim(); if (!s) return;
+  try {
+    const r = await rpc('admin_login', { p_secret: s });
+    if (!r || !r.ok) throw new Error(r && r.error === 'locked' ? 'locked:' + (r.seconds || 0) : 'bad_admin');
+    A.pass = r.token; A.role = r.role || 'org'; A.branch = r.branch_id || null; A.branchName = r.branch_name || '';
+    sessionStorage.setItem('apass', A.pass); sessionStorage.setItem('arole', A.role); sessionStorage.setItem('abranch', A.branch || ''); sessionStorage.setItem('abname', A.branchName);
+    adminLoad();
+  } catch (e) { alert(msg(e)); }
+}
+function adminOut() { const p = A.pass; adminClear(); if (p) { try { rpc('admin_logout', { p_pass: p }).catch(function () {}); } catch (_) {} } location.hash = ''; login(); }
 async function adminLoad() {
   A.O = null; A.ob = null; A.og = null;
+/* == members_branch_v1 == */ if (A.role === 'branch') { show(loading); try { A.L = null; A.W = null; A.R = null; A.data = await rpc('admin_members', { p_pass: A.pass }); adminRender(); } catch (e) { if (String(e.message) === 'bad_admin') { adminClear(); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); } return; }
   show(loading);
-  try { A.L = null; A.W = null; A.data = await rpc('admin_report', { p_pass: A.pass }); adminRender(); }
-  catch (e) { if (String(e.message) === 'bad_admin') { A.pass = ''; sessionStorage.removeItem('apass'); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); }
+  try { A.L = null; A.W = null; A.data = null; /* == adminload_org_v1 == */ adminRender(); }
+  catch (e) { if (String(e.message) === 'bad_admin') { adminClear(); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); }
 }
 function adminRender() {
-  /* == cleanup_tabs_v1 == */ if (['wr', 'week', 'members'].indexOf(A.tab) < 0) A.tab = 'wr';
-  const tabs = [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع'], ['members', 'الأعضاء']];
-  let h = '<div class="row noprint"><div class="grow"><h1>لوحة المسؤول</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
+/* == roles_tabs_v1 == */ const org = A.role !== 'branch', ttl = org ? 'لوحة المسؤول العام' : 'لوحة الفرع: ' + (A.branchName || '');
+const tabs = org ? [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع']] : [['wr', 'تقارير الفرع'], ['week', 'الهيكل'], ['members', 'الأعضاء']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
+  let h = '<div class="row noprint"><div class="grow"><h1>' + esc(ttl) + '</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
   h += (({ wr: tWR, week: tWeek, members: tMembers })[A.tab] || tWR)();
   show(h);
@@ -469,7 +488,70 @@ function hierBar() {
   else b = '<button class="sec sm" onclick="hierSupervisors()">تعيين المشرفين</button> <button class="sec sm" onclick="hierGroupRename()">تسمية المجموعة</button> <button class="sec sm" onclick="hierGroupDel()">حذف المجموعة</button>';
   return '<div class="row noprint" style="margin:8px 0">' + b + '</div>';
 }
-function tWeek() { return hierBar() + tWeekBase(); }
+/* == struct_branch_v1 == */
+const sBr = () => Number(A.branch) || null;
+async function sCall(fn, args) { try { await rpc(fn, args); await adminLoad(); return true; } catch (e) { alert(msg(e)); return false; } }
+function tStruct() {
+  const d = A.data || {}, gs = d.groups || [], ms = d.members || [];
+  let h = '<div class="card"><div class="row"><div class="grow"><b>هيكل الفرع: ' + esc(A.branchName || '') + '</b><div class="muted">المجموعات ومشرفوها. المشرف عضو من المجموعة نفسها.</div></div><button class="sec sm" onclick="sGroupAdd()">＋ إضافة مجموعة</button></div>';
+  if (!gs.length) return h + '<p class="muted">لا توجد مجموعات بعد. ابدأ بإضافة مجموعة.</p></div>';
+  h += '<div class="scroll"><table><tr><th>المجموعة</th><th>الأعضاء</th><th>المشرفون</th><th></th></tr>';
+  gs.forEach(g => {
+    const mm = ms.filter(m => m.group_id === g.id && m.active), sp = mm.filter(m => m.leader).map(m => esc(m.name));
+    h += '<tr><td>' + esc(g.name) + '</td><td>' + mm.length + '</td><td>' + (sp.length ? sp.join('، ') : '<span class="muted">لا مشرف</span>') + '</td><td class="row">' +
+      '<button class="sec sm" onclick="sSup(' + g.id + ')">تعيين المشرفين</button>' +
+      '<button class="sec sm" onclick="sGroupRename(' + g.id + ')">تسمية</button>' +
+      '<button class="sec sm" onclick="sGroupDel(' + g.id + ')">حذف</button></td></tr>';
+  });
+  const none = ms.filter(m => m.group_id == null && m.active).length;
+  return h + '</table></div>' + (none ? '<p class="muted">أعضاء بلا مجموعة: ' + none + '</p>' : '') + '</div>';
+}
+function sGroupAdd() { const n = prompt('اسم المجموعة الجديدة:'); if (n === null || !n.trim()) return; sCall('admin_group_save', { p_pass: A.pass, p_id: null, p_branch_id: sBr(), p_name: n.trim() }); }
+function sGroupRename(id) { const g = ((A.data || {}).groups || []).filter(x => x.id === id)[0]; if (!g) return; const n = prompt('اسم المجموعة:', g.name); if (n === null || !n.trim()) return; sCall('admin_group_save', { p_pass: A.pass, p_id: id, p_branch_id: sBr(), p_name: n.trim() }); }
+function sGroupDel(id) { const g = ((A.data || {}).groups || []).filter(x => x.id === id)[0]; if (!g || !confirm('حذف المجموعة «' + g.name + '»؟')) return; sCall('admin_group_delete', { p_pass: A.pass, p_id: id }); }
+function sSup(id) { const ms = ((A.data || {}).members || []).filter(m => m.group_id === id && m.active); if (!ms.length) { alert('لا أعضاء في هذه المجموعة بعد.'); return; } const list = ms.map((m, i) => (i + 1) + '. ' + m.name + (m.leader ? '  (مشرف حالياً)' : '')).join('\n'); const r = prompt('اكتب أرقام المشرفين مفصولة بفاصلة (اتركها فارغة لإلغاء كل المشرفين):\n\n' + list); if (r === null) return; const ids = []; r.split(/[,،\s]+/).forEach(x => { const k = parseInt(x, 10); if (k >= 1 && k <= ms.length && ids.indexOf(ms[k - 1].id) < 0) ids.push(ms[k - 1].id); }); sCall('admin_group_supervisors_set', { p_pass: A.pass, p_group_id: id, p_member_ids: ids }); }
+function moveMember(id) { const d = A.data || {}, gs = d.groups || [], m = (d.members || []).filter(x => x.id === id)[0]; if (!m) return; if (!gs.length) { alert('لا توجد مجموعات. أنشئ مجموعة من تبويب «الهيكل» أولاً.'); return; } const list = gs.map((g, i) => (i + 1) + '. ' + g.name).join('\n'); const r = prompt('انقل «' + m.name + '» إلى المجموعة رقم:\n\n' + list); if (r === null) return; const k = parseInt(r, 10); if (!(k >= 1 && k <= gs.length)) { alert('رقم غير صحيح.'); return; } sCall('admin_member_move', { p_pass: A.pass, p_member_id: id, p_group_id: gs[k - 1].id }); }
+/* == branches_org_v1 == */
+function brLoad() {
+  if (A.baBusy) return; A.baBusy = true;
+  return rpc('admin_branch_access_list', { p_pass: A.pass }).then(function (r) { A.BA = Array.isArray(r) ? r : []; }).catch(function (e) { A.BA = []; alert(msg(e)); }).then(function () { A.baBusy = false; if (A.tab === 'week') adminRender(); });
+}
+function brErr(e) { const t = hierErr(e); return t === String((e && e.message) || e) ? msg(e) : t; }
+async function brCall(fn, args) { try { await rpc(fn, args); A.BC = null; A.BA = null; adminRender(); return true; } catch (e) { alert(brErr(e)); return false; } }
+const brFind = id => (A.BA || []).filter(x => x.branch_id === id)[0];
+function brAdd() { const n = prompt('اسم الفرع الجديد:'); if (n === null || !n.trim()) return; brCall('admin_branch_save', { p_pass: A.pass, p_id: null, p_name: n.trim() }); }
+function brRename(id) { const b = brFind(id); if (!b) return; const n = prompt('اسم الفرع:', b.name); if (n === null || !n.trim()) return; brCall('admin_branch_save', { p_pass: A.pass, p_id: id, p_name: n.trim() }); }
+function brDel(id) { const b = brFind(id); if (!b || !confirm('حذف الفرع «' + b.name + '»؟')) return; brCall('admin_branch_delete', { p_pass: A.pass, p_id: id }); }
+async function brAccess(id, active, rotate) {
+  const b = brFind(id); if (!b) return;
+  if (rotate && b.has_code && !confirm('تجديد الرمز يُلغي الرمز القديم وجلسات الفرع الحالية. متابعة؟')) return;
+  if (active === false && !confirm('تعطيل الرمز يُخرج مسؤول الفرع من جلسته. متابعة؟')) return;
+  try {
+    const r = await rpc('admin_branch_access_set', { p_pass: A.pass, p_branch_id: id, p_active: active, p_rotate: !!rotate });
+    A.BC = r && r.code ? { name: b.name, code: r.code } : null; A.BA = null; adminRender();
+  } catch (e) { alert(brErr(e)); }
+}
+function brCopy() { if (!A.BC) return; const c = A.BC.code; (navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => alert('نُسخ الرمز.')).catch(() => prompt('انسخ الرمز:', c)); }
+function brFmt(c) { return String(c).replace(/(.{4})(?=.)/g, '$1 '); }
+function tBranches() {
+  if (!A.BA) { brLoad(); return '<p class="muted">جارٍ تحميل الفروع…</p>'; }
+  let h = '';
+  if (A.BC) h += '<div class="card" style="background:var(--y2)"><b>رمز فرع «' + esc(A.BC.name) + '» (يظهر مرة واحدة فقط، انسخه الآن)</b><div style="direction:ltr;text-align:right;font-size:1.3rem;font-weight:bold;margin:8px 0">' + esc(brFmt(A.BC.code)) + '</div><div class="muted">يدخل مسؤول الفرع من رابط لوحة المسؤول <span style="direction:ltr">' + esc(baseUrl() + '#admin') + '</span> ويكتب الرمز في حقل الدخول.</div><p><button onclick="brCopy()">نسخ الرمز</button> <button class="sec" onclick="A.BC=null;adminRender()">إغلاق</button></p></div>';
+  h += '<div class="card"><div class="row"><div class="grow"><b>الفروع ورموز الدخول</b><div class="muted">كل فرع له رمز خاص لمسؤوله. الأرقام والمقارنات في تبويب التقارير.</div></div><button class="sec sm" onclick="brAdd()">＋ إضافة فرع</button></div>';
+  if (!A.BA.length) return h + '<p class="muted">لا توجد فروع بعد. ابدأ بإضافة فرع.</p></div>';
+  h += '<div class="scroll"><table><tr><th>الفرع</th><th>الرمز</th><th>آخر تجديد</th><th></th></tr>';
+  A.BA.forEach(b => {
+    const st = !b.has_code ? '<span class="muted">بلا رمز</span>' : b.active ? '<span class="badge b-ok">مفعّل</span>' : '<span class="badge b-wait">معطّل</span>';
+    h += '<tr><td>' + esc(b.name) + '</td><td>' + st + '</td><td>' + esc(String(b.rotated_at || '').slice(0, 10) || '—') + '</td><td class="row">' +
+      (!b.has_code ? '<button class="sec sm" onclick="brAccess(' + b.branch_id + ',null,true)">توليد رمز</button>' :
+        '<button class="sec sm" onclick="brAccess(' + b.branch_id + ',null,true)">تجديد الرمز</button>' +
+        '<button class="sec sm" onclick="brAccess(' + b.branch_id + ',' + (!b.active) + ',false)">' + (b.active ? 'تعطيل' : 'تفعيل') + '</button>') +
+      '<button class="sec sm" onclick="brRename(' + b.branch_id + ')">تسمية</button>' +
+      '<button class="sec sm" onclick="brDel(' + b.branch_id + ')">حذف</button></td></tr>';
+  });
+  return h + '</table></div></div>';
+}
+function tWeek() { if (A.role === 'branch') return tStruct(); return tBranches(); }
 /* WR_V1: تقارير متابعة الأسبوع */
 function wrNorm(s) { return String(s || '').replace(/[\u064B-\u0652\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').toLowerCase().trim(); }
 function wrInit() {
@@ -708,7 +790,127 @@ function wrSearch(v) { A.rq = v; const t = document.getElementById('wr-tree'); i
 function wrMetric(m) { A.rm = m; const c = document.getElementById('wr-ctl'); if (c) c.innerHTML = wrCtl(); const o = document.getElementById('wr-out'); if (o) o.innerHTML = wrOut(); }
 function wrClear() { A.rsel = {}; wrRefresh(); }
 function wrReload() { A.R = null; A.Rx = null; adminRender(); }
-function tWR() {
+/* == org_wr_v1 == */
+function oLoad() {
+  if (A.orBusy) return; A.orBusy = true;
+  return rpc('admin_weekly_org', { p_pass: A.pass }).then(function (r) { A.OR = r || {}; }).catch(function (e) {
+    A.OR = { weeks: [], items: [], branches: [], groups: [], org: { n: 0 }, hidden: {}, total_items: 0, current_week: '' }; alert(msg(e));
+  }).then(function () {
+    const R = A.OR; R.ci = []; (R.weeks || []).forEach(function (w, i) { if (String(w) < String(R.current_week)) R.ci.push(i); });
+    A.orBusy = false; if (A.tab === 'wr') adminRender();
+  });
+}
+function oUnit(k) {
+  const R = A.OR || {};
+  if (k === 'o') return { k: 'o', kind: 'o', name: 'المؤسسة كلها', u: R.org || { n: 0 } };
+  const t = k.charAt(0), id = Number(k.slice(2)), a = (t === 'b' ? R.branches : R.groups) || [];
+  const u = a.filter(function (x) { return x.id === id; })[0];
+  return u ? { k: k, kind: t, name: u.name, u: u } : null;
+}
+function oSer(u, m) {
+  const R = A.OR, ti = R.total_items || 1, n = u.n || 0;
+  return R.ci.map(function (i) { if (!n) return 0; return Math.round(m === 'sent' ? 100 * ((u.s || [])[i] || 0) / n : 100 * ((u.d || [])[i] || 0) / (n * ti)); });
+}
+function oItems(u) {
+  const R = A.OR; if (!R.ci.length || !u.n) return null;
+  const i = R.ci[R.ci.length - 1];
+  return (R.items || []).map(function (it) { const a = (u.gi || {})[String(it.id)]; return { id: it.id, title: it.title, cat: it.cat || 'أخرى', pct: Math.round(100 * ((a && a[i]) || 0) / u.n) }; });
+}
+function oKids(s) {
+  const R = A.OR;
+  if (s.kind === 'o') return (R.branches || []).map(function (b) { return oUnit('b:' + b.id); });
+  if (s.kind === 'b') return (R.groups || []).filter(function (g) { return g.branch_id === s.u.id; }).map(function (g) { return oUnit('g:' + g.id); });
+  return [];
+}
+function oRep(s) {
+  const R = A.OR, m = A.om, u = s.u, mName = m === 'sent' ? 'نسبة الإرسال' : 'نسبة التنفيذ';
+  const ws = R.ci.map(function (i) { return R.weeks[i]; });
+  const ser = oSer(u, m), last = ser.length ? ser[ser.length - 1] : 0, d = wrDelta(ser);
+  const avg = ser.length ? Math.round(ser.reduce(function (a, b) { return a + b; }, 0) / ser.length) : 0;
+  const sentSer = oSer(u, 'sent'), sentLast = sentSer.length ? sentSer[sentSer.length - 1] : 0;
+  const rows = oKids(s).filter(Boolean).map(function (k) { const x = oSer(k.u, m); return { u: k, s: x, last: x.length ? x[x.length - 1] : 0, d: wrDelta(x) }; });
+  const ranked = rows.filter(function (r) { return r.u.u.n; }).sort(function (a, b) { return b.last - a.last; });
+  const lines = [], strong = [], weak = [];
+  lines.push('النطاق: ' + s.name + '. الأعضاء: ' + (u.n || 0) + (s.kind === 'o' ? '، الفروع: ' + (R.branches || []).length + '، المجموعات: ' + (R.groups || []).length : s.kind === 'b' ? '، المجموعات الظاهرة: ' + rows.length : '') + '.');
+  if (!ser.length) lines.push('لا يوجد أسبوع مكتمل بعد، فلا مقارنة ممكنة.');
+  else {
+    lines.push('في آخر أسبوع مكتمل (' + ws[ws.length - 1] + ') بلغت ' + mName + ' ' + last + '%' + (ser.length > 1 ? (d > 0 ? '، بارتفاع ' + wrPts(d) + ' عن الأسبوع السابق' : d < 0 ? '، بانخفاض ' + wrPts(-d) + ' عن الأسبوع السابق' : '، دون تغيّر عن الأسبوع السابق') : '') + '. ومتوسط الأسابيع المكتملة (' + ser.length + ') ' + avg + '%.');
+    if (m !== 'sent') lines.push('أرسل ' + sentLast + '% من الأعضاء في آخر أسبوع.');
+  }
+  if (s.kind === 'o' && R.hidden && (R.hidden.branches || R.hidden.members)) lines.push('خارج الأرقام المعروضة (لصغر الحجم أو بلا فرع): فروع ' + (R.hidden.branches || 0) + '، أعضاء ' + (R.hidden.members || 0) + '. الحد الأدنى لإظهار المجموعة: ' + (R.min_group || 3) + ' أعضاء.');
+  if (ranked.length >= 2) {
+    const top = ranked[0], bot = ranked[ranked.length - 1];
+    strong.push('الأعلى: «' + top.u.name + '» (' + top.last + '%)'); weak.push('الأدنى: «' + bot.u.name + '» (' + bot.last + '%)');
+    lines.push('الأعلى بين الوحدات المقارَنة «' + top.u.name + '» (' + top.last + '%)، والأدنى «' + bot.u.name + '» (' + bot.last + '%).');
+  }
+  const hi = ranked.filter(function (r) { return r.last >= 75; }), lo = ranked.filter(function (r) { return r.last < 50; });
+  if (hi.length) strong.push('فوق 75% (' + hi.length + ' من ' + ranked.length + '): ' + wrNames(hi, 4));
+  if (lo.length) weak.push('دون 50% (' + lo.length + ' من ' + ranked.length + '): ' + wrNames(lo.slice().reverse(), 4));
+  const ups = ranked.filter(function (r) { return r.d >= 5; }).sort(function (a, b) { return b.d - a.d; });
+  const downs = ranked.filter(function (r) { return r.d <= -5; }).sort(function (a, b) { return a.d - b.d; });
+  if (ups.length) strong.push('تحسّن بخمس نقاط فأكثر: ' + wrNames(ups, 4));
+  if (downs.length) weak.push('تراجع بخمس نقاط فأكثر: ' + wrNames(downs, 4));
+  const items = oItems(u);
+  if (items && items.length) {
+    const si = items.slice().sort(function (a, b) { return b.pct - a.pct; });
+    strong.push('أعلى البنود: ' + si.slice(0, 2).map(function (i) { return i.title + ' (' + i.pct + '%)'; }).join('، '));
+    weak.push('أضعف البنود: ' + si.slice(-3).reverse().map(function (i) { return i.title + ' (' + i.pct + '%)'; }).join('، '));
+    const cs = wrCats(items).sort(function (a, b) { return b.pct - a.pct; });
+    if (cs.length >= 2) { strong.push('أقوى الأقسام: ' + cs[0].cat + ' (' + cs[0].pct + '%)'); weak.push('أضعف الأقسام: ' + cs[cs.length - 1].cat + ' (' + cs[cs.length - 1].pct + '%)'); }
+  }
+  if (ser.length && sentLast >= 90) strong.push('الإرسال مرتفع: ' + sentLast + '%.');
+  const gl = s.kind === 'o' ? (R.groups || []) : s.kind === 'b' ? rows.map(function (r) { return r.u.u; }) : [u];
+  const noSup = gl.filter(function (g) { return g && g.has_sup === false; });
+  if (noSup.length) weak.push('مجموعات بلا مشرف (' + noSup.length + '): ' + noSup.slice(0, 3).map(function (g) { return '«' + g.name + '»'; }).join('، ') + (noSup.length > 3 ? ' وغيرها' : ''));
+  if (!strong.length) strong.push('لا شيء بارز بعد.');
+  if (!weak.length) weak.push('لا ملاحظات سلبية.');
+  return { ser: ser, last: last, d: d, avg: avg, ws: ws, mName: mName, lines: lines, strong: strong, weak: weak, rows: rows };
+}
+function oOut() {
+  const s = oUnit(A.ok) || oUnit('o'); A.ok = s.k;
+  const rp = oRep(s);
+  const box = function (title, arr, bg, fg) { return '<div class="grow" style="min-width:230px;background:' + bg + ';border-radius:12px;padding:10px 12px"><b style="color:' + fg + '">' + title + '</b>' + arr.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>'; };
+  let h = '<div class="card"><div class="muted">تقرير المؤسسة (أرقام ومقارنات فقط)</div><h2>' + esc(s.name) + '</h2>' +
+    '<div class="muted">آخر أسبوع مكتمل: ' + esc(String(rp.ws.length ? rp.ws[rp.ws.length - 1] : '—')) + ' · المقياس: ' + rp.mName + '</div>' +
+    '<div class="row" style="margin-top:10px"><div class="grow"><div class="muted">الأعضاء</div><b>' + (s.u.n || 0) + '</b></div>' +
+    '<div class="grow"><div class="muted">' + rp.mName + '</div><b style="font-size:22px">' + rp.last + '%</b> ' + wrArr(rp.ser) + '</div>' +
+    '<div class="grow"><div class="muted">المتوسط</div><b>' + rp.avg + '%</b></div></div></div>';
+  h += '<div class="card" style="background:var(--y2)"><b style="color:var(--y)">الخلاصة</b>' + rp.lines.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>';
+  h += '<div class="row" style="align-items:stretch">' + box('جوانب القوة', rp.strong, 'var(--g2)', 'var(--g)') + box('جوانب الضعف', rp.weak, 'var(--r2)', 'var(--r)') + '</div>';
+  if (rp.rows.length) {
+    const rs = rp.rows.slice().sort(function (a, b) { return a.last - b.last; });
+    h += '<h3>مقارنة الوحدات (الأضعف أولاً)</h3><div class="scroll"><table><tr><th>الوحدة</th><th>الأعضاء</th>' + rp.ws.map(function (w) { return '<th>' + esc(String(w).slice(5)) + '</th>'; }).join('') + '<th>التغيّر</th></tr>';
+    [{ name: 'إجمالي النطاق', n: s.u.n || 0, s: rp.ser }].concat(rs.map(function (r) { return { name: r.u.name, n: r.u.u.n || 0, s: r.s }; })).forEach(function (r, k) {
+      h += '<tr' + (k === 0 ? ' style="font-weight:bold"' : '') + '><td>' + esc(r.name) + '</td><td>' + r.n + '</td>' + r.s.map(function (p) { return '<td style="background:' + wrCol(p) + '">' + p + '%</td>'; }).join('') + '<td>' + wrArr(r.s) + '</td></tr>';
+    });
+    h += '</table></div>';
+  }
+  return h;
+}
+function oCtl() {
+  return '<div class="row" style="margin:8px 0"><button class="sm' + (A.om === 'exec' ? '' : ' sec') + '" onclick="oMetric(\'exec\')">نسبة التنفيذ</button> <button class="sm' + (A.om === 'sent' ? '' : ' sec') + '" onclick="oMetric(\'sent\')">نسبة الإرسال</button></div>';
+}
+function oTree() {
+  const R = A.OR;
+  const btn = function (k, label, n, pad) { return '<div style="margin:3px ' + pad + 'px 3px 0"><button class="sm' + (A.ok === k ? '' : ' sec') + '" onclick="oSel(\'' + k + '\')">' + esc(label) + ' (' + (n || 0) + ')</button></div>'; };
+  let h = btn('o', 'المؤسسة كلها', (R.org || {}).n, 0);
+  (R.branches || []).forEach(function (b) {
+    h += btn('b:' + b.id, b.name, b.n, 14);
+    (R.groups || []).filter(function (g) { return g.branch_id === b.id; }).forEach(function (g) { h += btn('g:' + g.id, g.name, g.n, 34); });
+  });
+  return h;
+}
+function oRefresh() { const t = document.getElementById('or-tree'), o = document.getElementById('or-out'); if (t) t.innerHTML = oTree(); if (o) o.innerHTML = oOut(); }
+function oSel(k) { A.ok = k; oRefresh(); }
+function oMetric(m) { A.om = m; const c = document.getElementById('or-ctl'); if (c) c.innerHTML = oCtl(); const o = document.getElementById('or-out'); if (o) o.innerHTML = oOut(); }
+function tOrgWR() {
+  if (!A.om) A.om = 'exec'; if (!A.ok) A.ok = 'o';
+  if (!A.OR) { oLoad(); return '<p class="muted">جارٍ تحميل تقارير المؤسسة…</p>'; }
+  if (!(A.OR.weeks || []).length) return '<div class="card"><b>تقارير المؤسسة</b><p class="muted">لا توجد أسابيع مسجَّلة أو لا تتوفر بيانات بعد.</p><button class="sec sm" onclick="A.OR=null;adminRender()">تحديث البيانات</button></div>';
+  return '<div class="card"><div class="row"><div class="grow"><b>تقارير متابعة الأسبوع</b><div class="muted">أرقام ومقارنات فقط، وتنتهي عند المجموعة. اختر مستوى لمقارنته.</div></div><button class="sec sm" onclick="A.OR=null;adminRender()">تحديث البيانات</button></div>' +
+    '<div id="or-ctl">' + oCtl() + '</div><div id="or-tree" style="max-height:300px;overflow:auto;margin-top:8px">' + oTree() + '</div></div><div id="or-out">' + oOut() + '</div>';
+}
+function tWR() { if (A.role !== 'branch') return tOrgWR();
   wrInit();
   if (!A.R) { loadR(); return '<p class="muted">جارٍ تحميل تقارير المتابعة…</p>'; }
   if (!(A.R.weeks || []).length) return '<div class="card"><b>تقارير متابعة الأسبوع</b><p class="muted">لا توجد أسابيع مسجَّلة بعد.</p></div>';
@@ -728,14 +930,15 @@ function tMembers() {
     h += '<tr style="' + (m.active ? '' : 'opacity:.45') + '"><td>' + esc(m.name) + (m.leader ? ' <span class="badge b-wait">مشرف</span>' : '') + '</td><td>' + esc(m.grp) + '</td><td style="direction:ltr">' + esc(m.code) + '</td><td class="row">' +
       '<button class="sec sm" onclick="copyLink(\'' + m.code + '\')">نسخ الرابط</button>' +
       '<button class="sec sm" onclick="toggleLeader(' + m.id + ',' + !m.leader + ')">' + (m.leader ? 'إلغاء الإشراف' : 'جعله مشرفاً') + '</button>' +
-      '<button class="sec sm" onclick="editMember(' + m.id + ')">تعديل</button>' +
+      '<button class="sec sm" onclick="editMember(' + m.id + ')">تعديل</button>' + (A.role === 'branch' ? '<button class="sec sm" onclick="moveMember(' + m.id + ')">نقل</button>' : '') +
       '<button class="sec sm" onclick="toggleActive(' + m.id + ',' + !m.active + ')">' + (m.active ? 'تعطيل' : 'تفعيل') + '</button></td></tr>';
   });
-  return h + '</table></div>';
+return h + '</table></div>' + (A.role === 'branch' ? '<p class="muted">مجموعات فرعك: ' + (((d.groups || []).map(g => esc(g.name)).join('، ')) || 'لا توجد مجموعات بعد (تُنشأ من تبويب «الهيكل»)') + '</p>' : '');
 }
 async function addMembers() {
   const rows = $('#newm').value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(p => p[0]).map(p => ({ name: p[0], grp: p[1] || '', leader: /^(م|مشرف|1|yes)$/i.test(p[2] || '') }));
   if (!rows.length) return;
+if (A.role === 'branch') { const gs = (A.data && A.data.groups) || [], nm = x => String(x || '').trim(), bad = []; rows.forEach(r => { const g = gs.filter(x => nm(x.name) === nm(r.grp))[0]; if (g) r.group_id = g.id; else bad.push(r.grp || '(فارغ)'); }); if (bad.length) { alert('مجموعة غير موجودة في فرعك: ' + bad.filter((v, i, a) => a.indexOf(v) === i).join('، ')); return; } try { await rpc('admin_add_members', { p_pass: A.pass, p_rows: rows }); await adminLoad(); } catch (e) { alert(msg(e)); } return; }
   try { await rpc('admin_add_members', { p_pass: A.pass, p_rows: rows }); await adminLoad(); } catch (e) { alert(msg(e)); }
 }
 function copyLink(code) {
@@ -751,15 +954,15 @@ const toggleActive = (id, v) => memberUpd(id, { active: v });
 function editMember(id) {
   const m = A.data.members.find(x => x.id === id);
   const n = prompt('الاسم:', m.name); if (n === null) return;
-  const g = prompt('المجموعة:', m.grp); if (g === null) return;
-  memberUpd(id, { name: n, grp: g });
+const g = A.role === 'branch' ? null : prompt('المجموعة:', m.grp); if (A.role !== 'branch' && g === null) return;
+memberUpd(id, A.role === 'branch' ? { name: n } : { name: n, grp: g });
 }
 function printCards() {
   const d = A.data, base = baseUrl();
   let h = '<div class="noprint row"><button onclick="window.print()">طباعة</button><button class="sec" onclick="adminRender()">رجوع</button></div><h2>بطاقات المتابعة</h2><div class="cards">';
   d.members.filter(m => m.active).forEach(m => {
     h += '<div class="pcard"><b>' + esc(m.name) + '</b> <span class="muted">' + esc(m.grp) + '</span><div style="direction:ltr;text-align:right">الرمز: <b>' + esc(m.code) + '</b></div><div class="muted" style="direction:ltr;text-align:right;font-size:.7rem">' + esc(base) + '#m=' + esc(m.code) + '</div><div class="boxes">' +
-      d.lessons.map(l => '<span>' + l.id + '</span>').join('') + '</div><div class="muted">ضع علامة على الدرس المقروء ووقّع المشرف</div></div>';
+      (d.lessons || []).map(l => '<span>' + l.id + '</span>').join('') + '</div><div class="muted">ضع علامة على الدرس المقروء ووقّع المشرف</div></div>';
   });
   show(h + '</div>');
 }

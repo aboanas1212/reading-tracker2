@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261111-175830">
+<meta name="build" content="20261111-235015">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -156,7 +156,7 @@ window.onerror = function(msg, url, line) {
 /* ============ أدوات عامة ============ */
 const CFG = window.CONFIG || {};
 const S = { code: localStorage.getItem('code') || '', me: null, ls: [] };
-const A = { pass: sessionStorage.getItem('apass') || '', role: sessionStorage.getItem('arole') || '', branch: sessionStorage.getItem('abranch') || null, branchName: sessionStorage.getItem('abname') || '', data: null, tab: 'report' };
+const A = { pass: sessionStorage.getItem('apass') || '', role: sessionStorage.getItem('arole') || '', branch: sessionStorage.getItem('abranch') || null, branchName: sessionStorage.getItem('abname') || '', group: sessionStorage.getItem('agroup') || null, groupName: sessionStorage.getItem('agname') || '', data: null, tab: 'report' };
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const show = h => { document.getElementById('app').innerHTML = h; window.scrollTo(0, 0); };
@@ -176,7 +176,7 @@ function msg(e) {
   const m = String((e && e.message) || e);
   if (m.startsWith('too_early')) return 'لم يمضِ الوقت الأدنى للقراءة بعد.';
   if (m === 'bad_code') return 'الرمز غير صحيح أو معطّل.';
-  if (m === 'bad_admin') return 'كلمة المرور أو رمز الفرع غير صحيح.';
+  if (m === 'bad_admin') return 'كلمة المرور أو الرمز غير صحيح.';
   if (m.startsWith('locked')) { const s = parseInt(m.split(':')[1], 10) || 0; return 'محاولات خاطئة كثيرة. انتظر ' + (s ? Math.ceil(s / 60) + ' دقيقة' : 'قليلاً') + ' ثم أعد المحاولة.'; }
   if (m === 'forbidden') return 'هذه الصلاحية غير متاحة لحسابك.';
   if (m === 'group_required') return 'يجب اختيار المجموعة.';
@@ -254,31 +254,31 @@ function doLogin() {
 /* ============ المسؤول ============ */
 function adminEntry() {
   if (A.pass) return adminLoad();
-  show('<h1>لوحة المسؤول</h1><div class="card"><input type="password" id="ap" placeholder="كلمة المرور أو رمز الفرع"><p><button onclick="adminLogin()">دخول</button></p></div>');
+  show('<h1>لوحة المسؤول</h1><div class="card"><input type="password" id="ap" placeholder="كلمة المرور أو رمز الفرع أو المجموعة"><p><button onclick="adminLogin()">دخول</button></p></div>');
   const i = $('#ap'); if (i) i.addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
 }
-/* == login_v1 == */ function adminClear() { A.pass = ''; A.role = ''; A.branch = null; A.branchName = ''; ['apass', 'arole', 'abranch', 'abname'].forEach(function (k) { sessionStorage.removeItem(k); }); }
+/* == login_v1 == */ function adminClear() { A.pass = ''; A.role = ''; A.branch = null; A.branchName = ''; A.group = null; A.groupName = ''; ['apass', 'arole', 'abranch', 'abname', 'agroup', 'agname'].forEach(function (k) { sessionStorage.removeItem(k); }); }
 async function adminLogin() {
   const s = String(($('#ap') || {}).value || '').trim(); if (!s) return;
   try {
     const r = await rpc('admin_login', { p_secret: s });
     if (!r || !r.ok) throw new Error(r && r.error === 'locked' ? 'locked:' + (r.seconds || 0) : 'bad_admin');
-    A.pass = r.token; A.role = r.role || 'org'; A.branch = r.branch_id || null; A.branchName = r.branch_name || '';
-    sessionStorage.setItem('apass', A.pass); sessionStorage.setItem('arole', A.role); sessionStorage.setItem('abranch', A.branch || ''); sessionStorage.setItem('abname', A.branchName);
+    A.pass = r.token; A.role = r.role || 'org'; A.branch = r.branch_id || null; A.branchName = r.branch_name || ''; A.group = r.group_id || null; A.groupName = r.group_name || '';
+    sessionStorage.setItem('apass', A.pass); sessionStorage.setItem('arole', A.role); sessionStorage.setItem('abranch', A.branch || ''); sessionStorage.setItem('abname', A.branchName); sessionStorage.setItem('agroup', A.group || ''); sessionStorage.setItem('agname', A.groupName);
     adminLoad();
   } catch (e) { alert(msg(e)); }
 }
 function adminOut() { const p = A.pass; adminClear(); if (p) { try { rpc('admin_logout', { p_pass: p }).catch(function () {}); } catch (_) {} } location.hash = ''; login(); }
 async function adminLoad() {
   A.O = null; A.ob = null; A.og = null;
-/* == members_branch_v1 == */ if (A.role === 'branch') { show(loading); try { A.L = null; A.W = null; A.R = null; A.data = await rpc('admin_members', { p_pass: A.pass }); adminRender(); } catch (e) { if (String(e.message) === 'bad_admin') { adminClear(); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); } return; }
+/* == members_branch_v1 == */ /* == group_role_ui_v1 == */ if (A.role === 'branch' || A.role === 'group') { show(loading); try { A.L = null; A.W = null; A.R = null; A.data = await rpc('admin_members', { p_pass: A.pass }); /* == group_access_ui_v1 == */ A.GA = null; if (A.role === 'branch') { try { A.GA = await rpc('admin_group_access_list', { p_pass: A.pass }); } catch (_) { A.GA = null; } } adminRender(); } catch (e) { if (String(e.message) === 'bad_admin') { adminClear(); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); } return; }
   show(loading);
   try { A.L = null; A.W = null; A.data = null; /* == adminload_org_v1 == */ adminRender(); }
   catch (e) { if (String(e.message) === 'bad_admin') { adminClear(); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); }
 }
 function adminRender() {
-/* == roles_tabs_v1 == */ const org = A.role !== 'branch', ttl = org ? 'لوحة المسؤول العام' : 'لوحة الفرع: ' + (A.branchName || '');
-const tabs = org ? [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع']] : [['wr', 'تقارير الفرع'], ['week', 'الهيكل'], ['members', 'الأعضاء']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
+/* == roles_tabs_v1 == */ const grp = A.role === 'group', org = A.role !== 'branch' && !grp, ttl = grp ? 'لوحة المجموعة: ' + (A.groupName || '') : org ? 'لوحة المسؤول العام' : 'لوحة الفرع: ' + (A.branchName || '');
+const tabs = grp ? [['wr', 'تقارير المجموعة'], ['members', 'الأعضاء']] : org ? [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع']] : [['wr', 'تقارير الفرع'], ['week', 'الهيكل'], ['members', 'الأعضاء']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
   let h = '<div class="row noprint"><div class="grow"><h1>' + esc(ttl) + '</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
   h += (({ wr: tWR, week: tWeek, members: tMembers })[A.tab] || tWR)();
@@ -296,6 +296,19 @@ function hierErr(e) {
 }
 /* == struct_branch_v1 == */
 const sBr = () => Number(A.branch) || null;
+/* == group_access_ui_v1 == */
+function gaInfo(id) { return ((A.GA || []).filter(x => x.group_id === id)[0]) || null; }
+function gaCell(id) { const i = gaInfo(id); if (!i || !i.has_code) return '<span class="muted">لا رمز</span> '; return i.active ? '<span>رمز مفعّل</span> ' : '<span class="muted">رمز معطّل</span> '; }
+function gaBtns(id) { const i = gaInfo(id), has = !!(i && i.has_code); return '<button class="sec sm" onclick="gaSet(' + id + ',true,null)">' + (has ? 'تجديد الرمز' : 'توليد الرمز') + '</button>' + (has ? '<button class="sec sm" onclick="gaSet(' + id + ',false,' + (!i.active) + ')">' + (i.active ? 'تعطيل الرمز' : 'تفعيل الرمز') + '</button>' : ''); }
+async function gaSet(id, rot, act) {
+  const i = gaInfo(id);
+  if (rot && i && i.has_code && !confirm('سيُلغى الرمز القديم وتُنهى جلسات مسؤول المجموعة. متابعة؟')) return;
+  try {
+    const r = await rpc('admin_group_access_set', { p_pass: A.pass, p_group_id: id, p_active: act, p_rotate: rot });
+    await adminLoad();
+    if (r && r.code) prompt('رمز مسؤول المجموعة (يظهر مرة واحدة، انسخه الآن). يدخل به في صفحة المسؤول:', r.code);
+  } catch (e) { alert(msg(e)); }
+}
 async function sCall(fn, args) { try { await rpc(fn, args); await adminLoad(); return true; } catch (e) { alert(msg(e)); return false; } }
 function tStruct() {
   const d = A.data || {}, gs = d.groups || [], ms = d.members || [];
@@ -305,7 +318,7 @@ function tStruct() {
   gs.forEach(g => {
     const mm = ms.filter(m => m.group_id === g.id && m.active), sp = mm.filter(m => m.leader).map(m => esc(m.name));
     h += '<tr><td>' + esc(g.name) + '</td><td>' + mm.length + '</td><td>' + (sp.length ? sp.join('، ') : '<span class="muted">لا مشرف</span>') + '</td><td class="row">' +
-      '<button class="sec sm" onclick="sSup(' + g.id + ')">تعيين المشرفين</button>' +
+      gaCell(g.id) + gaBtns(g.id) + '<button class="sec sm" onclick="sSup(' + g.id + ')">تعيين المشرفين</button>' +
       '<button class="sec sm" onclick="sGroupRename(' + g.id + ')">تسمية</button>' +
       '<button class="sec sm" onclick="sGroupDel(' + g.id + ')">حذف</button></td></tr>';
   });
@@ -731,7 +744,7 @@ function tOrgWR() {
   return '<div class="card"><div class="row"><div class="grow"><b>تقارير متابعة الأسبوع</b><div class="muted">أرقام ومقارنات فقط، وتنتهي عند المجموعة. اختر مستوى لمقارنته.</div></div><button class="sec sm" onclick="A.OR=null;adminRender()">تحديث البيانات</button></div>' +
     '<div id="or-ctl">' + oCtl() + '</div><div id="or-tree" style="margin-top:10px">' + oTree() + '</div></div><div id="or-out">' + oOut() + '</div>';
 }
-function tWR() { if (A.role !== 'branch') return tOrgWR();
+function tWR() { if (A.role !== 'branch' && A.role !== 'group') return tOrgWR();
   wrInit();
   if (!A.R) { loadR(); return '<p class="muted">جارٍ تحميل تقارير المتابعة…</p>'; }
   if (!(A.R.weeks || []).length) return '<div class="card"><b>تقارير متابعة الأسبوع</b><p class="muted">لا توجد أسابيع مسجَّلة بعد.</p></div>';
@@ -745,7 +758,7 @@ function tWR() { if (A.role !== 'branch') return tOrgWR();
 const baseUrl = () => location.origin + location.pathname;
 function tMembers() {
   const d = A.data;
-  let h = '<div class="card"><h3>إضافة أعضاء</h3><p class="muted">سطر لكل عضو بالصيغة: الاسم | المجموعة | م (اكتب «م» إن كان مشرف مجموعة)</p><textarea id="newm" placeholder="أحمد علي | الشمال | م&#10;سعيد حسن | الشمال&#10;خالد | الجنوب"></textarea><p><button onclick="addMembers()">إضافة</button> <button class="sec" onclick="printCards()">طباعة البطاقات</button></p></div>';
+  let h = '<div class="card"><h3>إضافة أعضاء</h3><p class="muted">' + (A.role === 'group' ? 'سطر لكل عضو: الاسم فقط، أو «الاسم | | م» إن كان مشرفاً' : 'سطر لكل عضو بالصيغة: الاسم | المجموعة | م (اكتب «م» إن كان مشرف مجموعة)') + '</p><textarea id="newm" placeholder="أحمد علي | الشمال | م&#10;سعيد حسن | الشمال&#10;خالد | الجنوب"></textarea><p><button onclick="addMembers()">إضافة</button> <button class="sec" onclick="printCards()">طباعة البطاقات</button></p></div>';
   h += '<div class="scroll"><table><tr><th>الاسم</th><th>المجموعة</th><th>الرمز</th><th></th></tr>';
   d.members.forEach(m => {
     h += '<tr style="' + (m.active ? '' : 'opacity:.45') + '"><td>' + esc(m.name) + (m.leader ? ' <span class="badge b-wait">مشرف</span>' : '') + '</td><td>' + esc(m.grp) + '</td><td style="direction:ltr">' + esc(m.code) + '</td><td class="row">' +
@@ -775,8 +788,8 @@ const toggleActive = (id, v) => memberUpd(id, { active: v });
 function editMember(id) {
   const m = A.data.members.find(x => x.id === id);
   const n = prompt('الاسم:', m.name); if (n === null) return;
-const g = A.role === 'branch' ? null : prompt('المجموعة:', m.grp); if (A.role !== 'branch' && g === null) return;
-memberUpd(id, A.role === 'branch' ? { name: n } : { name: n, grp: g });
+const g = A.role !== 'org' ? null : prompt('المجموعة:', m.grp); if (A.role === 'org' && g === null) return;
+memberUpd(id, A.role !== 'org' ? { name: n } : { name: n, grp: g });
 }
 function printCards() {
   const d = A.data, base = baseUrl();

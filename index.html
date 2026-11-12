@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261112-212307">
+<meta name="build" content="20261112-235708">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -225,7 +225,7 @@ const errBox = (e, retry) => '<div class="err">' + esc(msg(e)) + '</div>' + (ret
 })();
 function route() {
   const h = location.hash;
-  if (h.startsWith('#admin')) return adminEntry();
+  /* == test_links_route == */ const ta = h.match(/^#a=([A-Za-z0-9]+)/); if (ta) { history.replaceState(null, '', location.pathname); return testLink(ta[1]); } if (h.startsWith('#admin')) return adminEntry();
   const m = h.match(/#m=([A-Za-z0-9]+)/);
   if (m) { S.code = m[1].toUpperCase(); localStorage.setItem('code', S.code); history.replaceState(null, '', location.pathname); }
   if (S.code) return home(); login();
@@ -269,7 +269,7 @@ async function adminLogin() {
     adminLoad();
   } catch (e) { alert(msg(e)); }
 }
-function adminOut() { const p = A.pass; adminClear(); if (p) { try { rpc('admin_logout', { p_pass: p }).catch(function () {}); } catch (_) {} } location.hash = ''; login(); }
+/* == test_links_v1 == */ async function testLink(c) { const i = document.createElement('input'); i.id = 'ap'; i.type = 'hidden'; i.value = c; document.body.appendChild(i); try { await adminLogin(); } finally { i.remove(); } if (!A.pass) adminEntry(); } function adminOut() { const p = A.pass; adminClear(); if (p) { try { rpc('admin_logout', { p_pass: p }).catch(function () {}); } catch (_) {} } location.hash = ''; login(); }
 async function adminLoad() {
   A.O = null; A.ob = null; A.og = null; A.PL = null; A.AP = null; A.PR = null;
 /* == members_branch_v1 == */ /* == group_role_ui_v1 == */ if (A.role === 'branch' || A.role === 'group') { show(loading); try { A.L = null; A.W = null; A.R = null; A.data = await rpc('admin_members', { p_pass: A.pass }); /* == group_access_ui_v1 == */ A.GA = null; if (A.role === 'branch') { try { A.GA = await rpc('admin_group_access_list', { p_pass: A.pass }); } catch (_) { A.GA = null; } } adminRender(); } catch (e) { if (String(e.message) === 'bad_admin') { adminClear(); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); } return; }
@@ -901,39 +901,41 @@ function editMember(id) {
 const g = A.role !== 'org' ? null : prompt('المجموعة:', m.grp); if (A.role === 'org' && g === null) return;
 memberUpd(id, A.role !== 'org' ? { name: n } : { name: n, grp: g });
 }
-/* == group_prep_ui_v2 == */
+/* == group_prep_ui_v5 == */
 (function () {
-  if (document.querySelector('style[data-id="gp2css"]')) return;
+  if (document.querySelector('style[data-id="gp3css"]')) return;
   var st = document.createElement('style');
-  st.setAttribute('data-id', 'gp2css');
+  st.setAttribute('data-id', 'gp3css');
   st.textContent = [
     '.pr-steps{margin:6px 0 0;padding:0 22px;line-height:1.9}',
-    '.pr-lg{border-right:4px solid var(--sc);background:var(--sb);border-radius:8px;padding:6px 10px;margin:8px 0}',
-    '.pr-lgh{font-weight:700;color:var(--sc);font-size:.9rem;margin-bottom:2px}',
-    '.pr-li{display:flex;gap:8px;align-items:flex-start;padding:2px 0;font-size:.92rem}',
-    '.pr-li b{flex:none;min-width:24px;height:24px;border-radius:50%;background:var(--sc);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:.8rem}',
-    '.pr-wrap{overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:12px;background:#fff;margin:10px 0}',
-    'table.pr-t{border-collapse:separate;border-spacing:0;width:100%;font-size:.9rem}',
+    '.pr-bar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:8px 0}',
+    '.pr-wrap{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:12px;background:#fff;margin:6px 0}',
+    'table.pr-t{border-collapse:separate;border-spacing:0;font-size:.78rem;width:max-content;min-width:0}',
     'table.pr-t th,table.pr-t td{border-bottom:1px solid var(--line);border-left:1px solid var(--line);padding:0;text-align:center;background:#fff}',
-    'table.pr-t thead th{position:sticky;z-index:2;background:var(--sb,#eef1ee);color:var(--sc,var(--ink));font-weight:700}',
-    'table.pr-t thead tr:first-child th{top:0;height:28px;font-size:.8rem}',
-    'table.pr-t thead tr:nth-child(2) th{top:28px;padding:4px 2px}',
-    'table.pr-t th.pr-h b{display:block;font-size:1rem}',
-    'table.pr-t .pr-n{position:sticky;right:0;z-index:1;min-width:130px;text-align:right;padding:6px 10px;font-weight:600;box-shadow:-2px 0 3px rgba(0,0,0,.06)}',
-    'table.pr-t thead .pr-n{z-index:4;background:#eef1ee;color:var(--ink)}',
-    'table.pr-t td.pr-p{min-width:52px}',
-    'table.pr-t td label{display:block;padding:9px 0;cursor:pointer}',
-    'table.pr-t input[type=checkbox]{width:20px;height:20px;accent-color:var(--g);cursor:pointer;margin:0}',
-    'table.pr-t tbody tr:nth-child(even) td{background:#fafaf7}',
-    'table.pr-t tr.pr-off td{background:#efefea!important;color:var(--mute)}',
-    'table.pr-t tr.pr-full td.pr-tot{background:var(--g2)!important;color:var(--g)}',
-    'table.pr-t td.pr-tot,table.pr-t th.pr-tot{min-width:84px;padding:4px 6px;white-space:nowrap}',
-    'table.pr-t .pr-gs{border-right:2px solid var(--line)}',
-    'table.pr-t tfoot td{position:sticky;bottom:0;z-index:2;background:#eef1ee;font-weight:700;padding:6px 2px}',
-    'table.pr-t tfoot .pr-n{z-index:3}',
-    '.pr-save{position:sticky;bottom:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-top:1px solid var(--line);padding:10px 12px;margin-top:10px;border-radius:12px 12px 0 0;box-shadow:0 -4px 10px rgba(0,0,0,.05)}',
+    'table.pr-t thead th{position:sticky;top:0;z-index:3;background:#1f5c3d;color:#fff;font-weight:700;padding:5px 3px;min-width:46px;cursor:pointer;white-space:nowrap;font-size:.76rem;border-color:#2f7a55}',
+    'table.pr-t thead th.pr-n{z-index:5;cursor:default;text-align:right}',
+    'table.pr-t .pr-n{position:sticky;right:0;z-index:2;text-align:right;padding:2px 6px;width:15em;min-width:15em;max-width:15em;box-shadow:-2px 0 3px rgba(0,0,0,.06)}',
+    'table.pr-t tbody td.pr-n{background:var(--sb,#fff)}',
+    'table.pr-t tr.pr-sec td{background:var(--sb);color:var(--sc);font-weight:700;text-align:right;padding:3px 8px;font-size:.82rem}',
+    'table.pr-t tr.pr-sec td.pr-sf{box-shadow:none}',
+    '.pr-ic{display:flex;align-items:center;gap:6px}',
+    '.pr-no{flex:none;width:18px;height:18px;border-radius:50%;background:var(--sc);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:.75rem}',
+    '.pr-it{display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}',
+    '.pr-it.pr-op,.pr-all .pr-it{white-space:normal;max-width:16em;overflow:visible}',
+    '.pr-cnt{flex:none;font-size:.75rem;color:var(--mute)}',
+    '.pr-ic button{flex:none;padding:2px 6px;font-size:.72rem}',
+    'table.pr-t td.pr-c{min-width:46px;width:46px}',
+    'table.pr-t td label{display:flex;justify-content:center;padding:3px 0;cursor:pointer}',
+    'table.pr-t input[type=checkbox]{width:15px;height:15px;accent-color:var(--g);cursor:pointer;margin:0}',
+    'table.pr-t .pr-off{background:#efefea!important;color:var(--mute)}',
+    'table.pr-t th.pr-full{background:var(--g2)!important;color:var(--g)}',
+    '.pr-all th.pr-mh{white-space:normal;min-width:80px}','table.pr-t thead tr.pr-pr th{top:28px;background:#f3ead0;color:#5b4a12;padding:3px 2px;cursor:default;font-size:.72rem;border-bottom:2px solid #c9b373}','table.pr-t thead input.pr-sw{appearance:none;-webkit-appearance:none;width:30px;height:16px;border-radius:8px;background:#b9bfb9;position:relative;cursor:pointer;margin:0;display:inline-block;vertical-align:middle;transition:background .15s}','table.pr-t thead input.pr-sw::after{content:"";position:absolute;top:2px;right:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:right .15s}','table.pr-t thead input.pr-sw:checked{background:#1f7a4d}','table.pr-t thead input.pr-sw:checked::after{right:16px}',
+    'table.pr-t tfoot td{position:sticky;bottom:0;z-index:2;background:#eef1ee;font-weight:700;padding:4px 2px;font-size:.8rem}',
+    'table.pr-t tfoot td.pr-n{z-index:4}',
+    '.pr-wrap{scrollbar-color:#1f5c3d #dfe6df}','.pr-all table.pr-t .pr-n{width:26em;min-width:26em;max-width:26em}','table.pr-t .pr-ic button{padding:0 6px!important;min-height:0!important;height:20px!important;line-height:18px!important;font-size:.7rem!important;border-radius:6px!important}','table.pr-t tfoot button{padding:0 4px!important;min-height:0!important;height:18px!important;line-height:16px!important;font-size:.72rem!important}','.pr-save{position:sticky;bottom:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-top:1px solid var(--line);padding:10px 12px;margin-top:10px;border-radius:12px 12px 0 0;box-shadow:0 -4px 10px rgba(0,0,0,.05)}',
     'details.card summary{cursor:pointer;font-weight:600}',
-    '.pr-done{margin:8px 0 0;padding:0 18px}'
+    '.pr-done{margin:8px 0 0;padding:0 18px}',
+    '@media(max-width:600px){.pr-it{max-width:6.5em}.pr-cnt{display:none}table.pr-t{font-size:.8rem}table.pr-t .pr-n{width:11em;min-width:11em;max-width:11em}table.pr-t thead th{min-width:40px}table.pr-t td.pr-c{min-width:40px;width:40px}}'
   ].join('');
   document.head.appendChild(st);
 })();
@@ -945,14 +947,12 @@ function tPrep() {
   const d = A.PR, items = d.items || [], ms = d.members || [];
   if (!items.length || !ms.length) return '<div class="card"><p class="muted">لا يوجد أعضاء نشطون أو بنود لعرضها.</p></div>';
   const pal = [['#e6f3ec', '#1f7a4d'], ['#fdf3d8', '#9a6b00'], ['#e8eef9', '#2d4f8f'], ['#f6e9f3', '#8a3a78'], ['#fbeae6', '#b3402a']];
-  const groups = [], gOf = {}, first = {};
+  const groups = [];
   items.forEach(function (it, ix) {
     const c = String(it.cat == null ? '' : it.cat);
     let g = groups[groups.length - 1];
     if (!g || g.c !== c) { g = { c: c, list: [] }; groups.push(g); }
     g.list.push({ it: it, n: ix + 1 });
-    if (g.list.length === 1) first[it.id] = true;
-    gOf[it.id] = g;
   });
   groups.forEach(function (g, gi) {
     g.name = (g.c.trim() && !/^\d+$/.test(g.c.trim())) ? g.c : 'القسم ' + (gi + 1);
@@ -960,30 +960,37 @@ function tPrep() {
   });
   const act = ms.filter(function (m) { return d.sel[m.id]; });
   const done = ms.filter(function (m) { return !d.sel[m.id]; });
-  let h = '<div class="card"><h3>التحضير الجماعي</h3><p class="muted">الأسبوع الذي يبدأ ' + esc(d.week) + '</p><ol class="pr-steps"><li>أزل علامة «حاضر» عمّن لم يحضر اللقاء.</li><li>علّم البنود التي أنجزها كل عضو، أو اضغط «الكل» تحت رقم البند ليشمل الجميع.</li><li>راجع الأعداد في أسفل الجدول ثم اضغط «حفظ التحضير».</li></ol></div>';
-  h += '<div class="card"><h3>البنود</h3>' + groups.map(function (g) {
-    return '<div class="pr-lg" style="' + g.st + '"><div class="pr-lgh">' + esc(g.name) + '</div>' + g.list.map(function (x) {
-      return '<div class="pr-li"><b>' + x.n + '</b><span>' + esc(x.it.title) + '</span></div>';
-    }).join('') + '</div>';
-  }).join('') + '</div>';
+  const nm = function (full, k) {
+    const w = String(full).trim().split(/\s+/);
+    const a = Array.from(w[0]).slice(0, 5).join('');
+    return w.length > 1 ? a + ' ' + Array.from(w[1]).slice(0, k).join('') : a;
+  };
+  let k = 1;
+  const uniq = function () { const seen = {}; let ok = true; act.forEach(function (m) { const s = nm(m.name, k); if (seen[s]) ok = false; seen[s] = 1; }); return ok; };
+  while (k < 10 && !uniq()) k++;
+  const sh = {}, used = {};
+  act.forEach(function (m, ix) { let s = nm(m.name, k); if (used[s]) s += ' ' + (ix + 1); used[s] = 1; sh[m.id] = s; });
+  let h = '<div class="card"><h3>التحضير الجماعي</h3><p class="muted">الأسبوع الذي يبدأ ' + esc(d.week) + '</p><ol class="pr-steps"><li>أزل علامة «حاضر» عمّن لم يحضر اللقاء.</li><li>علّم ما أنجزه كل عضو، أو اضغط «الكل» بجانب البند ليشمل الجميع، أو «الكل» أسفل العضو لبنوده كلها.</li><li>اضغط على أي بند أو اسم لقراءته كاملاً، ثم راجع الأعداد واضغط «حفظ التحضير».</li></ol></div>';
   if (!act.length) {
     h += '<div class="card"><p class="muted">لا يوجد أعضاء متاحون للتحضير الجماعي هذا الأسبوع.</p></div>';
   } else {
-    let t = '<div class="pr-wrap"><table class="pr-t"><thead><tr><th class="pr-n" rowspan="2">العضو</th><th class="pr-p" rowspan="2">حاضر</th>' +
-      groups.map(function (g) { return '<th colspan="' + g.list.length + '" style="' + g.st + '">' + esc(g.name) + '</th>'; }).join('') +
-      '<th class="pr-tot" rowspan="2">المنجز</th></tr><tr>' +
-      items.map(function (i, ix) {
-        return '<th class="pr-h' + (first[i.id] ? ' pr-gs' : '') + '" style="' + gOf[i.id].st + '" title="' + esc(i.title) + '"><b>' + (ix + 1) + '</b><button class="sec sm" onclick="prepAll(' + i.id + ')">الكل</button></th>';
-      }).join('') + '</tr></thead><tbody>';
-    act.forEach(function (m) {
-      const s = d.sel[m.id];
-      t += '<tr id="prt-' + m.id + '"><td class="pr-n">' + esc(m.name) + '</td><td class="pr-p"><label><input type="checkbox" data-m="' + m.id + '"' + (s.on ? ' checked' : '') + ' onchange="prepInc(' + m.id + ',this.checked)"></label></td>' +
-        items.map(function (i) {
-          return '<td class="pr-c' + (first[i.id] ? ' pr-gs' : '') + '"><label><input type="checkbox" data-m="' + m.id + '" data-i="' + i.id + '"' + (s.a[i.id] ? ' checked' : '') + (s.on ? '' : ' disabled') + ' onchange="prepSet(' + m.id + ',' + i.id + ',this.checked)"></label></td>';
-        }).join('') +
-        '<td class="pr-tot"><span id="prr-' + m.id + '">0/' + items.length + '</span> <button class="link sm" onclick="prepRow(' + m.id + ')">الكل</button></td></tr>';
+    let t = '<div class="pr-bar"><button class="sec sm" id="pr-wide" onclick="prepWide(this)">عرض البنود والأسماء كاملة</button><span class="muted">اضغط على أي بند أو اسم لقراءته كاملاً</span></div>';
+    t += '<div class="pr-wrap" id="pr-wrap"><table class="pr-t"><thead><tr><th class="pr-n">البند</th>' + act.map(function (m) {
+      return '<th class="pr-mh" id="prh-' + m.id + '" data-col="' + m.id + '" data-s="' + esc(sh[m.id]) + '" data-f="' + esc(m.name) + '" title="' + esc(m.name) + '" onclick="prepNm(this)">' + esc(sh[m.id]) + '</th>';
+    }).join('') + '</tr><tr class="pr-pr"><th class="pr-n">حاضر <span class="muted">أزل عمّن غاب</span></th>' + act.map(function (m) { return '<th class="pr-pc" data-col="' + m.id + '"><input type="checkbox" class="pr-sw" title="حاضر" data-m="' + m.id + '"' + (d.sel[m.id].on ? ' checked' : '') + ' onchange="prepInc(' + m.id + ',this.checked)"></th>'; }).join('') + '</tr></thead><tbody>';
+    groups.forEach(function (g) {
+      t += '<tr class="pr-sec" style="' + g.st + '"><td class="pr-n">' + esc(g.name) + '</td><td class="pr-sf" colspan="' + act.length + '"></td></tr>';
+      g.list.forEach(function (x) {
+        t += '<tr style="' + g.st + '"><td class="pr-n"><div class="pr-ic"><b class="pr-no">' + x.n + '</b><span class="pr-it" title="' + esc(x.it.title) + '" onclick="this.classList.toggle(\'pr-op\')">' + esc(x.it.title) + '</span><span class="pr-cnt" id="prc-' + x.it.id + '">0/' + act.length + '</span><button class="sec sm" onclick="prepAll(' + x.it.id + ')">الكل</button></div></td>' +
+          act.map(function (m) {
+            const s = d.sel[m.id];
+            return '<td class="pr-c" data-col="' + m.id + '"><label><input type="checkbox" data-m="' + m.id + '" data-i="' + x.it.id + '"' + (s.a[x.it.id] ? ' checked' : '') + (s.on ? '' : ' disabled') + ' onchange="prepSet(' + m.id + ',' + x.it.id + ',this.checked)"></label></td>';
+          }).join('') + '</tr>';
+      });
     });
-    t += '</tbody><tfoot><tr><td class="pr-n">المجموع</td><td></td>' + items.map(function (i) { return '<td id="prc-' + i.id + '">0/' + act.length + '</td>'; }).join('') + '<td></td></tr></tfoot></table></div>';
+    t += '</tbody><tfoot><tr><td class="pr-n">المنجز لكل عضو</td>' + act.map(function (m) {
+      return '<td data-col="' + m.id + '"><span id="prr-' + m.id + '">0/' + items.length + '</span><br><button class="link sm" onclick="prepRow(' + m.id + ')">الكل</button></td>';
+    }).join('') + '</tr></tfoot></table></div>';
     h += t + '<div class="pr-save"><span id="pr-stat" class="muted"></span><button onclick="prepSave()">حفظ التحضير</button></div>';
   }
   if (done.length) {
@@ -1019,13 +1026,22 @@ function prepSync() {
   });
   ids.forEach(function (k) {
     const s = d.sel[k], n = d.items.filter(function (i) { return s.a[i.id]; }).length;
-    const e = document.getElementById('prr-' + k), tr = document.getElementById('prt-' + k);
+    const e = document.getElementById('prr-' + k), th = document.getElementById('prh-' + k);
     if (e) e.textContent = n + '/' + d.items.length;
-    if (tr) { tr.classList.toggle('pr-off', !s.on); tr.classList.toggle('pr-full', !!s.on && n === d.items.length); }
+    document.querySelectorAll('[data-col="' + k + '"]').forEach(function (c) { c.classList.toggle('pr-off', !s.on); });
+    if (th) th.classList.toggle('pr-full', !!s.on && n === d.items.length);
   });
   const st = document.getElementById('pr-stat');
-  if (st) st.textContent = 'سيُحفظ تحضير ' + act.length + ' عضواً من ' + ids.length;
+  if (st) st.textContent = 'سيُحفظ تحضير ' + act.length + ' عضواً من ' + ids.length; prepHead();
 }
+function prepHead() { const r = document.querySelector('table.pr-t thead tr'); if (!r) return; const h = r.offsetHeight; document.querySelectorAll('tr.pr-pr th').forEach(function (th) { th.style.top = h + 'px'; }); } function prepWide(b) {
+  const w = document.getElementById('pr-wrap');
+  if (!w) return;
+  const on = w.classList.toggle('pr-all');
+  w.querySelectorAll('th.pr-mh').forEach(function (th) { th.textContent = on ? th.dataset.f : th.dataset.s; });
+  b.textContent = on ? 'تصغير البنود والأسماء' : 'عرض البنود والأسماء كاملة'; prepHead();
+}
+function prepNm(th) { th.textContent = th.textContent === th.dataset.f ? th.dataset.s : th.dataset.f; prepHead(); }
 function prepInc(id, v) { if (A.PR && A.PR.sel[id]) { A.PR.sel[id].on = v; prepSync(); } }
 function prepSet(id, item, v) { if (A.PR && A.PR.sel[id]) { A.PR.sel[id].a[item] = v; prepSync(); } }
 function prepAll(item) {

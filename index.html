@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261112-031247">
+<meta name="build" content="20261112-043141">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -869,17 +869,17 @@ async function rqDecide(id, ok) {
 function tMembers() {
   const d = A.data;
   let h = rqBox() + '<div class="card"><h3>إضافة أعضاء</h3><p class="muted">' + (A.role === 'group' ? 'سطر لكل عضو: الاسم فقط، أو «الاسم | | م» إن كان مشرفاً' : 'سطر لكل عضو بالصيغة: الاسم | المجموعة | م (اكتب «م» إن كان مشرف مجموعة)') + '</p><textarea id="newm" placeholder="أحمد علي | الشمال | م&#10;سعيد حسن | الشمال&#10;خالد | الجنوب"></textarea><p><button onclick="addMembers()">إضافة</button> <button class="sec" onclick="printCards()">طباعة البطاقات</button></p></div>';
-  h += '<div class="scroll"><table><tr><th>الاسم</th><th>المجموعة</th><th>الرمز</th><th></th></tr>';
+  if (A.role === 'branch') h = rqBox() + '<div class="card"><p class="muted">عرض للقراءة فقط: إضافة الأعضاء وتعديلهم من مسؤول المجموعة.</p><p><button class="sec" onclick="printCards()">طباعة البطاقات</button></p></div>'; h += '<div class="scroll"><table><tr><th>الاسم</th><th>المجموعة</th><th>الرمز</th><th></th></tr>';
   d.members.forEach(m => {
     h += '<tr style="' + (m.active ? '' : 'opacity:.45') + '"><td>' + esc(m.name) + (m.leader ? ' <span class="badge b-wait">مشرف</span>' : '') + '</td><td>' + esc(m.grp) + '</td><td style="direction:ltr">' + esc(m.code) + '</td><td class="row">' +
       '<button class="sec sm" onclick="copyLink(\'' + m.code + '\')">نسخ الرابط</button>' +
-      '<button class="sec sm" onclick="toggleLeader(' + m.id + ',' + !m.leader + ')">' + (m.leader ? 'إلغاء الإشراف' : 'جعله مشرفاً') + '</button>' +
-      '<button class="sec sm" onclick="editMember(' + m.id + ')">تعديل</button>' + (A.role === 'branch' ? '<button class="sec sm" onclick="moveMember(' + m.id + ')">نقل</button>' : '') +
-      '<button class="sec sm" onclick="toggleActive(' + m.id + ',' + !m.active + ')">' + (m.active ? 'تعطيل' : 'تفعيل') + '</button></td></tr>';
+      (A.role === 'branch' ? '' : '<button class="sec sm" onclick="toggleLeader(' + m.id + ',' + !m.leader + ')">' + (m.leader ? 'إلغاء الإشراف' : 'جعله مشرفاً') + '</button>') +
+      (A.role === 'branch' ? '' : '<button class="sec sm" onclick="editMember(' + m.id + ')">تعديل</button>') + (A.role === 'branch' ? '<button class="sec sm" onclick="moveMember(' + m.id + ')">نقل</button>' : '') +
+      (A.role === 'branch' ? '' : '<button class="sec sm" onclick="toggleActive(' + m.id + ',' + !m.active + ')">' + (m.active ? 'تعطيل' : 'تفعيل') + '</button>') + '</td></tr>';
   });
 return h + '</table></div>' + (A.role === 'branch' ? '<p class="muted">مجموعات فرعك: ' + (((d.groups || []).map(g => esc(g.name)).join('، ')) || 'لا توجد مجموعات بعد (تُنشأ من تبويب «الهيكل»)') + '</p>' : '');
 }
-async function addMembers() {
+async function addMembers() { /* == m23_branch_ro_v1 == */ if (A.role === 'branch') return;
   const rows = $('#newm').value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(p => p[0]).map(p => ({ name: p[0], grp: p[1] || '', leader: /^(م|مشرف|1|yes)$/i.test(p[2] || '') }));
   if (!rows.length) return;
 if (A.role === 'branch') { const gs = (A.data && A.data.groups) || [], nm = x => String(x || '').trim(), bad = []; rows.forEach(r => { const g = gs.filter(x => nm(x.name) === nm(r.grp))[0]; if (g) r.group_id = g.id; else bad.push(r.grp || '(فارغ)'); }); if (bad.length) { alert('مجموعة غير موجودة في فرعك: ' + bad.filter((v, i, a) => a.indexOf(v) === i).join('، ')); return; } try { await rpc('admin_add_members', { p_pass: A.pass, p_rows: rows }); await adminLoad(); } catch (e) { alert(msg(e)); } return; }
@@ -889,7 +889,7 @@ function copyLink(code) {
   const u = baseUrl() + '#m=' + code;
   (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => alert('نُسخ الرابط:\n' + u)).catch(() => prompt('انسخ الرابط:', u));
 }
-async function memberUpd(id, o) {
+async function memberUpd(id, o) { if (A.role === 'branch') return;
   const m = A.data.members.find(x => x.id === id);
   try { await rpc('admin_member_update', { p_pass: A.pass, p_id: id, p_name: o.name != null ? o.name : m.name, p_grp: o.grp != null ? o.grp : m.grp, p_leader: o.leader != null ? o.leader : m.leader, p_active: o.active != null ? o.active : m.active }); await adminLoad(); } catch (e) { alert(msg(e)); }
 }

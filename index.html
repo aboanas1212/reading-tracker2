@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261112-021742">
+<meta name="build" content="20261112-031247">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -187,7 +187,7 @@ function msg(e) {
   if (m === 'name_required') return 'الاسم مطلوب.';
   if (m === 'no_period') return 'لم تُحدَّد فترة المتابعة بعد.'; if (m === 'period_overlap') return 'هذه الفترة تتداخل مع فترة أخرى.'; if (m === 'bad_range') return 'تاريخ النهاية يجب ألا يسبق البداية.'; if (m === 'period_started') return 'لا يمكن حذف فترة بدأت.'; if (m === 'dates_required') return 'حدّد تاريخ البداية والنهاية.'; if (m === 'not_leader') return 'هذه الميزة للمشرفين فقط.';
   if (m === 'no_lesson') return 'الدرس غير موجود.';
-  /* == reopen_ui_v1 == */ if (m === 'reason_required') return 'اكتب سبب الطلب (3 أحرف على الأقل).'; if (m === 'already_requested') return 'سبق تقديم طلب لهذا الأسبوع وهو بانتظار القرار.'; if (m === 'not_reopenable') return 'لا يمكن طلب إعادة فتح هذا الأسبوع.'; if (m === 'already_decided') return 'سبق اتخاذ القرار في هذا الطلب.';
+  /* == reopen_ui_v1 == */ if (m === 'reason_required') return 'اكتب سبب الطلب (3 أحرف على الأقل).'; if (m === 'already_requested') return 'سبق تقديم طلب لهذا الأسبوع وهو بانتظار القرار.'; if (m === 'not_reopenable') return 'لا يمكن طلب إعادة فتح هذا الأسبوع.'; if (m === 'already_decided') return 'سبق اتخاذ القرار في هذا الطلب.'; /* == appr_ui_v1 == */ if (m === 'period_closed') return 'أُغلقت هذه الفترة باعتماد الفرع، فلا يمكن الإرسال ولا طلب إعادة الفتح.'; if (m === 'period_not_started') return 'لا يمكن اعتماد فترة لم تبدأ بعد.'; if (m === 'already_approved') return 'اعتُمدت هذه الفترة مسبقاً.'; if (m === 'not_approved') return 'هذه الفترة غير معتمدة أو سبق فكّ إغلاقها.';
   if (m.startsWith('http_') || m.includes('Failed to fetch')) return 'تعذّر الاتصال بالخادم. تحقق من الإنترنت أو من إعدادات config.js.';
   return 'حدث خطأ: ' + m;
 }
@@ -271,7 +271,7 @@ async function adminLogin() {
 }
 function adminOut() { const p = A.pass; adminClear(); if (p) { try { rpc('admin_logout', { p_pass: p }).catch(function () {}); } catch (_) {} } location.hash = ''; login(); }
 async function adminLoad() {
-  A.O = null; A.ob = null; A.og = null; A.PL = null;
+  A.O = null; A.ob = null; A.og = null; A.PL = null; A.AP = null;
 /* == members_branch_v1 == */ /* == group_role_ui_v1 == */ if (A.role === 'branch' || A.role === 'group') { show(loading); try { A.L = null; A.W = null; A.R = null; A.data = await rpc('admin_members', { p_pass: A.pass }); /* == group_access_ui_v1 == */ A.GA = null; if (A.role === 'branch') { try { A.GA = await rpc('admin_group_access_list', { p_pass: A.pass }); } catch (_) { A.GA = null; } } adminRender(); } catch (e) { if (String(e.message) === 'bad_admin') { adminClear(); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); } return; }
   show(loading);
   try { A.L = null; A.W = null; A.data = null; /* == adminload_org_v1 == */ adminRender(); }
@@ -279,10 +279,10 @@ async function adminLoad() {
 }
 function adminRender() {
 /* == roles_tabs_v1 == */ const grp = A.role === 'group', org = A.role !== 'branch' && !grp, ttl = grp ? 'لوحة المجموعة: ' + (A.groupName || '') : org ? 'لوحة المسؤول العام' : 'لوحة الفرع: ' + (A.branchName || '');
-const tabs = grp ? [['wr', 'تقارير المجموعة'], ['members', 'الأعضاء']] : org ? [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع'], ['periods', 'الفترات']] : [['wr', 'تقارير الفرع'], ['week', 'الهيكل'], ['members', 'الأعضاء']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
+const tabs = grp ? [['wr', 'تقارير المجموعة'], ['members', 'الأعضاء']] : org ? [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع'], ['periods', 'الفترات'], ['appr', 'الاعتماد']] : [['wr', 'تقارير الفرع'], ['week', 'الهيكل'], ['members', 'الأعضاء'], ['appr', 'الاعتماد']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
   let h = '<div class="row noprint"><div class="grow"><h1>' + esc(ttl) + '</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
-  h += (({ wr: tWR, week: tWeek, members: tMembers, periods: tPeriods })[A.tab] || tWR)();
+  h += (({ wr: tWR, week: tWeek, members: tMembers, periods: tPeriods, appr: tAppr })[A.tab] || tWR)();
   show(h);
 }
 
@@ -372,6 +372,46 @@ function tBranches() {
   return h + '</table></div></div>';
 }
 /* == periods_ui_v1 == */
+/* == appr_ui_v1 == */
+async function apLoad() {
+  try { A.AP = await rpc('admin_approvals', { p_pass: A.pass }); } catch (e) { A.AP = []; alert(msg(e)); }
+  if (A.tab === 'appr') adminRender();
+}
+function apBadge(s) { return s === 'approved' ? '<span class="badge b-ok">معتمد</span>' : s === 'unlocked' ? '<span class="badge b-wait">فُكّ الإغلاق</span>' : '<span class="badge wk-wait">معلّق</span>'; }
+function tAppr() {
+  if (!A.AP) { if (!A.apBusy) { A.apBusy = true; apLoad().then(function () { A.apBusy = false; }); } return '<p class="muted">جارٍ تحميل حالة الاعتماد…</p>'; }
+  var L = A.AP, h;
+  if (A.role === 'branch') {
+    h = '<div class="card"><b>اعتماد تقرير الفرع</b><div class="muted">باعتماد الفترة تُغلق على كل مجموعات فرعك وأعضائه، فلا يُرسَل بعدها ولا يُعاد فتح أي أسبوع. من لم يُرسل حتى الاعتماد يُحتسب بحالته. ولا يفكّ الإغلاق إلا المسؤول العام.</div></div>';
+    if (!L.length) return h + '<p class="muted">لا توجد فترات بعد.</p>';
+    h += '<div class="card scroll"><table><tr><th>من</th><th>إلى</th><th>الحالة</th><th></th></tr>';
+    L.forEach(function (p) {
+      var bt = (p.status !== 'approved' && p.started) ? '<button class="sm" onclick="apApprove(' + p.period_id + ')">' + (p.status === 'unlocked' ? 'إعادة الاعتماد' : 'اعتماد ورفع التقرير') + '</button>' : '';
+      var st = (p.status === 'pending' && !p.started) ? '<span class="muted">لم تبدأ</span>' : apBadge(p.status);
+      h += '<tr><td>' + esc(p.start) + '</td><td>' + esc(p.end) + '</td><td>' + st + ((p.status === 'unlocked' && p.reason) ? '<div class="muted">سبب الفك: ' + esc(p.reason) + '</div>' : '') + '</td><td class="row">' + bt + '</td></tr>';
+    });
+    return h + '</table></div>';
+  }
+  h = '<div class="card"><b>حالة اعتماد الفروع</b><div class="muted">تظهر حالة كل فرع دون أسماء أعضاء. وللمسؤول العام وحده فكّ الإغلاق بعد حدوثه بسبب مكتوب، فيستكمل الفرع تقاريره ويعيد اعتمادها.</div></div>';
+  if (!L.length) return h + '<p class="muted">لا توجد فترات بعد.</p>';
+  L.forEach(function (p) {
+    h += '<div class="card scroll"><b>فترة ' + esc(p.start) + ' إلى ' + esc(p.end) + '</b><table><tr><th>الفرع</th><th>الحالة</th><th></th></tr>';
+    (p.branches || []).forEach(function (b) {
+      h += '<tr><td>' + esc(b.name) + '</td><td>' + apBadge(b.status) + ((b.status === 'unlocked' && b.reason) ? '<div class="muted">' + esc(b.reason) + '</div>' : '') + '</td><td class="row">' + (b.status === 'approved' ? '<button class="sec sm" onclick="apUnlock(' + p.period_id + ',' + b.id + ')">فك الإغلاق</button>' : '') + '</td></tr>';
+    });
+    h += '</table></div>';
+  });
+  return h;
+}
+async function apApprove(id) {
+  if (!confirm('اعتماد تقرير هذه الفترة؟ ستُغلق على كل مجموعات فرعك وأعضائه، ولا يفكّ الإغلاق إلا المسؤول العام.')) return;
+  try { await rpc('admin_period_approve', { p_pass: A.pass, p_period_id: id }); A.AP = null; adminRender(); } catch (e) { alert(msg(e)); }
+}
+async function apUnlock(pid, bid) {
+  var why = prompt('اكتب سبب فك الإغلاق عن هذا الفرع:');
+  if (why === null) return;
+  try { await rpc('admin_period_unlock', { p_pass: A.pass, p_period_id: pid, p_branch_id: bid, p_reason: String(why).trim() }); A.AP = null; adminRender(); } catch (e) { alert(msg(e)); }
+}
 function tPeriods() {
   if (!A.PL) { plLoad(); return '<p class="muted">جارٍ تحميل الفترات…</p>'; }
   let h = '<div class="card"><b>فترة المتابعة الشهرية</b><div class="muted">حدّد تاريخ البداية والنهاية (مثل 20/11 إلى 20/12). يُقسَّم الأسبوع كل 7 أيام من تاريخ البداية، وقد تكون الكتلة الأخيرة أقصر.</div><div class="row" style="margin-top:8px"><label>من <input type="date" id="plS"></label><label>إلى <input type="date" id="plE"></label><button onclick="plSave()">＋ إضافة فترة</button></div></div>';
@@ -1030,8 +1070,8 @@ function wkList(ws, cur) {
       else { b = '<span class="badge wk-wait">بانتظارك</span>'; sub = 'لم ترسل بعد'; btn = '<button class="sm" ' + go + '>فتح</button>'; }
     } else {
       b = '<span class="badge wk-off">مغلق</span>'; sub = 'انتهت مدته دون إرسال';
-      /* == reopen_ui_v1 == */ var rq0 = rqSt(x);
-      if (rq0 === 'pending') { b = '<span class="badge wk-wait">بانتظار الموافقة</span>'; sub = 'أُرسل طلب إعادة الفتح إلى مسؤول مجموعتك.'; }
+      /* == reopen_ui_v1 == */ /* == appr_ui_v1 == */ var rq0 = x.locked ? 'locked' : rqSt(x);
+      if (rq0 === 'locked') { b = '<span class="badge wk-off">مغلق</span>'; sub = 'أُغلقت الفترة باعتماد الفرع.'; } else if (rq0 === 'pending') { b = '<span class="badge wk-wait">بانتظار الموافقة</span>'; sub = 'أُرسل طلب إعادة الفتح إلى مسؤول مجموعتك.'; }
       else if (rq0 === 'rejected') { b = '<span class="badge wk-off">رُفض</span>'; sub = 'رُفض طلب إعادة الفتح.'; btn = '<button class="sec sm" onclick="rqAsk(\'' + esc(x.week) + '\')">إعادة الطلب</button>'; }
       else { btn = '<button class="sec sm" onclick="rqAsk(\'' + esc(x.week) + '\')">طلب إعادة فتح</button>'; }
     }

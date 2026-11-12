@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261112-203221">
+<meta name="build" content="20261112-211433">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -901,7 +901,42 @@ function editMember(id) {
 const g = A.role !== 'org' ? null : prompt('المجموعة:', m.grp); if (A.role === 'org' && g === null) return;
 memberUpd(id, A.role !== 'org' ? { name: n } : { name: n, grp: g });
 }
-/* == group_prep_ui_v1 == */
+/* == group_prep_ui_v2 == */
+(function () {
+  if (document.querySelector('style[data-id="gp2css"]')) return;
+  var st = document.createElement('style');
+  st.setAttribute('data-id', 'gp2css');
+  st.textContent = [
+    '.pr-steps{margin:6px 0 0;padding:0 22px;line-height:1.9}',
+    '.pr-lg{border-right:4px solid var(--sc);background:var(--sb);border-radius:8px;padding:6px 10px;margin:8px 0}',
+    '.pr-lgh{font-weight:700;color:var(--sc);font-size:.9rem;margin-bottom:2px}',
+    '.pr-li{display:flex;gap:8px;align-items:flex-start;padding:2px 0;font-size:.92rem}',
+    '.pr-li b{flex:none;min-width:24px;height:24px;border-radius:50%;background:var(--sc);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:.8rem}',
+    '.pr-wrap{overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:12px;background:#fff;margin:10px 0}',
+    'table.pr-t{border-collapse:separate;border-spacing:0;width:100%;font-size:.9rem}',
+    'table.pr-t th,table.pr-t td{border-bottom:1px solid var(--line);border-left:1px solid var(--line);padding:0;text-align:center;background:#fff}',
+    'table.pr-t thead th{position:sticky;z-index:2;background:var(--sb,#eef1ee);color:var(--sc,var(--ink));font-weight:700}',
+    'table.pr-t thead tr:first-child th{top:0;height:28px;font-size:.8rem}',
+    'table.pr-t thead tr:nth-child(2) th{top:28px;padding:4px 2px}',
+    'table.pr-t th.pr-h b{display:block;font-size:1rem}',
+    'table.pr-t .pr-n{position:sticky;right:0;z-index:1;min-width:130px;text-align:right;padding:6px 10px;font-weight:600;box-shadow:-2px 0 3px rgba(0,0,0,.06)}',
+    'table.pr-t thead .pr-n{z-index:4;background:#eef1ee;color:var(--ink)}',
+    'table.pr-t td.pr-p{min-width:52px}',
+    'table.pr-t td label{display:block;padding:9px 0;cursor:pointer}',
+    'table.pr-t input[type=checkbox]{width:20px;height:20px;accent-color:var(--g);cursor:pointer;margin:0}',
+    'table.pr-t tbody tr:nth-child(even) td{background:#fafaf7}',
+    'table.pr-t tr.pr-off td{background:#efefea!important;color:var(--mute)}',
+    'table.pr-t tr.pr-full td.pr-tot{background:var(--g2)!important;color:var(--g)}',
+    'table.pr-t td.pr-tot,table.pr-t th.pr-tot{min-width:84px;padding:4px 6px;white-space:nowrap}',
+    'table.pr-t .pr-gs{border-right:2px solid var(--line)}',
+    'table.pr-t tfoot td{position:sticky;bottom:0;z-index:2;background:#eef1ee;font-weight:700;padding:6px 2px}',
+    'table.pr-t tfoot .pr-n{z-index:3}',
+    '.pr-save{position:sticky;bottom:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-top:1px solid var(--line);padding:10px 12px;margin-top:10px;border-radius:12px 12px 0 0;box-shadow:0 -4px 10px rgba(0,0,0,.05)}',
+    'details.card summary{cursor:pointer;font-weight:600}',
+    '.pr-done{margin:8px 0 0;padding:0 18px}'
+  ].join('');
+  document.head.appendChild(st);
+})();
 function tPrep() {
   const wait = '<div class="card"><p class="muted">جارٍ التحميل…</p></div>';
   if (A.PR == null) { prepLoad(); return wait; }
@@ -909,14 +944,55 @@ function tPrep() {
   if (A.PR.err) return '<div class="err">' + esc(A.PR.err) + '</div><button onclick="A.PR=null;adminRender()">إعادة المحاولة</button>';
   const d = A.PR, items = d.items || [], ms = d.members || [];
   if (!items.length || !ms.length) return '<div class="card"><p class="muted">لا يوجد أعضاء نشطون أو بنود لعرضها.</p></div>';
-  let h = '<div class="card"><h3>التحضير الجماعي</h3><p class="muted">الأسبوع الذي يبدأ ' + esc(d.week) + '. لكل عضو لم يرفع متابعته: اختر البنود التي أنجزها. ومن رفع متابعته بنفسه لا يُعاد رفعها. ومن لا تريد شموله بالتحضير الجماعي أزل علامة «يشمله» عنه.</p></div>';
-  h += '<div class="scroll"><table><tr><th>الاسم</th><th>يشمله</th>' + items.map(i => '<th style="font-size:.75em;min-width:72px;white-space:normal">' + esc(i.title) + '<br><button class="sec sm" onclick="prepAll(' + i.id + ')">الكل</button></th>').join('') + '</tr>';
-  ms.forEach(m => {
-    const s = d.sel[m.id];
-    if (!s) { h += '<tr style="opacity:.6"><td>' + esc(m.name) + '</td><td colspan="' + (items.length + 1) + '" class="muted">' + (m.submitted ? (m.src === 'group' ? 'تم رفعه سابقاً بالتحضير الجماعي' : 'تم رفعه سابقاً من العضو نفسه') : 'أُغلقت الفترة') + '</td></tr>'; return; }
-    h += '<tr><td>' + esc(m.name) + '</td><td><input type="checkbox"' + (s.on ? ' checked' : '') + ' onchange="prepInc(' + m.id + ',this.checked)"></td>' + items.map(i => '<td><input type="checkbox"' + (s.a[i.id] ? ' checked' : '') + (s.on ? '' : ' disabled') + ' onchange="prepSet(' + m.id + ',' + i.id + ',this.checked)"></td>').join('') + '</tr>';
+  const pal = [['#e6f3ec', '#1f7a4d'], ['#fdf3d8', '#9a6b00'], ['#e8eef9', '#2d4f8f'], ['#f6e9f3', '#8a3a78'], ['#fbeae6', '#b3402a']];
+  const groups = [], gOf = {}, first = {};
+  items.forEach(function (it, ix) {
+    const c = String(it.cat == null ? '' : it.cat);
+    let g = groups[groups.length - 1];
+    if (!g || g.c !== c) { g = { c: c, list: [] }; groups.push(g); }
+    g.list.push({ it: it, n: ix + 1 });
+    if (g.list.length === 1) first[it.id] = true;
+    gOf[it.id] = g;
   });
-  return h + '</table></div><p><button onclick="prepSave()">حفظ التحضير</button></p>';
+  groups.forEach(function (g, gi) {
+    g.name = (g.c.trim() && !/^\d+$/.test(g.c.trim())) ? g.c : 'القسم ' + (gi + 1);
+    g.st = '--sb:' + pal[gi % 5][0] + ';--sc:' + pal[gi % 5][1];
+  });
+  const act = ms.filter(function (m) { return d.sel[m.id]; });
+  const done = ms.filter(function (m) { return !d.sel[m.id]; });
+  let h = '<div class="card"><h3>التحضير الجماعي</h3><p class="muted">الأسبوع الذي يبدأ ' + esc(d.week) + '</p><ol class="pr-steps"><li>أزل علامة «حاضر» عمّن لم يحضر اللقاء.</li><li>علّم البنود التي أنجزها كل عضو، أو اضغط «الكل» تحت رقم البند ليشمل الجميع.</li><li>راجع الأعداد في أسفل الجدول ثم اضغط «حفظ التحضير».</li></ol></div>';
+  h += '<div class="card"><h3>البنود</h3>' + groups.map(function (g) {
+    return '<div class="pr-lg" style="' + g.st + '"><div class="pr-lgh">' + esc(g.name) + '</div>' + g.list.map(function (x) {
+      return '<div class="pr-li"><b>' + x.n + '</b><span>' + esc(x.it.title) + '</span></div>';
+    }).join('') + '</div>';
+  }).join('') + '</div>';
+  if (!act.length) {
+    h += '<div class="card"><p class="muted">لا يوجد أعضاء متاحون للتحضير الجماعي هذا الأسبوع.</p></div>';
+  } else {
+    let t = '<div class="pr-wrap"><table class="pr-t"><thead><tr><th class="pr-n" rowspan="2">العضو</th><th class="pr-p" rowspan="2">حاضر</th>' +
+      groups.map(function (g) { return '<th colspan="' + g.list.length + '" style="' + g.st + '">' + esc(g.name) + '</th>'; }).join('') +
+      '<th class="pr-tot" rowspan="2">المنجز</th></tr><tr>' +
+      items.map(function (i, ix) {
+        return '<th class="pr-h' + (first[i.id] ? ' pr-gs' : '') + '" style="' + gOf[i.id].st + '" title="' + esc(i.title) + '"><b>' + (ix + 1) + '</b><button class="sec sm" onclick="prepAll(' + i.id + ')">الكل</button></th>';
+      }).join('') + '</tr></thead><tbody>';
+    act.forEach(function (m) {
+      const s = d.sel[m.id];
+      t += '<tr id="prt-' + m.id + '"><td class="pr-n">' + esc(m.name) + '</td><td class="pr-p"><label><input type="checkbox" data-m="' + m.id + '"' + (s.on ? ' checked' : '') + ' onchange="prepInc(' + m.id + ',this.checked)"></label></td>' +
+        items.map(function (i) {
+          return '<td class="pr-c' + (first[i.id] ? ' pr-gs' : '') + '"><label><input type="checkbox" data-m="' + m.id + '" data-i="' + i.id + '"' + (s.a[i.id] ? ' checked' : '') + (s.on ? '' : ' disabled') + ' onchange="prepSet(' + m.id + ',' + i.id + ',this.checked)"></label></td>';
+        }).join('') +
+        '<td class="pr-tot"><span id="prr-' + m.id + '">0/' + items.length + '</span> <button class="link sm" onclick="prepRow(' + m.id + ')">الكل</button></td></tr>';
+    });
+    t += '</tbody><tfoot><tr><td class="pr-n">المجموع</td><td></td>' + items.map(function (i) { return '<td id="prc-' + i.id + '">0/' + act.length + '</td>'; }).join('') + '<td></td></tr></tfoot></table></div>';
+    h += t + '<div class="pr-save"><span id="pr-stat" class="muted"></span><button onclick="prepSave()">حفظ التحضير</button></div>';
+  }
+  if (done.length) {
+    h += '<details class="card"><summary>سبق رفع متابعتهم أو أُغلقت (' + done.length + ')</summary><ul class="pr-done">' + done.map(function (m) {
+      return '<li><b>' + esc(m.name) + '</b> <span class="muted">' + (m.submitted ? (m.src === 'group' ? 'رُفعت بالتحضير الجماعي' : 'رفعها العضو بنفسه') : 'أُغلقت الفترة') + '</span></li>';
+    }).join('') + '</ul></details>';
+  }
+  setTimeout(prepSync, 0);
+  return h;
 }
 async function prepLoad() {
   A.PR = false;
@@ -928,22 +1004,52 @@ async function prepLoad() {
   } catch (e) { A.PR = { err: msg(e) }; }
   if (A.tab === 'prep') adminRender();
 }
-function prepInc(id, v) { if (A.PR && A.PR.sel[id]) { A.PR.sel[id].on = v; adminRender(); } }
-function prepSet(id, item, v) { if (A.PR && A.PR.sel[id]) A.PR.sel[id].a[item] = v; }
+function prepSync() {
+  const d = A.PR;
+  if (!d || !d.sel) return;
+  const ids = Object.keys(d.sel), act = ids.filter(function (k) { return d.sel[k].on; });
+  document.querySelectorAll('input[data-m]').forEach(function (el) {
+    const s = d.sel[el.dataset.m];
+    if (!s) return;
+    if (el.dataset.i) { el.checked = !!s.a[el.dataset.i]; el.disabled = !s.on; } else { el.checked = !!s.on; }
+  });
+  d.items.forEach(function (i) {
+    const e = document.getElementById('prc-' + i.id);
+    if (e) e.textContent = act.filter(function (k) { return d.sel[k].a[i.id]; }).length + '/' + act.length;
+  });
+  ids.forEach(function (k) {
+    const s = d.sel[k], n = d.items.filter(function (i) { return s.a[i.id]; }).length;
+    const e = document.getElementById('prr-' + k), tr = document.getElementById('prt-' + k);
+    if (e) e.textContent = n + '/' + d.items.length;
+    if (tr) { tr.classList.toggle('pr-off', !s.on); tr.classList.toggle('pr-full', !!s.on && n === d.items.length); }
+  });
+  const st = document.getElementById('pr-stat');
+  if (st) st.textContent = 'سيُحفظ تحضير ' + act.length + ' عضواً من ' + ids.length;
+}
+function prepInc(id, v) { if (A.PR && A.PR.sel[id]) { A.PR.sel[id].on = v; prepSync(); } }
+function prepSet(id, item, v) { if (A.PR && A.PR.sel[id]) { A.PR.sel[id].a[item] = v; prepSync(); } }
 function prepAll(item) {
   if (!A.PR) return;
   const ks = Object.keys(A.PR.sel).filter(k => A.PR.sel[k].on);
   if (!ks.length) return;
   const all = ks.every(k => A.PR.sel[k].a[item]);
   ks.forEach(k => { A.PR.sel[k].a[item] = !all; });
-  adminRender();
+  prepSync();
+}
+function prepRow(id) {
+  const d = A.PR, s = d && d.sel[id];
+  if (!s || !s.on) return;
+  const all = d.items.every(function (i) { return s.a[i.id]; });
+  d.items.forEach(function (i) { s.a[i.id] = !all; });
+  prepSync();
 }
 async function prepSave() {
   const d = A.PR, rows = [];
   if (!d || !d.sel) return;
   Object.keys(d.sel).forEach(k => { const s = d.sel[k]; if (!s.on) return; rows.push({ member_id: Number(k), answers: d.items.map(i => ({ item: i.id, on: !!s.a[i.id] })) }); });
   if (!rows.length) { alert('لا يوجد أعضاء محدَّدون للتحضير.'); return; }
-  if (!confirm('سيُرفع تحضير ' + rows.length + ' عضواً ولن يُعاد رفعه من هذه الشاشة. المتابعة؟')) return;
+  const zero = rows.filter(r => !r.answers.some(a => a.on)).length;
+  if (!confirm('سيُرفع تحضير ' + rows.length + ' عضواً' + (zero ? ' (منهم ' + zero + ' بلا أي بند مُعلَّم)' : '') + ' ولن يُعاد رفعه من هذه الشاشة. المتابعة؟')) return;
   try { await rpc('group_prep_save', { p_pass: A.pass, p_rows: rows }); A.PR = null; alert('تم حفظ التحضير.'); adminRender(); }
   catch (e) { alert(msg(e)); if (String(e.message) === 'already_submitted') { A.PR = null; adminRender(); } }
 }

@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261112-043141">
+<meta name="build" content="20261112-203221">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -188,7 +188,7 @@ function msg(e) {
   if (m === 'no_period') return 'لم تُحدَّد فترة المتابعة بعد.'; if (m === 'period_overlap') return 'هذه الفترة تتداخل مع فترة أخرى.'; if (m === 'bad_range') return 'تاريخ النهاية يجب ألا يسبق البداية.'; if (m === 'period_started') return 'لا يمكن حذف فترة بدأت.'; if (m === 'dates_required') return 'حدّد تاريخ البداية والنهاية.'; if (m === 'not_leader') return 'هذه الميزة للمشرفين فقط.';
   if (m === 'no_lesson') return 'الدرس غير موجود.';
   /* == reopen_ui_v1 == */ if (m === 'reason_required') return 'اكتب سبب الطلب (3 أحرف على الأقل).'; if (m === 'already_requested') return 'سبق تقديم طلب لهذا الأسبوع وهو بانتظار القرار.'; if (m === 'not_reopenable') return 'لا يمكن طلب إعادة فتح هذا الأسبوع.'; if (m === 'already_decided') return 'سبق اتخاذ القرار في هذا الطلب.'; /* == appr_ui_v1 == */ if (m === 'period_closed') return 'أُغلقت هذه الفترة باعتماد الفرع، فلا يمكن الإرسال ولا طلب إعادة الفتح.'; if (m === 'period_not_started') return 'لا يمكن اعتماد فترة لم تبدأ بعد.'; if (m === 'already_approved') return 'اعتُمدت هذه الفترة مسبقاً.'; if (m === 'not_approved') return 'هذه الفترة غير معتمدة أو سبق فكّ إغلاقها.';
-  if (m.startsWith('http_') || m.includes('Failed to fetch')) return 'تعذّر الاتصال بالخادم. تحقق من الإنترنت أو من إعدادات config.js.';
+  /* == msg_incomplete_v1 == */ if (m === 'incomplete') return 'أكمل إجابات كل البنود لكل عضو ثم أعد المحاولة.'; if (m === 'already_submitted') return 'سبق رفع متابعة أحد الأعضاء فلم يُحفظ شيء. حدّث الصفحة.'; if (m.startsWith('http_') || m.includes('Failed to fetch')) return 'تعذّر الاتصال بالخادم. تحقق من الإنترنت أو من إعدادات config.js.';
   return 'حدث خطأ: ' + m;
 }
 const errBox = (e, retry) => '<div class="err">' + esc(msg(e)) + '</div>' + (retry ? '<button onclick="' + retry + '">إعادة المحاولة</button>' : '');
@@ -271,7 +271,7 @@ async function adminLogin() {
 }
 function adminOut() { const p = A.pass; adminClear(); if (p) { try { rpc('admin_logout', { p_pass: p }).catch(function () {}); } catch (_) {} } location.hash = ''; login(); }
 async function adminLoad() {
-  A.O = null; A.ob = null; A.og = null; A.PL = null; A.AP = null;
+  A.O = null; A.ob = null; A.og = null; A.PL = null; A.AP = null; A.PR = null;
 /* == members_branch_v1 == */ /* == group_role_ui_v1 == */ if (A.role === 'branch' || A.role === 'group') { show(loading); try { A.L = null; A.W = null; A.R = null; A.data = await rpc('admin_members', { p_pass: A.pass }); /* == group_access_ui_v1 == */ A.GA = null; if (A.role === 'branch') { try { A.GA = await rpc('admin_group_access_list', { p_pass: A.pass }); } catch (_) { A.GA = null; } } adminRender(); } catch (e) { if (String(e.message) === 'bad_admin') { adminClear(); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); } return; }
   show(loading);
   try { A.L = null; A.W = null; A.data = null; /* == adminload_org_v1 == */ adminRender(); }
@@ -279,10 +279,10 @@ async function adminLoad() {
 }
 function adminRender() {
 /* == roles_tabs_v1 == */ const grp = A.role === 'group', org = A.role !== 'branch' && !grp, ttl = grp ? 'لوحة المجموعة: ' + (A.groupName || '') : org ? 'لوحة المسؤول العام' : 'لوحة الفرع: ' + (A.branchName || '');
-const tabs = grp ? [['wr', 'تقارير المجموعة'], ['members', 'الأعضاء']] : org ? [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع'], ['periods', 'الفترات'], ['appr', 'الاعتماد']] : [['wr', 'تقارير الفرع'], ['week', 'الهيكل'], ['members', 'الأعضاء'], ['appr', 'الاعتماد']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
+const tabs = grp ? [['wr', 'تقارير المجموعة'], ['prep', 'التحضير الجماعي'], ['members', 'الأعضاء']] : org ? [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع'], ['periods', 'الفترات'], ['appr', 'الاعتماد']] : [['wr', 'تقارير الفرع'], ['week', 'الهيكل'], ['members', 'الأعضاء'], ['appr', 'الاعتماد']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
   let h = '<div class="row noprint"><div class="grow"><h1>' + esc(ttl) + '</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
-  h += (({ wr: tWR, week: tWeek, members: tMembers, periods: tPeriods, appr: tAppr })[A.tab] || tWR)();
+  h += (({ wr: tWR, week: tWeek, members: tMembers, prep: tPrep, periods: tPeriods, appr: tAppr })[A.tab] || tWR)();
   show(h);
 }
 
@@ -900,6 +900,52 @@ function editMember(id) {
   const n = prompt('الاسم:', m.name); if (n === null) return;
 const g = A.role !== 'org' ? null : prompt('المجموعة:', m.grp); if (A.role === 'org' && g === null) return;
 memberUpd(id, A.role !== 'org' ? { name: n } : { name: n, grp: g });
+}
+/* == group_prep_ui_v1 == */
+function tPrep() {
+  const wait = '<div class="card"><p class="muted">جارٍ التحميل…</p></div>';
+  if (A.PR == null) { prepLoad(); return wait; }
+  if (A.PR === false) return wait;
+  if (A.PR.err) return '<div class="err">' + esc(A.PR.err) + '</div><button onclick="A.PR=null;adminRender()">إعادة المحاولة</button>';
+  const d = A.PR, items = d.items || [], ms = d.members || [];
+  if (!items.length || !ms.length) return '<div class="card"><p class="muted">لا يوجد أعضاء نشطون أو بنود لعرضها.</p></div>';
+  let h = '<div class="card"><h3>التحضير الجماعي</h3><p class="muted">الأسبوع الذي يبدأ ' + esc(d.week) + '. لكل عضو لم يرفع متابعته: اختر البنود التي أنجزها. ومن رفع متابعته بنفسه لا يُعاد رفعها. ومن لا تريد شموله بالتحضير الجماعي أزل علامة «يشمله» عنه.</p></div>';
+  h += '<div class="scroll"><table><tr><th>الاسم</th><th>يشمله</th>' + items.map(i => '<th style="font-size:.75em;min-width:72px;white-space:normal">' + esc(i.title) + '<br><button class="sec sm" onclick="prepAll(' + i.id + ')">الكل</button></th>').join('') + '</tr>';
+  ms.forEach(m => {
+    const s = d.sel[m.id];
+    if (!s) { h += '<tr style="opacity:.6"><td>' + esc(m.name) + '</td><td colspan="' + (items.length + 1) + '" class="muted">' + (m.submitted ? (m.src === 'group' ? 'تم رفعه سابقاً بالتحضير الجماعي' : 'تم رفعه سابقاً من العضو نفسه') : 'أُغلقت الفترة') + '</td></tr>'; return; }
+    h += '<tr><td>' + esc(m.name) + '</td><td><input type="checkbox"' + (s.on ? ' checked' : '') + ' onchange="prepInc(' + m.id + ',this.checked)"></td>' + items.map(i => '<td><input type="checkbox"' + (s.a[i.id] ? ' checked' : '') + (s.on ? '' : ' disabled') + ' onchange="prepSet(' + m.id + ',' + i.id + ',this.checked)"></td>').join('') + '</tr>';
+  });
+  return h + '</table></div><p><button onclick="prepSave()">حفظ التحضير</button></p>';
+}
+async function prepLoad() {
+  A.PR = false;
+  try {
+    const d = await rpc('group_prep_get', { p_pass: A.pass });
+    d.sel = {};
+    (d.members || []).forEach(m => { if (!m.submitted && !m.locked) d.sel[m.id] = { on: true, a: {} }; });
+    A.PR = d;
+  } catch (e) { A.PR = { err: msg(e) }; }
+  if (A.tab === 'prep') adminRender();
+}
+function prepInc(id, v) { if (A.PR && A.PR.sel[id]) { A.PR.sel[id].on = v; adminRender(); } }
+function prepSet(id, item, v) { if (A.PR && A.PR.sel[id]) A.PR.sel[id].a[item] = v; }
+function prepAll(item) {
+  if (!A.PR) return;
+  const ks = Object.keys(A.PR.sel).filter(k => A.PR.sel[k].on);
+  if (!ks.length) return;
+  const all = ks.every(k => A.PR.sel[k].a[item]);
+  ks.forEach(k => { A.PR.sel[k].a[item] = !all; });
+  adminRender();
+}
+async function prepSave() {
+  const d = A.PR, rows = [];
+  if (!d || !d.sel) return;
+  Object.keys(d.sel).forEach(k => { const s = d.sel[k]; if (!s.on) return; rows.push({ member_id: Number(k), answers: d.items.map(i => ({ item: i.id, on: !!s.a[i.id] })) }); });
+  if (!rows.length) { alert('لا يوجد أعضاء محدَّدون للتحضير.'); return; }
+  if (!confirm('سيُرفع تحضير ' + rows.length + ' عضواً ولن يُعاد رفعه من هذه الشاشة. المتابعة؟')) return;
+  try { await rpc('group_prep_save', { p_pass: A.pass, p_rows: rows }); A.PR = null; alert('تم حفظ التحضير.'); adminRender(); }
+  catch (e) { alert(msg(e)); if (String(e.message) === 'already_submitted') { A.PR = null; adminRender(); } }
 }
 function printCards() {
   const d = A.data, base = baseUrl();

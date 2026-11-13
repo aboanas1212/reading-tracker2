@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261113-193812">
+<meta name="build" content="20261113-194235">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -295,10 +295,10 @@ async function adminLoad() {
 }
 function adminRender() {
 /* == roles_tabs_v1 == */ /* == titles_v1 == */ const grp = A.role === 'group', org = A.role !== 'branch' && !grp, ttl = grp ? 'مشرف المجموعة: ' + (A.groupName || '') : org ? 'المسؤول العام للمؤسسة' : 'مسؤول الفرع: ' + (A.branchName || '');
-const tabs = grp ? [['adv', 'التقارير والمقارنات'], ['prep', 'التحضير الجماعي'], ['members', 'الأعضاء']] : org ? [['adv', 'التقارير والمقارنات'], ['week', 'الفروع'], ['periods', 'الفترات'], ['appr', 'الاعتماد']] : [['adv', 'التقارير والمقارنات'], ['week', 'الهيكل'], ['members', 'الأعضاء'], ['appr', 'الاعتماد']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
+const tabs = grp ? [['reports', 'التقارير'], ['wr', 'متابعة الأسبوع'], ['prep', 'التحضير الجماعي'], ['members', 'الأعضاء']] : org ? [['reports', 'التقارير'], ['wr', 'متابعة الأسبوع'], ['week', 'الفروع'], ['periods', 'الفترات'], ['appr', 'الاعتماد']] : [['reports', 'التقارير'], ['wr', 'متابعة الأسبوع'], ['week', 'الهيكل'], ['members', 'الأعضاء'], ['appr', 'الاعتماد']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'reports'; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
   let h = '<div class="row noprint"><div class="grow"><h1>' + esc(ttl) + '</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
-  h += (({ adv: tAdv, wr: tWR, week: tWeek, members: tMembers, prep: tPrep, periods: tPeriods, appr: tAppr })[A.tab] || tAdv)();
+  h += (({ reports: tReports, adv: tAdv, wr: tWR, week: tWeek, members: tMembers, prep: tPrep, periods: tPeriods, appr: tAppr })[A.tab] || tReports)();
   show(h);
 }
 
@@ -1020,6 +1020,132 @@ function tAdv() {
   
   h += '</div></div>';
   return h;
+}
+/* == reports_dashboard_v1: شاشة التقارير المستقلة (نمط HrArchive: شجرة جانبية + منصة مقارنات + إكسل) == */
+function repInit() {
+  if(!A.repSel) A.repSel = A.role === 'org' ? 'o' : ('b:' + A.branch);
+  if(A.rq == null) A.rq = '';
+}
+function tReports() {
+  repInit();
+  if (A.role === 'org' && !A.OR) { oLoad(); return '<p class="muted">جارٍ بناء محرك التقارير…</p>'; }
+  if (A.role !== 'org' && !A.R) { loadR(); return '<p class="muted">جارٍ بناء محرك التقارير…</p>'; }
+  
+  let h = '<div class="row" style="align-items:stretch; flex-wrap:nowrap; gap:16px">';
+  
+  /* الجانب الأيمن: الشجرة ومحرك البحث (Sidebar) */
+  h += '<div class="card no-print" style="flex:0 0 280px; margin:0; position:sticky; top:10px; max-height:85vh; display:flex; flex-direction:column; background:#fbfdfc; border-top:4px solid var(--g2)">';
+  h += '<h3 style="margin-top:0; display:flex; align-items:center; gap:8px; color:var(--g1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> الهيكل التنظيمي</h3>';
+  h += '<input type="text" placeholder="بحث سريع..." value="'+esc(A.rq)+'" oninput="A.rq=this.value; document.getElementById(\'rep-tree\').innerHTML=repTree()" style="margin-bottom:12px; border-radius:8px">';
+  h += '<div id="rep-tree" class="scroll" style="flex:1; border:none; padding-left:4px; box-shadow:none">' + repTree() + '</div>';
+  h += '</div>';
+  
+  /* الجانب الأيسر: منصة عرض التقرير والرسوم (Main Content) */
+  h += '<div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:16px">';
+  
+  /* ترويسة المنصة وأزرار التصدير */
+  h += '<div class="card no-print-shadow" style="margin:0; padding:16px; border-top:4px solid var(--o2); background:linear-gradient(90deg, #fff, #fffaf5)">';
+  h += '<div class="row" style="justify-content:space-between; align-items:start">';
+  h += '<div><h2 style="margin:0">لوحة المؤشرات والتقارير</h2><div class="muted">تحليل بياني وتفصيلي للوحدة المحددة في الشجرة الجانبية.</div></div>';
+  h += '<div class="row no-print"><button class="sec sm" style="color:#107c41; border-color:#107c41; font-weight:bold" onclick="repExportExcel()"><svg style="vertical-align:middle;margin-left:4px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>تصدير Excel</button><button class="sec sm" onclick="window.print()">تصدير PDF</button></div>';
+  h += '</div></div>';
+  
+  /* الرسوم والجداول */
+  h += '<div id="rep-main">' + repMain() + '</div>';
+  h += '</div></div>';
+  
+  return h;
+}
+
+function repTree() {
+  const q = typeof wrNorm === 'function' ? wrNorm(A.rq) : (A.rq||'').trim().toLowerCase();
+  const isOrg = A.role === 'org', R = isOrg ? A.OR : A.R;
+  if(!R) return '';
+  
+  const drawNode = (k, label, icon, sub, isMatch) => {
+    const sel = A.repSel === k;
+    return '<div onclick="A.repSel=\''+k+'\'; document.getElementById(\'rep-tree\').innerHTML=repTree(); document.getElementById(\'rep-main\').innerHTML=repMain()" style="display:flex; align-items:center; gap:8px; padding:8px 10px; margin:2px 0; border-radius:8px; cursor:pointer; font-size:0.9rem; transition:0.2s; ' + (sel ? 'background:#e8f4ec; color:#064e2b; font-weight:bold; border-right:3px solid var(--g2)' : 'background:transparent; color:var(--ink)') + '"><span style="font-size:1.1rem">'+icon+'</span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(label) + '</span><span class="muted" style="font-size:0.75rem">'+sub+'</span></div>';
+  };
+  
+  let h = '';
+  if(isOrg) {
+     h += drawNode('o', 'المؤسسة ككل', '🏢', R.org && R.org.n ? R.org.n : 0, !q || 'المؤسسة'.indexOf(q)>=0);
+     (R.branches||[]).forEach(b => {
+        const bm = !q || (b.name||'').toLowerCase().indexOf(q) >= 0;
+        const bgs = (R.groups||[]).filter(g => g.branch_id === b.id);
+        const gm = bgs.some(g => (g.name||'').toLowerCase().indexOf(q) >= 0);
+        if(bm || gm) {
+           h += '<div style="margin-top:6px">' + drawNode('b:'+b.id, b.name, '📍', b.n||0, bm) + '</div>';
+           if(bgs.length) {
+             h += '<div style="margin-right:16px; border-right:1px dashed #c9d3cc; padding-right:8px">';
+             bgs.forEach(g => {
+                if(!q || bm || (g.name||'').toLowerCase().indexOf(q)>=0) h += drawNode('g:'+g.id, g.name, '👥', g.n||0, true);
+             });
+             h += '</div>';
+           }
+        }
+     });
+  } else {
+     const x = wrIdx();
+     (R.branches||[]).forEach(b => {
+        const bm = !q || (b.name||'').toLowerCase().indexOf(q) >= 0;
+        const bn = (x.bg[b.id]||[]).reduce((s,g)=>s+(x.mg[g.id]||[]).length,0);
+        h += drawNode('b:'+b.id, b.name, '📍', bn, bm);
+        const bgs = x.bg[b.id]||[];
+        if(bgs.length) {
+           h += '<div style="margin-right:16px; border-right:1px dashed #c9d3cc; padding-right:8px">';
+           bgs.forEach(g => {
+              const ms = x.mg[g.id]||[];
+              if(!q || bm || (g.name||'').toLowerCase().indexOf(q)>=0) h += drawNode('g:'+g.id, g.name, '👥', ms.length, true);
+           });
+           h += '</div>';
+        }
+     });
+  }
+  return h || '<div class="muted" style="padding:10px">لا توجد نتائج مطابقة</div>';
+}
+
+function repMain() {
+  const oldOk = A.ok, oldRsel = A.rsel;
+  let h = '';
+  if(A.role === 'org') {
+     A.ok = A.repSel; h = oOut(); A.ok = oldOk;
+  } else {
+     A.rsel = {}; A.rsel[A.repSel] = true; h = wrOut(); A.rsel = oldRsel;
+  }
+  // إزالة البطاقة الخارجية الافتراضية لدمجها بسلاسة في المنصة
+  return h.replace(/<div class="card">/i, '<div class="card" style="margin-top:0; border:none; box-shadow:none; padding:0">');
+}
+
+function repExportExcel() {
+   if (typeof XLSX === 'undefined') { alert('جاري تحميل مكتبة إكسل، يرجى المحاولة بعد ثوانٍ.'); return; }
+   let rp, title;
+   if(A.role === 'org') {
+       const s = oUnit(A.repSel) || oUnit('o');
+       rp = oRep(s); title = s.name;
+   } else {
+       const oldRsel = A.rsel; A.rsel = {}; A.rsel[A.repSel] = true;
+       const sc = wrScope(); rp = wrReport(sc); title = rp.scopeName; A.rsel = oldRsel;
+   }
+   
+   const hdrs = ['الوحدة', 'الأعضاء'].concat(rp.ws.map(w => String(w).slice(5))).concat(['المتوسط']);
+   const rs = rp.rows.slice().sort((a,b) => b.last - a.last);
+   const data = [hdrs];
+   
+   const totN = rp.nM || rp.n || (A.role !== 'org' ? (wrScope().ms||[]).length : 0);
+   const totalRow = [title, totN].concat(rp.ser).concat([Math.round(rp.ser.reduce((a,b)=>a+b,0)/Math.max(1,rp.ser.length))||0]);
+   data.push(totalRow);
+   
+   rs.forEach(r => {
+       const n = r.u.ms ? r.u.ms.length : (r.u.u ? r.u.u.n : 0);
+       data.push([r.u.name, n].concat(r.s).concat([Math.round(r.s.reduce((a,b)=>a+b,0)/Math.max(1,r.s.length))||0]));
+   });
+   
+   const wb = XLSX.utils.book_new();
+   const ws = XLSX.utils.aoa_to_sheet(data);
+   ws['!dir'] = 'rtl'; /* توجيه شيت الإكسل من اليمين لليسار */
+   XLSX.utils.book_append_sheet(wb, ws, "تقرير المقارنة");
+   XLSX.writeFile(wb, "تقرير_" + title.replace(/\s+/g,'_') + "_" + todayStr() + ".xlsx");
 }
 function oOut() {
   const s = oUnit(A.ok) || oUnit('o'); A.ok = s.k;

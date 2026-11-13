@@ -2,10 +2,10 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261113-042000">
+<meta name="build" content="20261113-193446">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>متابعة القراءة</title>
+<title>متابعة ورد المحاسبة الأسبوعي</title>
 <style>
 :root{--bg:#f6f5f1;--card:#fff;--ink:#1f2a24;--mute:#6b746e;--line:#e2e0d8;--g:#1f7a4d;--g2:#e6f3ec;--r:#b3402a;--r2:#fbeae6;--y:#9a6b00;--y2:#fdf3d8}
 *{box-sizing:border-box}
@@ -143,6 +143,21 @@ body .err{border-radius:12px}
 .bpc .bsb{font-size:.8rem;color:#6b7f72}
 @media(max-width:560px){.bstats,.bpg{gap:8px}.bst{padding:10px}.bst .bn{font-size:1.5rem}.bpc .bpt{font-size:1.2rem}}
 @media print{.brandbar{display:none}}
+  /* <!-- m42b_pdf_export --> */
+  @media print {
+    body { background: #fff !important; }
+    #sidebar, .topbar, #nav, .tabs, .no-print, button, input { display: none !important; }
+    #main { margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; border: none !important; box-shadow: none !important; }
+    .card { box-shadow: none !important; border: 1.5px solid #d7e6dc !important; margin-bottom: 20px !important; page-break-inside: avoid; }
+    .row { flex-wrap: wrap !important; page-break-inside: avoid; }
+    .scroll { overflow: visible !important; max-height: none !important; }
+    svg { max-width: 100% !important; page-break-inside: avoid; }
+    table { width: 100% !important; border-collapse: collapse !important; }
+    td, th { border: 1px solid #d7e6dc !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .print-header { display: block !important; }
+    .no-print-shadow { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+  }
 </style>
 </head>
 <body>
@@ -200,7 +215,7 @@ const errBox = (e, retry) => '<div class="err">' + esc(msg(e)) + '</div>' + (ret
     const a = document.getElementById('app'); if (!a || document.getElementById('brandbar')) return;
     const d = document.createElement('div'); d.id = 'brandbar'; d.className = 'brandbar noprint';
     d.innerHTML = '<svg viewBox="0 0 48 48" width="46" height="46"><defs><linearGradient id="bglg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22a861"/><stop offset="1" stop-color="#064e2b"/></linearGradient></defs><rect width="48" height="48" rx="13" fill="url(#bglg)"/><path d="M24 15c-4-2.5-9-2.8-13-1.5v20c4-1.3 9-1 13 1.5 4-2.5 9-2.8 13-1.5v-20c-4-1.3-9-1-13 1.5z" fill="#fff"/><path d="M24 15v20" stroke="#0f7a43" stroke-width="1.6"/><circle cx="37" cy="12" r="4.2" fill="#ee8a1f"/></svg>' +
-      '<div><div class="bbt">متابعة القراءة</div><div class="bbs">إثبات القراءة والمتابعة الأسبوعية</div></div>';
+      '<div><div class="bbt">متابعة ورد المحاسبة الأسبوعي</div><div class="bbs">المتابعة الأسبوعية</div></div>';
     a.parentNode.insertBefore(d, a);
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mk); else mk();
@@ -234,7 +249,7 @@ window.addEventListener('hashchange', route);
 
 /* ============ دخول العضو ============ */
 function login(note) {
-  show('<h1>متابعة القراءة</h1><div class="card"><p>أدخل رمزك الشخصي (6 خانات) الذي وصلك من المشرف، أو افتح الرابط الشخصي الخاص بك مباشرة.</p>' +
+  show('<h1>متابعة ورد المحاسبة الأسبوعي</h1><div class="card"><p>أدخل رمزك الشخصي (6 خانات) الذي وصلك من المشرف، أو افتح الرابط الشخصي الخاص بك مباشرة.</p>' +
     (note ? '<div class="err">' + esc(note) + '</div>' : '') +
     '<input type="text" id="c" placeholder="مثال: K7M2QP" maxlength="12" style="direction:ltr;text-align:center;letter-spacing:3px;font-size:1.2rem">' +
     '<p><button onclick="doLogin()">دخول</button></p></div>');
@@ -255,7 +270,7 @@ function doLogin() {
 /* ============ المسؤول ============ */
 function adminEntry() {
   if (A.pass) return adminLoad();
-  show('<h1>لوحة المسؤول</h1><div class="card"><input type="password" id="ap" placeholder="كلمة المرور أو رمز الفرع أو المجموعة"><p><button onclick="adminLogin()">دخول</button></p></div>');
+  show('<h1>دخول المسؤولين</h1><div class="card"><input type="password" id="ap" placeholder="كلمة المرور أو رمز الفرع أو المجموعة"><p><button onclick="adminLogin()">دخول</button></p></div>');
   const i = $('#ap'); if (i) i.addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
 }
 /* == login_v1 == */ function adminClear() { A.pass = ''; A.role = ''; A.branch = null; A.branchName = ''; A.group = null; A.groupName = ''; ['apass', 'arole', 'abranch', 'abname', 'agroup', 'agname'].forEach(function (k) { sessionStorage.removeItem(k); }); }
@@ -278,7 +293,7 @@ async function adminLoad() {
   catch (e) { if (String(e.message) === 'bad_admin') { adminClear(); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); }
 }
 function adminRender() {
-/* == roles_tabs_v1 == */ const grp = A.role === 'group', org = A.role !== 'branch' && !grp, ttl = grp ? 'لوحة المجموعة: ' + (A.groupName || '') : org ? 'لوحة المسؤول العام' : 'لوحة الفرع: ' + (A.branchName || '');
+/* == roles_tabs_v1 == */ /* == titles_v1 == */ const grp = A.role === 'group', org = A.role !== 'branch' && !grp, ttl = grp ? 'مشرف المجموعة: ' + (A.groupName || '') : org ? 'المسؤول العام للمؤسسة' : 'مسؤول الفرع: ' + (A.branchName || '');
 const tabs = grp ? [['wr', 'تقارير المجموعة'], ['prep', 'التحضير الجماعي'], ['members', 'الأعضاء']] : org ? [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع'], ['periods', 'الفترات'], ['appr', 'الاعتماد']] : [['wr', 'تقارير الفرع'], ['week', 'الهيكل'], ['members', 'الأعضاء'], ['appr', 'الاعتماد']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
   let h = '<div class="row noprint"><div class="grow"><h1>' + esc(ttl) + '</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
@@ -614,14 +629,15 @@ function wrOut() {
     return '<div class="grow" style="min-width:230px;background:' + bg + ';border-radius:12px;padding:10px 12px"><b style="color:' + fg + '">' + title + '</b>' +
       arr.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>';
   };
-  let h = '<div class="card"><div class="muted">تقرير متابعة الأسبوع</div><h2>' + esc(rp.scopeName) + '</h2>' +
+  let h = '<div class="print-header" style="display:none;border-bottom:3px solid #0f7a43;padding-bottom:10px;margin-bottom:15px;text-align:center"><h2 style="color:#064e2b;margin:0 0 4px 0">متابعة ورد المحاسبة الأسبوعي</h2><p style="color:#5b7466;margin:0">تقرير: ' + esc(rp.scopeName) + ' | تاريخ الإصدار: ' + todayStr() + '</p></div>' +
+    '<div class="card no-print-shadow"><div style="display:flex;justify-content:space-between;align-items:start"><div><div class="muted">تقرير متابعة الأسبوع</div><h2>' + esc(rp.scopeName) + '</h2></div><div class="row no-print" style="margin-top:4px"><button class="sec sm" onclick="wrCsv()">تصدير CSV</button><button class="sec sm" onclick="window.print()">تصدير PDF</button></div></div>' +
     '<div class="muted">آخر أسبوع مكتمل: ' + esc(String(rp.lastW || '—')) + ' · المقياس: ' + rp.mName + '</div>' +
     '<div class="row" style="margin-top:10px"><div class="grow"><div class="muted">الأعضاء</div><b>' + rp.nM + '</b></div>' +
     '<div class="grow"><div class="muted">المجموعات</div><b>' + rp.nG + '</b></div>' +
     '<div class="grow"><div class="muted">' + rp.mName + '</div><b style="font-size:22px">' + rp.last + '%</b> ' + wrArr(rp.ser) + '</div>' +
     '<div class="grow"><div class="muted">المتوسط</div><b>' + rp.avg + '%</b></div></div></div>';
-  h += '<div class="card" style="background:var(--y2)"><b style="color:var(--y)">الخلاصة</b>' + rp.lines.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>';
-  h += '<div class="row" style="align-items:stretch">' + box('جوانب القوة', rp.strong, 'var(--g2)', 'var(--g)') + box('جوانب الضعف', rp.weak, 'var(--r2)', 'var(--r)') + '</div>';
+  h += wrCharts(sc, rp); h += '<div class="card" style="background:var(--y2)"><b style="color:var(--y)">الخلاصة</b>' + rp.lines.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>';
+  h += '<div class="row" style="align-items:stretch">' + box('جوانب القوة', rp.strong, 'rgba(34,168,97,.12)', 'var(--g)') + box('جوانب الضعف', rp.weak, 'var(--r2)', 'var(--r)') + '</div>';
   if (rp.rows.length) {
     const all = { u: { name: 'إجمالي النطاق', ms: sc.ms }, s: rp.ser, d: rp.d };
     const rs = rp.rows.slice().sort(function (a, b) { return a.last - b.last; });
@@ -685,7 +701,7 @@ function wrClear() { A.rsel = {}; wrRefresh(); }
 function wrReload() { A.R = null; A.Rx = null; adminRender(); }
 /* == org_wr_v1 == */
 function oLoad() {
-  if (A.orBusy) return; A.orBusy = true;
+  if (A.orBusy) return; A.orBusy = true; if (!A.PL && A.role === 'org') rpc('admin_periods', { p_pass: A.pass }).then(function (r) { A.PL = Array.isArray(r) ? r : []; if (A.tab === 'wr' && A.OR) adminRender(); }).catch(function () {});
   return rpc('admin_weekly_org', { p_pass: A.pass }).then(function (r) { A.OR = r || {}; }).catch(function (e) {
     A.OR = { weeks: [], items: [], branches: [], groups: [], org: { n: 0 }, hidden: {}, total_items: 0, current_week: '' }; alert(msg(e));
   }).then(function () {
@@ -759,17 +775,233 @@ function oRep(s) {
   if (!weak.length) weak.push('لا ملاحظات سلبية.');
   return { ser: ser, last: last, d: d, avg: avg, ws: ws, mName: mName, lines: lines, strong: strong, weak: weak, rows: rows };
 }
+/* == m42a_v1 / m42a_v2_full: رسوم ومقارنات M-42 أ الشاملة (SVG بلا مكتبات: خط زمني، دائرة الإرسال، الأقسام الخمسة، أعمدة مقارنة الوحدات، مقارنة الفترات D-041، وأشرطة الـ14 بنداً) للمؤسسة والفرع والمجموعة == */
+function svgCol(p) { return p >= 75 ? '#1f7a4d' : p >= 50 ? '#d99a00' : '#b3402a'; }
+function svgCl(p) { p = Number(p) || 0; return p < 0 ? 0 : p > 100 ? 100 : p; }
+function svgNone(t) { return '<div class="muted" style="margin-top:8px">' + t + '</div>'; }
+function svgCard(title, body, minW) {
+  return '<div class="grow" style="min-width:' + (minW || 260) + 'px;background:#fff;border:1.5px solid #d7e6dc;border-radius:12px;padding:10px 12px"><b>' + title + '</b>' + body + '</div>';
+}
+function svgTimeline(ws, ser, sentSer, mName, showBoth) {
+  const n = ser.length;
+  if (n < 2) return svgNone('يلزم أسبوعان مكتملان على الأقل لرسم الخط الزمني.');
+  const W = 340, H = 156, L = 30, T = 12, B = 26, E = 14;
+  const X = function (i) { return L + (W - L - E) * i / (n - 1); };
+  const Y = function (p) { return T + (H - T - B) * (1 - svgCl(p) / 100); };
+  const pts = function (a) { return a.map(function (p, i) { return X(i).toFixed(1) + ',' + Y(p).toFixed(1); }).join(' '); };
+  const st = Math.ceil(n / 7), both = showBoth && sentSer && sentSer.length === n;
+  let g = '';
+  [0, 50, 100].forEach(function (v) {
+    g += '<line x1="' + L + '" x2="' + (W - E) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" stroke="#d7e6dc" stroke-width="1"/>' +
+      '<text x="' + (L - 4) + '" y="' + (Y(v) + 3).toFixed(1) + '" font-size="9" fill="#6b7d71" text-anchor="end">' + v + '</text>';
+  });
+  ws.forEach(function (w, i) {
+    if (i % st === 0 || i === n - 1) g += '<text x="' + X(i).toFixed(1) + '" y="' + (H - 8) + '" font-size="9" fill="#6b7d71" text-anchor="middle">' + esc(String(w).slice(5)) + '</text>';
+  });
+  if (both) g += '<polyline points="' + pts(sentSer) + '" fill="none" stroke="#6b7d71" stroke-width="1.5" stroke-dasharray="4 3"/>';
+  g += '<polyline points="' + pts(ser) + '" fill="none" stroke="#0f7a43" stroke-width="2.5"/>';
+  ser.forEach(function (p, i) {
+    g += '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(p).toFixed(1) + '" r="3.5" fill="' + svgCol(p) + '"><title>' + esc(String(ws[i])) + ': ' + p + '%</title></circle>';
+  });
+  g += '<text x="' + X(n - 1).toFixed(1) + '" y="' + (Y(ser[n - 1]) - 6).toFixed(1) + '" font-size="10" font-weight="bold" fill="#0f7a43" text-anchor="end">' + ser[n - 1] + '%</text>';
+  return '<div style="direction:ltr"><svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="الخط الزمني">' + g + '</svg></div>' +
+    '<div class="muted" style="margin-top:2px"><span style="color:#0f7a43">━</span> ' + esc(mName) + (both ? ' &nbsp; <span style="color:#6b7d71">╌</span> نسبة الإرسال' : '') + '</div>';
+}
+function svgDonut(sentPct, sentCount, totCount) {
+  if (!totCount) return svgNone('لا يوجد أسبوع مكتمل أو أعضاء بعد.');
+  const p = svgCl(sentPct), C = 2 * Math.PI * 40;
+  return '<div class="row" style="align-items:center;margin-top:8px"><svg viewBox="0 0 100 100" width="120" height="120" role="img" aria-label="المُرسِل وغير المُرسِل">' +
+    '<circle cx="50" cy="50" r="40" fill="none" stroke="#f0cfc7" stroke-width="16"/>' +
+    '<circle cx="50" cy="50" r="40" fill="none" stroke="#1f7a4d" stroke-width="16" stroke-dasharray="' + (C * p / 100).toFixed(2) + ' ' + C.toFixed(2) + '" transform="rotate(-90 50 50)"/>' +
+    '<text x="50" y="55" font-size="16" font-weight="bold" fill="#064e2b" text-anchor="middle">' + p + '%</text></svg>' +
+    '<div class="grow"><div><span style="color:#1f7a4d">●</span> أرسلوا: <b>' + sentCount + '</b></div>' +
+    '<div style="margin-top:4px"><span style="color:#d99a8a">●</span> لم يرسلوا: <b>' + Math.max(totCount - sentCount, 0) + '</b></div>' +
+    '<div class="muted" style="margin-top:4px">من ' + totCount + ' عضواً في آخر أسبوع مكتمل</div></div></div>';
+}
+function svgHBars(list, emptyMsg) {
+  if (!list || !list.length) return svgNone(emptyMsg || 'لا بيانات بعد.');
+  return list.map(function (c) {
+    const p = svgCl(c.pct);
+    return '<div style="margin-top:7px"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span>' + esc(c.label) + (c.sub ? ' <span class="muted">(' + esc(c.sub) + ')</span>' : '') + '</span><b style="direction:ltr">' + p + '%</b></div>' +
+      '<div style="height:8px;background:#e4efe7;border-radius:99px;overflow:hidden"><i style="display:block;height:100%;width:' + p + '%;background:' + svgCol(p) + '"></i></div></div>';
+  }).join('');
+}
+function svgColumns(bars, emptyMsg) {
+  if (!bars || !bars.length) return svgNone(emptyMsg || 'لا وحدات فرعية للمقارنة في هذا المستوى.');
+  const list = bars.slice(0, 16), n = list.length;
+  const W = Math.max(340, n * 52 + 44), H = 178, L = 30, T = 18, B = 42, E = 12;
+  const plotW = W - L - E, plotH = H - T - B, step = plotW / n, bw = Math.min(30, Math.max(12, step * 0.58));
+  const Y = function (p) { return T + plotH * (1 - svgCl(p) / 100); };
+  let g = '';
+  [0, 50, 100].forEach(function (v) {
+    g += '<line x1="' + L + '" x2="' + (W - E) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" stroke="#d7e6dc" stroke-width="1"/>' +
+      '<text x="' + (L - 4) + '" y="' + (Y(v) + 3).toFixed(1) + '" font-size="9" fill="#6b7d71" text-anchor="end">' + v + '</text>';
+  });
+  list.forEach(function (b, i) {
+    const p = svgCl(b.pct), cx = L + step * (i + 0.5), x = cx - bw / 2, y = Y(p), h = Math.max(2, T + plotH - y);
+    const lbl = String(b.label || ''); const shortLbl = lbl.length > 10 ? lbl.slice(0, 9) + '…' : lbl;
+    g += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="4" fill="' + svgCol(p) + '"><title>' + esc(lbl) + ': ' + p + '%</title></rect>' +
+      '<text x="' + cx.toFixed(1) + '" y="' + (y - 4).toFixed(1) + '" font-size="9" font-weight="bold" fill="#064e2b" text-anchor="middle">' + p + '%</text>' +
+      '<text x="' + cx.toFixed(1) + '" y="' + (H - 18).toFixed(1) + '" font-size="9" fill="#334e3e" text-anchor="middle">' + esc(shortLbl) + '</text>' +
+      (b.sub != null ? '<text x="' + cx.toFixed(1) + '" y="' + (H - 6).toFixed(1) + '" font-size="8" fill="#6b7d71" text-anchor="middle">' + esc(String(b.sub)) + '</text>' : '');
+  });
+  return '<div style="direction:ltr;overflow-x:auto"><svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="min-width:' + Math.min(W, 320) + 'px" role="img" aria-label="أعمدة المقارنة">' + g + '</svg></div>';
+}
+function calcPeriodStats(ws, ser, sentSer) {
+  const pls = Array.isArray(A.PL) && A.PL.length ? A.PL.slice().sort(function (a, b) { return String(a.start).localeCompare(String(b.start)); }) : [];
+  const groups = [];
+  if (pls.length) {
+    pls.forEach(function (pl, idx) {
+      const idxs = [];
+      ws.forEach(function (w, i) { const sw = String(w); if (sw >= String(pl.start) && sw <= String(pl.end)) idxs.push(i); });
+      if (idxs.length) {
+        const avgM = Math.round(idxs.reduce(function (s, i) { return s + (ser[i] || 0); }, 0) / idxs.length);
+        const avgS = sentSer && sentSer.length === ws.length ? Math.round(idxs.reduce(function (s, i) { return s + (sentSer[i] || 0); }, 0) / idxs.length) : avgM;
+        groups.push({ label: 'فترة ' + (idx + 1), range: String(pl.start).slice(5) + '←' + String(pl.end).slice(5), weeks: idxs.length, pct: avgM, sentPct: avgS });
+      }
+    });
+  }
+  if (!groups.length && ws.length) {
+    /* تقسيم تلقائي كل 4 أسابيع كفترة شهرية إن لم تكن A.PL محمّلة لدور الفرع/المجموعة */
+    for (let k = 0; k < ws.length; k += 4) {
+      const sl = ser.slice(k, k + 4), slS = sentSer ? sentSer.slice(k, k + 4) : sl;
+      const w1 = String(ws[k]).slice(5), w2 = String(ws[Math.min(k + 3, ws.length - 1)]).slice(5);
+      const avgM = Math.round(sl.reduce(function (a, b) { return a + b; }, 0) / sl.length);
+      const avgS = Math.round(slS.reduce(function (a, b) { return a + b; }, 0) / slS.length);
+      groups.push({ label: 'فترة ' + (Math.floor(k / 4) + 1), range: w1 + '←' + w2, weeks: sl.length, pct: avgM, sentPct: avgS });
+    }
+  }
+  return groups;
+}
+function renderPeriodComparison(ws, ser, sentSer, mName) {
+  const ps = calcPeriodStats(ws, ser, sentSer);
+  if (!ps.length) return svgNone('لا تتوفر أسابيع مكتملة لمقارنة الفترات بعد.');
+  const colSvg = svgColumns(ps.map(function (p) { return { label: p.label, pct: p.pct, sub: p.range }; }), '');
+  let tbl = '<div class="scroll" style="margin-top:8px"><table><tr><th>الفترة</th><th>النطاق</th><th>الأسابيع المكتملة</th><th>متوسط ' + esc(mName) + '</th><th>متوسط الإرسال</th><th>التغيّر</th></tr>';
+  ps.forEach(function (p, i) {
+    const prev = i > 0 ? ps[i - 1].pct : null, diff = prev == null ? 0 : p.pct - prev;
+    const arr = prev == null ? '<span class="muted">—</span>' : diff > 0 ? '<span style="color:var(--g)">▲ ' + diff + '</span>' : diff < 0 ? '<span style="color:var(--r)">▼ ' + (-diff) + '</span>' : '<span class="muted">＝</span>';
+    tbl += '<tr><td><b>' + esc(p.label) + '</b></td><td style="direction:ltr">' + esc(p.range) + '</td><td>' + p.weeks + '</td><td style="background:' + wrCol(p.pct) + '"><b>' + p.pct + '%</b></td><td>' + p.sentPct + '%</td><td>' + arr + '</td></tr>';
+  });
+  tbl += '</table></div>';
+  return colSvg + tbl;
+}
+function oCharts(s, rp) {
+  const R = A.OR || {}, u = s.u, n = rp.ser.length;
+  const sentSer = oSer(u, 'sent');
+  /* 1) الخط الزمني */
+  const tl = svgTimeline(rp.ws, rp.ser, sentSer, rp.mName, A.om !== 'sent');
+  /* 2) دائرة المُرسِل وغير المُرسِل */
+  let dn;
+  if (!sentSer.length || !(u.n || 0)) dn = svgNone('لا يوجد أسبوع مكتمل بعد.');
+  else {
+    const ci = R.ci[R.ci.length - 1], tot = u.n || 0, sc = (u.s || [])[ci] || 0;
+    dn = svgDonut(sentSer[sentSer.length - 1], sc, tot);
+  }
+  /* 3) توزيع الأقسام الخمسة */
+  const its = oItems(u), cs = its && its.length ? wrCats(its).slice().sort(function (a, b) { return b.pct - a.pct; }) : [];
+  const sc2 = svgHBars(cs.map(function (c) { return { label: c.cat, pct: c.pct }; }), 'لا بيانات للأقسام بعد.');
+  /* 4) أعمدة مقارنة الوحدات (بين الفروع أو بين المجموعات في الفرع) */
+  const unitTitle = s.kind === 'o' ? 'أعمدة مقارنة الفروع (آخر أسبوع مكتمل)' : s.kind === 'b' ? 'أعمدة مقارنة مجموعات الفرع (آخر أسبوع مكتمل)' : 'مقارنة الوحدات الفرعية';
+  const unitBars = (rp.rows || []).filter(function (r) { return r.u && r.u.u && r.u.u.n; }).slice().sort(function (a, b) { return b.last - a.last; }).map(function (r) {
+    return { label: r.u.name, pct: r.last, sub: (r.u.u.n || 0) + ' عضو' };
+  });
+  const colUnits = svgColumns(unitBars, s.kind === 'g' ? 'المجموعة هي أدنى مستوى مسموح للمسؤول العام (بلا أسماء أفراد).' : 'لا وحدات فرعية ظاهرة للمقارنة.');
+  /* 5) مقارنة الفترات الشهرية (D-041) */
+  const perComp = renderPeriodComparison(rp.ws, rp.ser, sentSer, rp.mName);
+  /* 6) أشرطة البنود الأربعة عشر */
+  const sortedItems = its && its.length ? its.slice().sort(function (a, b) { return b.pct - a.pct; }) : [];
+  const itemsBars = svgHBars(sortedItems.map(function (it) { return { label: it.title, sub: it.cat, pct: it.pct }; }), 'لا بيانات للبنود في هذا الأسبوع.');
+  return '<h3>الرسوم البيانية والمقارنات</h3>' +
+    '<div class="row" style="align-items:stretch">' +
+      svgCard('الخط الزمني', tl, 260) +
+      svgCard('المُرسِل وغير المُرسِل', dn, 240) +
+      svgCard('الأقسام الخمسة (آخر أسبوع مكتمل)', sc2, 240) +
+    '</div>' +
+    '<div class="row" style="align-items:stretch;margin-top:10px">' +
+      svgCard(unitTitle, colUnits, 320) +
+      svgCard('مقارنة الفترات الشهرية (الأشهر)', perComp, 320) +
+    '</div>' +
+    '<div class="row" style="align-items:stretch;margin-top:10px">' +
+      svgCard('تفصيل البنود الأربعة عشر (آخر أسبوع مكتمل — مرتبة تنازلياً)', itemsBars, 320) +
+    '</div>';
+}
+function wrCharts(sc, rp) {
+  const sentSer = wrSer(sc.ms, 'sent');
+  /* 1) الخط الزمني */
+  const tl = svgTimeline(rp.ws, rp.ser, sentSer, rp.mName, A.rm !== 'sent');
+  /* 2) دائرة المُرسِل وغير المُرسِل */
+  let dn;
+  if (!sentSer.length || !sc.ms.length) dn = svgNone('لا يوجد أسبوع مكتمل بعد.');
+  else {
+    const li = A.rci.length ? A.rci[A.rci.length - 1] : -1;
+    const sentCnt = li < 0 ? 0 : sc.ms.filter(function (mm) { return !!((mm.s || [])[li]); }).length;
+    dn = svgDonut(sentSer[sentSer.length - 1], sentCnt, sc.ms.length);
+  }
+  /* 3) الأقسام الخمسة */
+  const its = wrItems(sc), cs = its && its.length ? wrCats(its).slice().sort(function (a, b) { return b.pct - a.pct; }) : [];
+  const sc2 = svgHBars(cs.map(function (c) { return { label: c.cat, pct: c.pct }; }), sc.itemsOk ? 'لا بيانات للأقسام بعد.' : 'يظهر تفصيل الأقسام عند اختيار فرع أو مجموعة.');
+  /* 4) أعمدة مقارنة الوحدات (مجموعات الفرع أو أعضاء المجموعة) */
+  const unitBars = (rp.rows || []).filter(function (r) { return r.u && r.u.ms && r.u.ms.length; }).slice().sort(function (a, b) { return b.last - a.last; }).map(function (r) {
+    return { label: r.u.name, pct: r.last, sub: r.u.kind === 'm' ? '' : r.u.ms.length + ' عضو' };
+  });
+  const colUnits = svgColumns(unitBars, 'لا وحدات فرعية للمقارنة.');
+  /* 5) مقارنة الفترات الشهرية */
+  const perComp = renderPeriodComparison(rp.ws, rp.ser, sentSer, rp.mName);
+  /* 6) أشرطة البنود الأربعة عشر */
+  const sortedItems = its && its.length ? its.slice().sort(function (a, b) { return b.pct - a.pct; }) : [];
+  const itemsBars = svgHBars(sortedItems.map(function (it) { return { label: it.title, sub: it.cat, pct: it.pct }; }), sc.itemsOk ? 'لا بيانات للبنود بعد.' : 'تفصيل البنود يتاح عند اختيار فرع أو مجموعة فقط.');
+  return '<h3>الرسوم البيانية والمقارنات</h3>' +
+    '<div class="row" style="align-items:stretch">' +
+      svgCard('الخط الزمني', tl, 260) +
+      svgCard('المُرسِل وغير المُرسِل', dn, 240) +
+      svgCard('الأقسام الخمسة (آخر أسبوع مكتمل)', sc2, 240) +
+    '</div>' +
+    '<div class="row" style="align-items:stretch;margin-top:10px">' +
+      svgCard('أعمدة مقارنة الوحدات (آخر أسبوع مكتمل)', colUnits, 320) +
+      svgCard('مقارنة الفترات الشهرية (الأشهر)', perComp, 320) +
+    '</div>' +
+    '<div class="row" style="align-items:stretch;margin-top:10px">' +
+      svgCard('تفصيل البنود الأربعة عشر (آخر أسبوع مكتمل — مرتبة تنازلياً)', itemsBars, 320) +
+    '</div>';
+}
+
+/* == m42c_v1: تصدير CSV للتقارير == */
+function expCSV(name, hdrs, rows) {
+  let csv = '\uFEFF' + hdrs.join(',') + '\n';
+  rows.forEach(function(r) { csv += r.map(function(c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(',') + '\n'; });
+  const b = new Blob([csv], { type: 'text/csv;charset=utf-8;' }), u = URL.createObjectURL(b);
+  const a = document.createElement('a'); a.href = u; a.download = name + '_' + todayStr() + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+function oCsv() {
+  const s = oUnit(A.ok) || oUnit('o'), rp = oRep(s);
+  const hdrs = ['الوحدة', 'الأعضاء'].concat(rp.ws.map(function(w){return String(w).slice(5);})).concat(['المتوسط']);
+  const rs = rp.rows.slice().sort(function(a,b){return b.last-a.last;});
+  const rows = [{ name: 'إجمالي النطاق', n: s.u.n||0, s: rp.ser }].concat(rs.map(function(r){return {name: r.u.name, n: r.u.u.n||0, s: r.s};}));
+  const data = rows.map(function(r) { return [r.name, r.n].concat(r.s).concat([Math.round(r.s.reduce(function(a,b){return a+b;},0)/Math.max(1,r.s.length))||0]); });
+  expCSV('تقرير_المؤسسة_' + s.name.replace(/\s+/g,'_'), hdrs, data);
+}
+function wrCsv() {
+  const sc = wrScope(), rp = wrReport(sc);
+  const hdrs = ['الوحدة', 'الأعضاء'].concat(rp.ws.map(function(w){return String(w).slice(5);})).concat(['المتوسط']);
+  const rs = rp.rows.slice().sort(function(a,b){return b.last-a.last;});
+  const rows = [{ name: 'إجمالي النطاق', n: sc.ms.length, s: rp.ser }].concat(rs.map(function(r){return {name: r.u.name, n: r.u.ms.length, s: r.s};}));
+  const data = rows.map(function(r) { return [r.name, r.n].concat(r.s).concat([Math.round(r.s.reduce(function(a,b){return a+b;},0)/Math.max(1,r.s.length))||0]); });
+  expCSV('تقرير_المتابعة_' + rp.scopeName.replace(/\s+/g,'_'), hdrs, data);
+}
 function oOut() {
   const s = oUnit(A.ok) || oUnit('o'); A.ok = s.k;
   const rp = oRep(s);
   const box = function (title, arr, bg, fg) { return '<div class="grow" style="min-width:230px;background:' + bg + ';border-radius:12px;padding:10px 12px"><b style="color:' + fg + '">' + title + '</b>' + arr.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>'; };
-  let h = '<div class="card"><div class="muted">تقرير المؤسسة (أرقام ومقارنات فقط)</div><h2>' + esc(s.name) + '</h2>' +
+  let h = '<div class="print-header" style="display:none;border-bottom:3px solid #0f7a43;padding-bottom:10px;margin-bottom:15px;text-align:center"><h2 style="color:#064e2b;margin:0 0 4px 0">متابعة ورد المحاسبة الأسبوعي</h2><p style="color:#5b7466;margin:0">تقرير: ' + esc(s.name) + ' | تاريخ الإصدار: ' + todayStr() + '</p></div>' +
+    '<div class="card no-print-shadow"><div style="display:flex;justify-content:space-between;align-items:start"><div><div class="muted">تقرير المؤسسة (أرقام ومقارنات فقط)</div><h2>' + esc(s.name) + '</h2></div><div class="row no-print" style="margin-top:4px"><button class="sec sm" onclick="oCsv()">تصدير CSV</button><button class="sec sm" onclick="window.print()">تصدير PDF</button></div></div>' +
     '<div class="muted">آخر أسبوع مكتمل: ' + esc(String(rp.ws.length ? rp.ws[rp.ws.length - 1] : '—')) + ' · المقياس: ' + rp.mName + '</div>' +
     '<div class="row" style="margin-top:10px"><div class="grow"><div class="muted">الأعضاء</div><b>' + (s.u.n || 0) + '</b></div>' +
     '<div class="grow"><div class="muted">' + rp.mName + '</div><b style="font-size:22px">' + rp.last + '%</b> ' + wrArr(rp.ser) + '</div>' +
     '<div class="grow"><div class="muted">المتوسط</div><b>' + rp.avg + '%</b></div></div></div>';
-  h += '<div class="card" style="background:var(--y2)"><b style="color:var(--y)">الخلاصة</b>' + rp.lines.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>';
-  h += '<div class="row" style="align-items:stretch">' + box('جوانب القوة', rp.strong, 'var(--g2)', 'var(--g)') + box('جوانب الضعف', rp.weak, 'var(--r2)', 'var(--r)') + '</div>';
+  h += oCharts(s, rp); h += '<div class="card" style="background:var(--y2)"><b style="color:var(--y)">الخلاصة</b>' + rp.lines.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>';
+  h += '<div class="row" style="align-items:stretch">' + box('جوانب القوة', rp.strong, 'rgba(34,168,97,.12)', 'var(--g)') + box('جوانب الضعف', rp.weak, 'var(--r2)', 'var(--r)') + '</div>';
   if (rp.rows.length) {
     const rs = rp.rows.slice().sort(function (a, b) { return a.last - b.last; });
     h += '<h3>مقارنة الوحدات (الأضعف أولاً)</h3><div class="scroll"><table><tr><th>الوحدة</th><th>الأعضاء</th>' + rp.ws.map(function (w) { return '<th>' + esc(String(w).slice(5)) + '</th>'; }).join('') + '<th>التغيّر</th></tr>';
@@ -800,7 +1032,7 @@ function oTree() {
   h += row('o', 'المؤسسة', '#064e2b', 'المؤسسة كلها', R.org || { n: 0 }, false, false);
   h += '<div style="margin-right:16px;padding-right:10px;border-right:2px solid #7fb893">';
   (R.branches || []).forEach(function (b) {
-    const gs = (R.groups || []).filter(function (g) { return g.branch_id === b.id; }), open = !(A.oc && A.oc['b:' + b.id]);
+    const gs = (R.groups || []).filter(function (g) { return g.branch_id === b.id; }), open = !!(A.oc && A.oc['b:' + b.id]); /* == n4n6_v1 == */
     h += row('b:' + b.id, 'فرع', '#0f7a43', b.name, b, gs.length > 0, open);
     if (gs.length && open) h += '<div style="margin-right:16px;padding-right:10px;border-right:2px solid #e8a35a">' + gs.map(function (g) { return row('g:' + g.id, 'مجموعة', '#c4570a', g.name, g, false, false); }).join('') + '</div>';
   });
@@ -1512,7 +1744,7 @@ async function week(w) {
     if (!tw) { wkRenderList(d); return; }
     wkSeenAdd(tw);
     wkRenderWeek(await rpc('my_week', { p_code: S.code, p_week: tw }));
-  } catch (e) { if (String(e.message) === 'bad_code') { localStorage.removeItem('code'); S.code = ''; return login('الرمز غير صحيح أو معطّل.'); } if (String(e.message) === 'no_period') { show('<div class="card"><b>لم تُحدَّد فترة المتابعة بعد.</b><p class="muted">تواصل مع مسؤولك ليحدّد الفترة.</p></div>'); return; } show(errBox(e, 'week()')); }
+  } catch (e) { if (String(e.message) === 'bad_code') { localStorage.removeItem('code'); S.code = ''; return login('الرمز غير صحيح أو معطّل.'); } if (String(e.message) === 'no_period') { show('<div class="card"><b>لا توجد فترة متابعة مفتوحة الآن.</b><p class="muted">انتهت فترة المتابعة أو لم تبدأ بعد. تواصل مع مسؤولك ليحدّد الفترة التالية.</p></div>'); return; } show(errBox(e, 'week()')); }
 }
 </script>
 <script>/* == weekui_v7 == */

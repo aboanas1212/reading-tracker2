@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261113-193446">
+<meta name="build" content="20261113-193812">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -166,7 +166,8 @@ body .err{border-radius:12px}
 window.onerror = function(msg, url, line) {
     alert("🚨 المتصفح يقول:\n\n" + msg + "\n\nالسطر: " + line);
 };
-</script><script src="config.js"></script>
+</script><script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="config.js"></script>
 <script>
 /* ============ أدوات عامة ============ */
 const CFG = window.CONFIG || {};
@@ -294,10 +295,10 @@ async function adminLoad() {
 }
 function adminRender() {
 /* == roles_tabs_v1 == */ /* == titles_v1 == */ const grp = A.role === 'group', org = A.role !== 'branch' && !grp, ttl = grp ? 'مشرف المجموعة: ' + (A.groupName || '') : org ? 'المسؤول العام للمؤسسة' : 'مسؤول الفرع: ' + (A.branchName || '');
-const tabs = grp ? [['wr', 'تقارير المجموعة'], ['prep', 'التحضير الجماعي'], ['members', 'الأعضاء']] : org ? [['wr', 'تقارير متابعة الأسبوع'], ['week', 'الفروع'], ['periods', 'الفترات'], ['appr', 'الاعتماد']] : [['wr', 'تقارير الفرع'], ['week', 'الهيكل'], ['members', 'الأعضاء'], ['appr', 'الاعتماد']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
+const tabs = grp ? [['adv', 'التقارير والمقارنات'], ['prep', 'التحضير الجماعي'], ['members', 'الأعضاء']] : org ? [['adv', 'التقارير والمقارنات'], ['week', 'الفروع'], ['periods', 'الفترات'], ['appr', 'الاعتماد']] : [['adv', 'التقارير والمقارنات'], ['week', 'الهيكل'], ['members', 'الأعضاء'], ['appr', 'الاعتماد']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
   let h = '<div class="row noprint"><div class="grow"><h1>' + esc(ttl) + '</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
-  h += (({ wr: tWR, week: tWeek, members: tMembers, prep: tPrep, periods: tPeriods, appr: tAppr })[A.tab] || tWR)();
+  h += (({ adv: tAdv, wr: tWR, week: tWeek, members: tMembers, prep: tPrep, periods: tPeriods, appr: tAppr })[A.tab] || tAdv)();
   show(h);
 }
 
@@ -966,29 +967,59 @@ function wrCharts(sc, rp) {
     '</div>';
 }
 
-/* == m42c_v1: تصدير CSV للتقارير == */
-function expCSV(name, hdrs, rows) {
-  let csv = '\uFEFF' + hdrs.join(',') + '\n';
-  rows.forEach(function(r) { csv += r.map(function(c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(',') + '\n'; });
-  const b = new Blob([csv], { type: 'text/csv;charset=utf-8;' }), u = URL.createObjectURL(b);
-  const a = document.createElement('a'); a.href = u; a.download = name + '_' + todayStr() + '.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
-function oCsv() {
-  const s = oUnit(A.ok) || oUnit('o'), rp = oRep(s);
-  const hdrs = ['الوحدة', 'الأعضاء'].concat(rp.ws.map(function(w){return String(w).slice(5);})).concat(['المتوسط']);
-  const rs = rp.rows.slice().sort(function(a,b){return b.last-a.last;});
-  const rows = [{ name: 'إجمالي النطاق', n: s.u.n||0, s: rp.ser }].concat(rs.map(function(r){return {name: r.u.name, n: r.u.u.n||0, s: r.s};}));
-  const data = rows.map(function(r) { return [r.name, r.n].concat(r.s).concat([Math.round(r.s.reduce(function(a,b){return a+b;},0)/Math.max(1,r.s.length))||0]); });
-  expCSV('تقرير_المؤسسة_' + s.name.replace(/\s+/g,'_'), hdrs, data);
-}
-function wrCsv() {
+/* == adv_reports_v1: شاشة التقارير والمقارنات المستقلة (نمط HrArchive) وتصدير Excel == */
+function advExportExcel() {
+  if (typeof XLSX === 'undefined') { alert('مكتبة التصدير قيد التحميل، يرجى المحاولة بعد قليل.'); return; }
+  /* تجهيز البيانات حسب النطاق المحدد لتصديرها لإكسل */
   const sc = wrScope(), rp = wrReport(sc);
-  const hdrs = ['الوحدة', 'الأعضاء'].concat(rp.ws.map(function(w){return String(w).slice(5);})).concat(['المتوسط']);
-  const rs = rp.rows.slice().sort(function(a,b){return b.last-a.last;});
-  const rows = [{ name: 'إجمالي النطاق', n: sc.ms.length, s: rp.ser }].concat(rs.map(function(r){return {name: r.u.name, n: r.u.ms.length, s: r.s};}));
-  const data = rows.map(function(r) { return [r.name, r.n].concat(r.s).concat([Math.round(r.s.reduce(function(a,b){return a+b;},0)/Math.max(1,r.s.length))||0]); });
-  expCSV('تقرير_المتابعة_' + rp.scopeName.replace(/\s+/g,'_'), hdrs, data);
+  const ws_data = [['الوحدة', 'الأعضاء'].concat(rp.ws.map(w => String(w).slice(5))).concat(['المتوسط'])];
+  
+  const rs = rp.rows.slice().sort((a, b) => b.last - a.last);
+  const allRows = [{ name: 'إجمالي النطاق المحدد', n: sc.ms.length, s: rp.ser }].concat(rs.map(r => ({ name: r.u.name, n: r.u.ms ? r.u.ms.length : (r.u.u.n||0), s: r.s })));
+  
+  allRows.forEach(r => {
+    ws_data.push([r.name, r.n].concat(r.s).concat([Math.round(r.s.reduce((a,b)=>a+b,0)/Math.max(1,r.s.length))||0]));
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!dir'] = 'rtl'; /* توجيه الشيت من اليمين لليسار */
+  XLSX.utils.book_append_sheet(wb, ws, "تقرير المقارنة");
+  XLSX.writeFile(wb, "تقرير_المتابعة_" + todayStr() + ".xlsx");
+}
+
+function tAdv() {
+  wrInit();
+  if (!A.R && !A.OR) { 
+    if (A.role === 'org') oLoad(); else loadR(); 
+    return '<p class="muted">جارٍ تحميل البيانات وبناء محرك التقارير…</p>'; 
+  }
+  
+  /* الهيكل المنفصل: شجرة على اليمين، ونتائج على اليسار */
+  let h = '<div class="row" style="align-items:start;gap:20px;flex-wrap:nowrap">';
+  
+  /* الجزء الأيمن: محرك البحث وشجرة الهيكل (Sidebar) */
+  h += '<div class="card no-print" style="flex:0 0 320px;max-height:82vh;overflow-y:auto;position:sticky;top:10px">';
+  h += '<h3 style="margin-top:0;color:var(--g1)">تحديد نطاق المقارنة</h3>';
+  h += '<p class="muted" style="font-size:0.85rem">اختر فرعاً أو أكثر، أو مجموعات محددة لعرض المقارنة المباشرة بينها.</p>';
+  h += '<input type="text" placeholder="بحث سريع في الهيكل..." value="' + esc(A.rq) + '" oninput="wrSearch(this.value)">';
+  h += '<div class="row" style="margin-top:10px;margin-bottom:10px"><button class="sec sm grow" onclick="wrClear()">مسح التحديد</button></div>';
+  h += '<div id="wr-tree" style="margin-top:10px">' + (A.role === 'org' ? oTree() : wrTree()) + '</div>';
+  h += '</div>';
+
+  /* الجزء الأيسر: منصة عرض التقرير والرسوم والتصدير (Main Area) */
+  h += '<div style="flex:1;min-width:0">';
+  h += '<div class="card no-print row" style="background:linear-gradient(90deg, #f6fcf8, #fff);border-color:#a9d6bb;margin-top:0">';
+  h += '<div class="grow"><b>خيارات العرض والتصدير</b></div>';
+  h += '<button class="sm" onclick="advExportExcel()" style="background:#107c41;color:#fff;gap:6px;display:flex;align-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> تصدير Excel</button>';
+  h += '<button class="sec sm" onclick="window.print()" style="gap:6px;display:flex;align-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><path d="M6 14h12v8H6z"/></svg> تصدير PDF</button>';
+  h += '</div>';
+  
+  /* مساحة الرسوم البيانية والجداول */
+  h += '<div id="wr-out">' + (A.role === 'org' ? oOut() : wrOut()) + '</div>';
+  
+  h += '</div></div>';
+  return h;
 }
 function oOut() {
   const s = oUnit(A.ok) || oUnit('o'); A.ok = s.k;

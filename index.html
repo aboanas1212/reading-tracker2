@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261113-194907">
+<meta name="build" content="20261113-195401">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -82,6 +82,12 @@ input[type=text]{min-height:46px}
   .lesson{flex-direction:column;align-items:flex-start}
   .card{padding:12px}
 }
+/* CSS Dashboard */
+.dash-container { display: flex; align-items: flex-start; gap: 16px; height: calc(100vh - 180px); min-height: 500px; margin-top: 10px; }
+.dash-sidebar { flex: 0 0 280px; height: 100%; overflow-y: auto; background: #fbfdfc; border-top: 4px solid var(--g2); padding: 12px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
+.dash-main { flex: 1; min-width: 0; height: 100%; overflow-y: auto; padding-left: 4px; padding-right: 4px; }
+.dash-chart-scroll { overflow-x: auto; overflow-y: hidden; direction: ltr; }
+@media (max-width: 768px) { .dash-container { flex-direction: column; height: auto; } .dash-sidebar { flex: none; width: 100%; max-height: 300px; } .dash-main { height: auto; overflow: visible; } }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style id="brand_v1">
@@ -158,6 +164,12 @@ body .err{border-radius:12px}
     .print-header { display: block !important; }
     .no-print-shadow { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
   }
+/* CSS Dashboard */
+.dash-container { display: flex; align-items: flex-start; gap: 16px; height: calc(100vh - 180px); min-height: 500px; margin-top: 10px; }
+.dash-sidebar { flex: 0 0 280px; height: 100%; overflow-y: auto; background: #fbfdfc; border-top: 4px solid var(--g2); padding: 12px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
+.dash-main { flex: 1; min-width: 0; height: 100%; overflow-y: auto; padding-left: 4px; padding-right: 4px; }
+.dash-chart-scroll { overflow-x: auto; overflow-y: hidden; direction: ltr; }
+@media (max-width: 768px) { .dash-container { flex-direction: column; height: auto; } .dash-sidebar { flex: none; width: 100%; max-height: 300px; } .dash-main { height: auto; overflow: visible; } }
 </style>
 </head>
 <body>
@@ -298,7 +310,7 @@ function adminRender() {
 const tabs = grp ? [['reports', 'التقارير'], ['wr', 'متابعة الأسبوع'], ['prep', 'التحضير الجماعي'], ['members', 'الأعضاء']] : org ? [['reports', 'التقارير'], ['wr', 'متابعة الأسبوع'], ['week', 'الفروع'], ['periods', 'الفترات'], ['appr', 'الاعتماد']] : [['reports', 'التقارير'], ['wr', 'متابعة الأسبوع'], ['week', 'الهيكل'], ['members', 'الأعضاء'], ['appr', 'الاعتماد']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'reports'; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
   let h = '<div class="row noprint"><div class="grow"><h1>' + esc(ttl) + '</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
-  h += (({ reports: tReports, adv: tAdv, wr: tWR, week: tWeek, members: tMembers, prep: tPrep, periods: tPeriods, appr: tAppr })[A.tab] || tReports)();
+  h += (({ reports: tReports, reports: tReports, wr: tWR, week: tWeek, members: tMembers, prep: tPrep, periods: tPeriods, appr: tAppr })[A.tab] || tReports)();
   show(h);
 }
 
@@ -973,6 +985,12 @@ function advExp(k) { if(A.rexp[k]) delete A.rexp[k]; else A.rexp[k]=true; docume
 function repSearch(v) { A.rq = v; document.getElementById('rep-tree').innerHTML=repTree(); }
 function repClear() { A.rsel = {}; document.getElementById('rep-tree').innerHTML=repTree(); document.getElementById('rep-main').innerHTML=repMain(); }
 
+/* == reports_dashboard_v3: شاشة تقارير احترافية ومستقلة بمنطق HrArchive (تمرير مستقل، مقارنة ذكية) == */
+function advToggle(k) { if(A.rsel[k]) delete A.rsel[k]; else A.rsel[k]=true; document.getElementById('rep-tree').innerHTML=repTree(); document.getElementById('rep-main').innerHTML=repMain(); }
+function advExp(k) { if(A.rexp[k]) delete A.rexp[k]; else A.rexp[k]=true; document.getElementById('rep-tree').innerHTML=repTree(); }
+function repSearch(v) { A.rq = v; document.getElementById('rep-tree').innerHTML=repTree(); }
+function repClear() { A.rsel = {}; document.getElementById('rep-tree').innerHTML=repTree(); document.getElementById('rep-main').innerHTML=repMain(); }
+
 function repInit() {
   if(!A.rsel) A.rsel = {};
   if(!A.rexp) A.rexp = {};
@@ -984,23 +1002,27 @@ function tReports() {
   if (A.role === 'org' && !A.OR) { oLoad(); return '<p class="muted">جارٍ بناء محرك التقارير…</p>'; }
   if (A.role !== 'org' && !A.R) { loadR(); return '<p class="muted">جارٍ بناء محرك التقارير…</p>'; }
   
-  let h = '<div class="row" style="align-items:stretch; flex-wrap:nowrap; gap:16px">';
+  let h = '<div class="dash-container">';
+  
   /* الجانب الأيمن: الشجرة ومحرك البحث (Sidebar) */
-  h += '<div class="card no-print" style="flex:0 0 280px; margin:0; position:sticky; top:10px; max-height:85vh; display:flex; flex-direction:column; background:#fbfdfc; border-top:4px solid var(--g2)">';
+  h += '<div class="dash-sidebar no-print">';
   h += '<h3 style="margin-top:0; display:flex; align-items:center; gap:8px; color:var(--g1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> الهيكل التنظيمي</h3>';
-  h += '<input type="text" placeholder="بحث سريع..." value="'+esc(A.rq)+'" oninput="repSearch(this.value)" style="margin-bottom:12px; border-radius:8px">';
-  h += '<div class="row" style="margin-top:0;margin-bottom:10px"><button class="sec sm grow" onclick="repClear()">مسح التحديد</button></div>';
-  h += '<div id="rep-tree" class="scroll" style="flex:1; border:none; padding-left:4px; box-shadow:none">' + repTree() + '</div>';
+  h += '<input type="text" placeholder="بحث سريع..." value="'+esc(A.rq)+'" oninput="repSearch(this.value)" style="margin-bottom:12px; border-radius:8px; width:100%">';
+  h += '<button class="sec sm" style="width:100%; margin-bottom:12px" onclick="repClear()">مسح التحديد</button>';
+  h += '<div id="rep-tree">' + repTree() + '</div>';
   h += '</div>';
   
   /* الجانب الأيسر: منصة عرض التقرير والرسوم (Main Content) */
-  h += '<div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:16px">';
-  h += '<div class="card no-print-shadow" style="margin:0; padding:16px; border-top:4px solid var(--o2); background:linear-gradient(90deg, #fff, #fffaf5)">';
+  h += '<div class="dash-main" id="rep-main-container">';
+  
+  /* ترويسة المنصة وأزرار التصدير */
+  h += '<div class="card no-print-shadow" style="margin-top:0; padding:16px; border-top:4px solid var(--o2); background:linear-gradient(90deg, #fff, #fffaf5); margin-bottom:16px">';
   h += '<div class="row" style="justify-content:space-between; align-items:start">';
-  h += '<div><h2 style="margin:0">لوحة المؤشرات والتقارير</h2><div class="muted">حدد عنصراً أو أكثر من الشجرة (☑) لمقارنتها مباشرة.</div></div>';
-  h += '<div class="row no-print"><button class="sec sm" style="color:#107c41; border-color:#107c41; font-weight:bold" onclick="repExportExcel()"><svg style="vertical-align:middle;margin-left:4px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>تصدير Excel</button><button class="sec sm" onclick="window.print()">تصدير PDF</button></div>';
+  h += '<div><h2 style="margin:0">لوحة المؤشرات والتقارير</h2><div class="muted">تحليل بياني وتفصيلي للنطاق المحدد.</div></div>';
+  h += '<div class="row no-print"><button class="sec sm" style="color:#107c41; border-color:#107c41; font-weight:bold" onclick="repExportExcel()"><svg style="vertical-align:middle;margin-left:4px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>إكسل</button><button class="sec sm" onclick="window.print()">PDF</button></div>';
   h += '</div></div>';
   
+  /* الرسوم الجداول تتغير بناءً على المنطق الذكي */
   h += '<div id="rep-main">' + repMain() + '</div>';
   h += '</div></div>';
   
@@ -1014,41 +1036,32 @@ function repTree() {
   
   const cb = (k, lbl, ext, dis, isMatch) => {
     const on = !!A.rsel[k] || dis;
-    return '<label style="display:flex;gap:8px;align-items:center;margin:2px 0; cursor:pointer"><input type="checkbox" style="width:auto;margin:0" '+(on?'checked ':'')+(dis?'disabled ':'')+'onchange="advToggle(\''+k+'\')"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+(isMatch?'font-weight:bold;color:var(--g1)':'')+'">'+esc(lbl)+'</span><span class="muted" style="font-size:0.75rem">'+ext+'</span></label>';
+    return '<label style="display:flex;gap:8px;align-items:center;margin:2px 0; cursor:pointer; width:100%"><input type="checkbox" style="width:auto;margin:0;flex:none" '+(on?'checked ':'')+(dis?'disabled ':'')+'onchange="advToggle(\''+k+'\')"><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+(isMatch?'font-weight:bold;color:var(--g1)':'')+'" title="'+esc(lbl)+'">'+esc(lbl)+'</span><span class="muted" style="font-size:0.75rem;flex:none">'+ext+'</span></label>';
   };
-  const tg = (k, open, hasKids) => hasKids ? '<button class="link sm no-print" style="padding:0 6px;min-width:24px" onclick="advExp(\''+k+'\')">'+(open?'▾':'◂')+'</button>' : '<span style="display:inline-block;min-width:24px"></span>';
+  const tg = (k, open, hasKids) => hasKids ? '<button class="link sm no-print" style="padding:0;min-width:24px;text-align:center" onclick="advExp(\''+k+'\')">'+(open?'▾':'◂')+'</button>' : '<span style="display:inline-block;min-width:24px"></span>';
   
   let h = '';
   if(isOrg) {
-     const om = !q || 'المؤسسة'.indexOf(q)>=0;
-     const oSel = !!A.rsel['o'];
-     const oOpen = !!A.rexp['o'] || !!q; // مطوي افتراضياً ما لم يطلب الفتح أو يبحث
-     h += '<div style="display:flex;align-items:center;gap:4px">' + tg('o', oOpen, (R.branches||[]).length>0) + cb('o', 'المؤسسة كلها', '('+(R.org&&R.org.n?R.org.n:0)+')', false, om) + '</div>';
-     
-     if(oOpen && R.branches) {
-        h += '<div style="margin-right:22px; border-right:1px dashed #c9d3cc; padding-right:6px">';
-        R.branches.forEach(b => {
-           const bm = !q || (b.name||'').toLowerCase().indexOf(q)>=0;
-           const bgs = (R.groups||[]).filter(g => g.branch_id === b.id);
-           const gm = bgs.some(g => (g.name||'').toLowerCase().indexOf(q)>=0);
-           if(q && !bm && !gm) return;
-           
-           const bSel = oSel || !!A.rsel['b:'+b.id];
-           const bOpen = !!A.rexp['b:'+b.id] || (!!q && gm);
-           h += '<div style="display:flex;align-items:center;gap:4px;margin-top:4px">' + tg('b:'+b.id, bOpen, bgs.length>0) + cb('b:'+b.id, b.name, '('+(b.n||0)+')', oSel, bm) + '</div>';
-           
-           if(bOpen && bgs.length) {
-              h += '<div style="margin-right:22px; border-right:1px dashed #c9d3cc; padding-right:6px">';
-              bgs.forEach(g => {
-                 const gpm = !q || (g.name||'').toLowerCase().indexOf(q)>=0;
-                 if(q && !bm && !gpm) return;
-                 h += '<div style="display:flex;align-items:center;gap:4px">' + tg('g:'+g.id, false, false) + cb('g:'+g.id, g.name, '('+(g.n||0)+')', bSel, gpm) + '</div>';
-              });
-              h += '</div>';
-           }
-        });
-        h += '</div>';
-     }
+     (R.branches||[]).forEach(b => {
+        const bm = !q || (b.name||'').toLowerCase().indexOf(q)>=0;
+        const bgs = (R.groups||[]).filter(g => g.branch_id === b.id);
+        const gm = bgs.some(g => (g.name||'').toLowerCase().indexOf(q)>=0);
+        if(q && !bm && !gm) return;
+        
+        const bSel = !!A.rsel['b:'+b.id];
+        const bOpen = !!A.rexp['b:'+b.id] || (!!q && gm);
+        h += '<div style="display:flex;align-items:center;gap:4px;margin-top:6px">' + tg('b:'+b.id, bOpen, bgs.length>0) + cb('b:'+b.id, b.name, '('+(b.n||0)+')', false, bm) + '</div>';
+        
+        if(bOpen && bgs.length) {
+           h += '<div style="margin-right:22px; border-right:1px dashed #c9d3cc; padding-right:6px">';
+           bgs.forEach(g => {
+              const gpm = !q || (g.name||'').toLowerCase().indexOf(q)>=0;
+              if(q && !bm && !gpm) return;
+              h += '<div style="display:flex;align-items:center;gap:4px">' + tg('g:'+g.id, false, false) + cb('g:'+g.id, g.name, '('+(g.n||0)+')', bSel, gpm) + '</div>';
+           });
+           h += '</div>';
+        }
+     });
   } else {
      const x = typeof wrIdx === 'function' ? wrIdx() : null;
      if(!x) return '';
@@ -1063,7 +1076,7 @@ function repTree() {
         const bOpen = !!A.rexp['b:'+b.id] || (!!q && (gm || mm));
         const bn = bgs.reduce((s,g)=>s+(x.mg[g.id]||[]).length,0);
         
-        h += '<div style="display:flex;align-items:center;gap:4px;margin-top:4px">' + tg('b:'+b.id, bOpen, bgs.length>0) + cb('b:'+b.id, b.name, '('+bn+')', false, bm) + '</div>';
+        h += '<div style="display:flex;align-items:center;gap:4px;margin-top:6px">' + tg('b:'+b.id, bOpen, bgs.length>0) + cb('b:'+b.id, b.name, '('+bn+')', false, bm) + '</div>';
         
         if(bOpen && bgs.length) {
            h += '<div style="margin-right:22px; border-right:1px dashed #c9d3cc; padding-right:6px">';
@@ -1096,53 +1109,67 @@ function repTree() {
 }
 
 function repMain() {
-  let h = '';
+  /* منطق HrArchive للمقارنة الذكية */
+  const keys = Object.keys(A.rsel).filter(k => A.rsel[k]);
+  
+  /* الحيلة الذكية: حقن النطاق الجديد في oOut و wrOut دون كسر الأكواد القديمة */
+  const old_ok = A.ok, old_oKids = window.oKids;
+  
   if(A.role === 'org') {
-     const keys = Object.keys(A.rsel).filter(k => A.rsel[k]);
-     const s = keys.length === 1 ? oUnit(keys[0]) : oUnit('o');
-     
-     /* Override oKids momentarily to feed selected checkboxes directly to oOut comparison logic */
-     const old_oKids = window.oKids;
-     window.oKids = function(unit) {
-        if(keys.length === 0) return (A.OR.branches||[]).map(b => oUnit('b:'+b.id)); // الافتراضي
-        if(keys.length === 1) {
-           const u = oUnit(keys[0]);
-           if(u.kind === 'o') return (A.OR.branches||[]).map(b => oUnit('b:'+b.id));
-           if(u.kind === 'b') return (A.OR.groups||[]).filter(g => g.branch_id === u.u.id).map(g => oUnit('g:'+g.id));
-           return [u];
-        }
-        return keys.map(k => oUnit(k)).filter(Boolean); // إرجاع كل ما تم تحديده (فرع ١ وفرع ٢ مثلاً)
-     };
-     
-     const old_ok = A.ok; A.ok = s.k;
-     h = oOut();
-     A.ok = old_ok;
-     window.oKids = old_oKids;
+      window.oKids = function(unit) {
+          if(keys.length === 0) return (A.OR.branches||[]).map(b => oUnit('b:'+b.id)); /* القاعدة 1: لا تحديد = فروع */
+          if(keys.length === 1) {
+             const u = oUnit(keys[0]);
+             if(u.kind === 'b') return (A.OR.groups||[]).filter(g => g.branch_id === u.u.id).map(g => oUnit('g:'+g.id)); /* القاعدة 2: فرع واحد = مجموعاته */
+             return [u];
+          }
+          return keys.map(k => oUnit(k)).filter(Boolean); /* القاعدة 3: متعدد = قارن المحدد وجهاً لوجه */
+      };
+      
+      if(keys.length === 0) A.ok = 'o';
+      else if(keys.length === 1) A.ok = keys[0];
+      else {
+          /* إنشاء وحدة افتراضية تمثل الخلاصة المجمعة للمقارنة المتعددة */
+          A.OR.custom_agg = { n: 0, s: [], d: [] }; // تجميع الأرقام هنا إن لزم لاحقاً
+          A.ok = 'o'; // مؤقتاً نعرض المؤسسة في الخلاصة الفوقية، لكن الأعمدة للمحدد
+      }
+      
+      const res = oOut().replace(/<div class="card"/i, '<div class="card" style="margin-top:0; border:none; box-shadow:none; padding:0"');
+      A.ok = old_ok; window.oKids = old_oKids;
+      
+      if (keys.length > 12) {
+          return '<div class="err" style="margin-bottom:10px">تنبيه: مقارنة أكثر من 12 عنصراً في نفس الوقت قد تكون مزدحمة بصرياً.</div>' + res;
+      }
+      return res;
   } else {
-     h = wrOut();
+      /* الفرع والمجموعة يستخدمان A.rsel مباشرة في wrScope */
+      const res = wrOut().replace(/<div class="card"/i, '<div class="card" style="margin-top:0; border:none; box-shadow:none; padding:0"');
+      if (keys.length > 12) {
+          return '<div class="err" style="margin-bottom:10px">تنبيه: مقارنة أكثر من 12 عنصراً قد تكون مزدحمة.</div>' + res;
+      }
+      return res;
   }
-  return h.replace(/<div class="card"/i, '<div class="card" style="margin-top:0; border:none; box-shadow:none; padding:0"');
 }
 
 function repExportExcel() {
    if (typeof XLSX === 'undefined') { alert('جاري تحميل مكتبة إكسل، يرجى المحاولة بعد ثوانٍ.'); return; }
    let rp, title;
+   const keys = Object.keys(A.rsel).filter(k => A.rsel[k]);
+   
    if(A.role === 'org') {
-       const keys = Object.keys(A.rsel).filter(k => A.rsel[k]);
        const s = keys.length === 1 ? oUnit(keys[0]) : oUnit('o');
-       
        const old_oKids = window.oKids;
        window.oKids = function(unit) {
           if(keys.length === 0) return (A.OR.branches||[]).map(b => oUnit('b:'+b.id));
           if(keys.length === 1) {
              const u = oUnit(keys[0]);
-             if(u.kind === 'o') return (A.OR.branches||[]).map(b => oUnit('b:'+b.id));
              if(u.kind === 'b') return (A.OR.groups||[]).filter(g => g.branch_id === u.u.id).map(g => oUnit('g:'+g.id));
              return [u];
           }
           return keys.map(k => oUnit(k)).filter(Boolean);
        };
-       rp = oRep(s); title = keys.length === 1 ? s.name : (keys.length ? 'مقارنة_مخصصة' : s.name);
+       rp = oRep(s); 
+       title = keys.length === 0 ? 'مقارنة_الفروع' : keys.length === 1 ? s.name : 'مقارنة_مخصصة';
        window.oKids = old_oKids;
    } else {
        const sc = wrScope(); rp = wrReport(sc); title = rp.scopeName;
@@ -1166,8 +1193,7 @@ function repExportExcel() {
    ws['!dir'] = 'rtl';
    XLSX.utils.book_append_sheet(wb, ws, "تقرير المقارنة");
    XLSX.writeFile(wb, "تقرير_" + title.replace(/\s+/g,'_') + "_" + todayStr() + ".xlsx");
-}
-function oOut() {
+}function oOut() {
   const s = oUnit(A.ok) || oUnit('o'); A.ok = s.k;
   const rp = oRep(s);
   const box = function (title, arr, bg, fg) { return '<div class="grow" style="min-width:230px;background:' + bg + ';border-radius:12px;padding:10px 12px"><b style="color:' + fg + '">' + title + '</b>' + arr.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>'; };

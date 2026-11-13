@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261112-235708">
+<meta name="build" content="20261113-042000">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة القراءة</title>
@@ -326,11 +326,12 @@ function tStruct() {
   const none = ms.filter(m => m.group_id == null && m.active).length;
   return h + '</table></div>' + (none ? '<p class="muted">أعضاء بلا مجموعة: ' + none + '</p>' : '') + '</div>';
 }
+/* == typed_confirm_ui_v1 == */ function typeOk(kind, name, n) { const w = n ? '\nتنبيه: سيُحذف معها ' + n + ' عضواً بكل سجلاتهم (تُحفظ نسخة احتياطية في الخادم).' : ''; const t = prompt('حذف نهائي لـ' + kind + ' «' + name + '».' + w + '\nلتأكيد الحذف اكتب الاسم كما هو:'); if (t === null) return false; if (String(t).trim() !== String(name).trim()) { alert('الاسم المكتوب لا يطابق، لم يُحذف شيء.'); return false; } return true; }
 function sGroupAdd() { const n = prompt('اسم المجموعة الجديدة:'); if (n === null || !n.trim()) return; sCall('admin_group_save', { p_pass: A.pass, p_id: null, p_branch_id: sBr(), p_name: n.trim() }); }
 function sGroupRename(id) { const g = ((A.data || {}).groups || []).filter(x => x.id === id)[0]; if (!g) return; const n = prompt('اسم المجموعة:', g.name); if (n === null || !n.trim()) return; sCall('admin_group_save', { p_pass: A.pass, p_id: id, p_branch_id: sBr(), p_name: n.trim() }); }
-function sGroupDel(id) { const g = ((A.data || {}).groups || []).filter(x => x.id === id)[0]; if (!g || !confirm('حذف المجموعة «' + g.name + '»؟')) return; sCall('admin_group_delete', { p_pass: A.pass, p_id: id }); }
+function sGroupDel(id) { const g = ((A.data || {}).groups || []).filter(x => x.id === id)[0]; if (!g || !typeOk('المجموعة', g.name, ((A.data || {}).members || []).filter(m => m.group_id === id).length)) return; sCall('admin_group_delete', { p_pass: A.pass, p_id: id }); }
 function sSup(id) { const ms = ((A.data || {}).members || []).filter(m => m.group_id === id && m.active); if (!ms.length) { alert('لا أعضاء في هذه المجموعة بعد.'); return; } const list = ms.map((m, i) => (i + 1) + '. ' + m.name + (m.leader ? '  (مشرف حالياً)' : '')).join('\n'); const r = prompt('اكتب أرقام المشرفين مفصولة بفاصلة (اتركها فارغة لإلغاء كل المشرفين):\n\n' + list); if (r === null) return; const ids = []; r.split(/[,،\s]+/).forEach(x => { const k = parseInt(x, 10); if (k >= 1 && k <= ms.length && ids.indexOf(ms[k - 1].id) < 0) ids.push(ms[k - 1].id); }); sCall('admin_group_supervisors_set', { p_pass: A.pass, p_group_id: id, p_member_ids: ids }); }
-function moveMember(id) { const d = A.data || {}, gs = d.groups || [], m = (d.members || []).filter(x => x.id === id)[0]; if (!m) return; if (!gs.length) { alert('لا توجد مجموعات. أنشئ مجموعة من تبويب «الهيكل» أولاً.'); return; } const list = gs.map((g, i) => (i + 1) + '. ' + g.name).join('\n'); const r = prompt('انقل «' + m.name + '» إلى المجموعة رقم:\n\n' + list); if (r === null) return; const k = parseInt(r, 10); if (!(k >= 1 && k <= gs.length)) { alert('رقم غير صحيح.'); return; } sCall('admin_member_move', { p_pass: A.pass, p_member_id: id, p_group_id: gs[k - 1].id }); }
+function moveMember(id) { const d = A.data || {}, gs = d.groups || [], m = (d.members || []).filter(x => x.id === id)[0]; if (!m) return; if (!gs.length) { alert('لا توجد مجموعات. أنشئ مجموعة من تبويب «الهيكل» أولاً.'); return; } const list = gs.map((g, i) => (i + 1) + '. ' + g.name).join('\n'); const r = prompt('انقل «' + m.name + '» إلى المجموعة رقم:\n\n' + list); if (r === null) return; const k = parseInt(r, 10); if (!(k >= 1 && k <= gs.length)) { alert('رقم غير صحيح.'); return; } sCall('admin_member_move', { p_pass: A.pass, p_member_id: id, p_group_id: gs[k - 1].id }); } /* == member_delete_ui_v1 == */ function delMember(id) { const m = ((A.data || {}).members || []).filter(x => x.id === id)[0]; if (!m) return; const t = prompt('حذف نهائي للعضو «' + m.name + '» مع إجاباته وسجلاته (تُحفظ نسخة احتياطية في الخادم).\nلتأكيد الحذف اكتب اسم العضو كما هو:'); if (t === null) return; if (String(t).trim() !== String(m.name).trim()) { alert('الاسم المكتوب لا يطابق، لم يُحذف شيء.'); return; } sCall('admin_member_delete', { p_pass: A.pass, p_member_id: id }); }
 /* == branches_org_v1 == */
 function brLoad() {
   if (A.baBusy) return; A.baBusy = true;
@@ -341,7 +342,7 @@ async function brCall(fn, args) { try { await rpc(fn, args); A.BC = null; A.BA =
 const brFind = id => (A.BA || []).filter(x => x.branch_id === id)[0];
 function brAdd() { const n = prompt('اسم الفرع الجديد:'); if (n === null || !n.trim()) return; brCall('admin_branch_save', { p_pass: A.pass, p_id: null, p_name: n.trim() }); }
 function brRename(id) { const b = brFind(id); if (!b) return; const n = prompt('اسم الفرع:', b.name); if (n === null || !n.trim()) return; brCall('admin_branch_save', { p_pass: A.pass, p_id: id, p_name: n.trim() }); }
-function brDel(id) { const b = brFind(id); if (!b || !confirm('حذف الفرع «' + b.name + '»؟')) return; brCall('admin_branch_delete', { p_pass: A.pass, p_id: id }); }
+function brDel(id) { const b = brFind(id); if (!b || !typeOk('الفرع', b.name, 0)) return; brCall('admin_branch_delete', { p_pass: A.pass, p_id: id }); }
 async function brAccess(id, active, rotate) {
   const b = brFind(id); if (!b) return;
   if (rotate && b.has_code && !confirm('تجديد الرمز يُلغي الرمز القديم وجلسات الفرع الحالية. متابعة؟')) return;
@@ -869,12 +870,12 @@ async function rqDecide(id, ok) {
 function tMembers() {
   const d = A.data;
   let h = rqBox() + '<div class="card"><h3>إضافة أعضاء</h3><p class="muted">' + (A.role === 'group' ? 'سطر لكل عضو: الاسم فقط، أو «الاسم | | م» إن كان مشرفاً' : 'سطر لكل عضو بالصيغة: الاسم | المجموعة | م (اكتب «م» إن كان مشرف مجموعة)') + '</p><textarea id="newm" placeholder="أحمد علي | الشمال | م&#10;سعيد حسن | الشمال&#10;خالد | الجنوب"></textarea><p><button onclick="addMembers()">إضافة</button> <button class="sec" onclick="printCards()">طباعة البطاقات</button></p></div>';
-  if (A.role === 'branch') h = rqBox() + '<div class="card"><p class="muted">عرض للقراءة فقط: إضافة الأعضاء وتعديلهم من مسؤول المجموعة.</p><p><button class="sec" onclick="printCards()">طباعة البطاقات</button></p></div>'; h += '<div class="scroll"><table><tr><th>الاسم</th><th>المجموعة</th><th>الرمز</th><th></th></tr>';
+  if (A.role === 'branch') h = rqBox() + '<div class="card"><p class="muted">عرض للقراءة فقط: إضافة الأعضاء وتعديلهم من مسؤول المجموعة.</p></div>'; h += '<div class="scroll"><table><tr><th>الاسم</th><th>المجموعة</th>' + (A.role === 'branch' ? '' : '<th>الرمز</th>') + '<th></th></tr>';
   d.members.forEach(m => {
-    h += '<tr style="' + (m.active ? '' : 'opacity:.45') + '"><td>' + esc(m.name) + (m.leader ? ' <span class="badge b-wait">مشرف</span>' : '') + '</td><td>' + esc(m.grp) + '</td><td style="direction:ltr">' + esc(m.code) + '</td><td class="row">' +
-      '<button class="sec sm" onclick="copyLink(\'' + m.code + '\')">نسخ الرابط</button>' +
+    h += '<tr style="' + (m.active ? '' : 'opacity:.45') + '"><td>' + esc(m.name) + (m.leader ? ' <span class="badge b-wait">مشرف</span>' : '') + '</td><td>' + esc(m.grp) + '</td>' + (A.role === 'branch' ? '' : '<td style="direction:ltr">' + esc(m.code) + '</td>') + '<td class="row">' +
+      (A.role === 'branch' ? '' : '<button class="sec sm" onclick="copyLink(\'' + m.code + '\')">نسخ الرابط</button>') +
       (A.role === 'branch' ? '' : '<button class="sec sm" onclick="toggleLeader(' + m.id + ',' + !m.leader + ')">' + (m.leader ? 'إلغاء الإشراف' : 'جعله مشرفاً') + '</button>') +
-      (A.role === 'branch' ? '' : '<button class="sec sm" onclick="editMember(' + m.id + ')">تعديل</button>') + (A.role === 'branch' ? '<button class="sec sm" onclick="moveMember(' + m.id + ')">نقل</button>' : '') +
+      (A.role === 'branch' ? '' : '<button class="sec sm" onclick="editMember(' + m.id + ')">تعديل</button>') + (A.role === 'branch' ? '<button class="sec sm" onclick="moveMember(' + m.id + ')">نقل</button><button class="danger sm" onclick="delMember(' + m.id + ')">حذف</button>' : '') +
       (A.role === 'branch' ? '' : '<button class="sec sm" onclick="toggleActive(' + m.id + ',' + !m.active + ')">' + (m.active ? 'تعطيل' : 'تفعيل') + '</button>') + '</td></tr>';
   });
 return h + '</table></div>' + (A.role === 'branch' ? '<p class="muted">مجموعات فرعك: ' + (((d.groups || []).map(g => esc(g.name)).join('، ')) || 'لا توجد مجموعات بعد (تُنشأ من تبويب «الهيكل»)') + '</p>' : '');
@@ -1069,7 +1070,7 @@ async function prepSave() {
   try { await rpc('group_prep_save', { p_pass: A.pass, p_rows: rows }); A.PR = null; alert('تم حفظ التحضير.'); adminRender(); }
   catch (e) { alert(msg(e)); if (String(e.message) === 'already_submitted') { A.PR = null; adminRender(); } }
 }
-function printCards() {
+function printCards() { /* == branch_nocode_ui_v1 == */ if (A.role === 'branch') return;
   const d = A.data, base = baseUrl();
   let h = '<div class="noprint row"><button onclick="window.print()">طباعة</button><button class="sec" onclick="adminRender()">رجوع</button></div><h2>بطاقات المتابعة</h2><div class="cards">';
   d.members.filter(m => m.active).forEach(m => {

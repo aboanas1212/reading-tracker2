@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261113-231216">
+<meta name="build" content="20261113-235029">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -654,6 +654,7 @@ function wrOut() {
     '<div class="grow"><div class="muted">المتوسط</div><b>' + rp.avg + '%</b></div></div></div>';
   h += wrCharts(sc, rp); h += '<div class="card" style="background:var(--y2)"><b style="color:var(--y)">الخلاصة</b>' + rp.lines.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>';
   h += '<div class="row" style="align-items:stretch">' + box('جوانب القوة', rp.strong, 'rgba(34,168,97,.12)', 'var(--g)') + box('جوانب الضعف', rp.weak, 'var(--r2)', 'var(--r)') + '</div>';
+  h += renderPastWeekInspector(sc);
   if (rp.rows.length) {
     const all = { u: { name: 'إجمالي النطاق', ms: sc.ms }, s: rp.ser, d: rp.d };
     const rs = rp.rows.slice().sort(function (a, b) { return a.last - b.last; });
@@ -2196,12 +2197,151 @@ memberUpd(id, A.role !== 'org' ? { name: n } : { name: n, grp: g });
   ].join('');
   document.head.appendChild(st);
 })();
+/* == past_weeks_explorer_v1 == */
+function setPastWeekIdx(val) {
+  A.pwIdx = val === '' ? null : Number(val);
+  if (A.tab === 'prep') {
+    adminRender();
+  } else {
+    const box = document.getElementById('pw-inspector-box');
+    if (box) box.outerHTML = renderPastWeekInspector(wrScope());
+  }
+}
+
+function setPrepMode(wIdx) {
+  A.prepHistIdx = (wIdx === '' || wIdx == null) ? null : Number(wIdx);
+  if (A.prepHistIdx !== null && !A.R && !A.Rbusy) {
+    loadR().then(function () { adminRender(); });
+    return;
+  }
+  adminRender();
+}
+
+/* بطاقة استعراض أسبوع سابق بالتفصيل (الأعضاء + طريقة التحضير + البنود الـ14 لذلك الأسبوع) */
+function renderPastWeekInspector(sc) {
+  const R = A.R;
+  if (!R || !A.rci || !A.rci.length) return '';
+  const cIdxs = A.rci;
+  const selIdx = (A.pwIdx != null && cIdxs.indexOf(A.pwIdx) >= 0) ? A.pwIdx : cIdxs[cIdxs.length - 1];
+  const wStr = R.weeks[selIdx];
+  const ti = R.total_items || 14;
+  const x = wrIdx();
+  const ms = (sc && sc.ms) ? sc.ms : (R.members || []);
+
+  let sentCnt = 0, grpSrcCnt = 0, selfSrcCnt = 0, roCnt = 0, sumDone = 0;
+  const memberRows = ms.map(function (m) {
+    const sent = !!((m.s || [])[selIdx]);
+    const done = Number((m.d || [])[selIdx]) || 0;
+    const src = ((m.src || [])[selIdx]) || '';
+    const ro = !!((m.ro || [])[selIdx]);
+    const pct = Math.round(100 * done / ti);
+    if (sent) {
+      sentCnt++;
+      sumDone += done;
+      if (src === 'group') grpSrcCnt++; else selfSrcCnt++;
+    }
+    if (ro) roCnt++;
+    const gObj = x.gby[m.gid];
+    return { m: m, gName: gObj ? gObj.name : '—', sent: sent, done: done, pct: pct, src: src, ro: ro };
+  }).sort(function (a, b) {
+    if (a.sent !== b.sent) return a.sent ? -1 : 1;
+    return b.pct - a.pct;
+  });
+
+  const execPct = ms.length ? Math.round(100 * sumDone / (ms.length * ti)) : 0;
+  const sentPct = ms.length ? Math.round(100 * sentCnt / ms.length) : 0;
+
+  /* حساب نسب البنود الـ 14 في هذا الأسبوع المحدد */
+  const gids = (sc && sc.gids && sc.gids.length) ? sc.gids : Object.keys(x.mg).map(Number);
+  let den = 0;
+  gids.forEach(function (g) { den += (x.mg[g] || []).length; });
+  const weekItems = den ? (R.items || []).map(function (it) {
+    let n = 0;
+    gids.forEach(function (g) {
+      const a = ((R.gi || {})[String(g)] || {})[String(it.id)];
+      n += (a && a[selIdx]) || 0;
+    });
+    return { id: it.id, title: it.title, cat: it.cat || 'أخرى', cnt: n, pct: Math.round(100 * n / den) };
+  }) : [];
+
+  let h = '<div class="card" id="pw-inspector-box" style="border-top:4px solid var(--g2);margin-top:14px">' +
+    '<div class="row" style="justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px">' +
+      '<div><b style="font-size:1.05rem;color:var(--g1)">📅 مستكشف الأسابيع السابقة التفصيلي (سجل الأعضاء والبنود)</b>' +
+      '<div class="muted">استعرض تفاصيل أي أسبوع سابق: من أرسل، وطريقة تحضيره (جماعي / ذاتي / بإذن)، وعدد بنوده المنجزة.</div></div>' +
+      '<div class="row" style="gap:6px"><b style="color:var(--o1);font-size:.9rem">اختر الأسبوع:</b>' +
+        '<select style="width:auto;min-width:190px;padding:6px 12px;font-weight:700" onchange="setPastWeekIdx(this.value)">' +
+          cIdxs.slice().reverse().map(function (idx, k) {
+            return '<option value="' + idx + '"' + (idx === selIdx ? ' selected' : '') + '>أسبوع ' + esc(R.weeks[idx]) + (k === 0 ? ' (الأحدث)' : '') + '</option>';
+          }).join('') +
+        '</select>' +
+      '</div>' +
+    '</div>' +
+
+    /* ملخص الأسبوع المختار */
+    '<div class="row" style="gap:10px;margin-bottom:12px">' +
+      '<div class="grow" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:8px 12px;text-align:center"><div class="muted">نسبة التنفيذ في هذا الأسبوع</div><b style="font-size:1.3rem;color:var(--g1)">' + execPct + '%</b></div>' +
+      '<div class="grow" style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:8px 12px;text-align:center"><div class="muted">أرسلوا متابعتهم</div><b style="font-size:1.3rem;color:var(--g2)">' + sentCnt + ' / ' + ms.length + ' (' + sentPct + '%)</b></div>' +
+      '<div class="grow" style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:8px 12px;text-align:center"><div class="muted">تحضير جماعي مقابل ذاتي</div><b style="font-size:1rem;color:#9a6b00">جماعي: ' + grpSrcCnt + ' · ذاتي: ' + selfSrcCnt + (roCnt ? ' · بإذن: ' + roCnt : '') + '</b></div>' +
+    '</div>' +
+
+    /* جدول حالة الأعضاء في الأسبوع المختار */
+    '<div class="scroll" style="max-height:380px"><table><thead><tr><th>م</th><th>العضو</th>' + (A.role === 'branch' ? '<th>المجموعة</th>' : '') + '<th>الحالة</th><th>طريقة الرفع</th><th>البنود المنجزة</th><th>نسبة التنفيذ</th></tr></thead><tbody>';
+
+  memberRows.forEach(function (r, idx) {
+    const stBadge = r.sent ? '<span class="badge b-ok">✓ أرسل</span>' : '<span class="badge b-late">لم يرسل</span>';
+    const srcTxt = !r.sent ? '<span class="muted">—</span>' : (r.src === 'group' ? '<span class="badge b-wait">تحضير جماعي</span>' : '<span class="badge" style="background:#e0f2fe;color:#0369a1">ذاتي (العضو)</span>') + (r.ro ? ' <span class="badge b-wait">أُعيد فتحه بإذن</span>' : '');
+    h += '<tr><td>' + (idx + 1) + '</td><td><b>' + esc(r.m.name) + '</b></td>' +
+      (A.role === 'branch' ? '<td>' + esc(r.gName) + '</td>' : '') +
+      '<td>' + stBadge + '</td><td>' + srcTxt + '</td>' +
+      '<td style="text-align:center;font-weight:700">' + (r.sent ? (r.done + ' / ' + ti) : '0 / ' + ti) + '</td>' +
+      '<td style="background:' + wrCol(r.pct) + ';text-align:center;font-weight:700">' + r.pct + '%</td></tr>';
+  });
+  h += '</tbody></table></div>';
+
+  /* تفصيل البنود الـ 14 في هذا الأسبوع */
+  if (weekItems.length) {
+    h += '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700;color:var(--g1)">📊 عرض تفصيل إنجاز البنود الأربعة عشر في أسبوع (' + esc(wStr) + ')</summary>' +
+      '<div class="scroll" style="margin-top:8px;max-height:340px"><table><thead><tr><th>#</th><th>البند</th><th>القسم</th><th>عدد المنجزين</th><th>النسبة</th></tr></thead><tbody>' +
+      weekItems.map(function (it, k) {
+        return '<tr><td>' + (k + 1) + '</td><td><b>' + esc(it.title) + '</b></td><td>' + esc(it.cat) + '</td><td style="text-align:center">' + it.cnt + ' / ' + den + '</td><td style="background:' + wrCol(it.pct) + ';text-align:center;font-weight:700">' + it.pct + '%</td></tr>';
+      }).join('') + '</tbody></table></div></details>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+/* شريط التبديل في أعلى شاشة التحضير الجماعي بين الأسبوع الجاري والأسابيع السابقة */
+function renderPrepHistoryBar(curWeek) {
+  if (!A.R && !A.Rbusy) { loadR(); }
+  const R = A.R || {};
+  const cIdxs = [];
+  (R.weeks || []).forEach(function (w, i) { if (String(w) < String(R.current_week)) cIdxs.push(i); });
+  const isHist = (A.prepHistIdx != null && cIdxs.indexOf(A.prepHistIdx) >= 0);
+
+  let opts = '<option value=""' + (!isHist ? ' selected' : '') + '>🟢 الأسبوع الجاري المفتوح للتحضير (' + esc(curWeek || '') + ')</option>';
+  cIdxs.slice().reverse().forEach(function (idx) {
+    opts += '<option value="' + idx + '"' + (isHist && A.prepHistIdx === idx ? ' selected' : '') + '>📜 أسبوع سابق مكتمل: ' + esc(R.weeks[idx]) + ' (استعراض السجل)</option>';
+  });
+
+  return '<div class="card" style="background:linear-gradient(90deg,#f0fdf4,#fff);border:1.5px solid var(--g2);margin-bottom:10px">' +
+    '<div class="row" style="justify-content:space-between;align-items:center">' +
+      '<div><b style="color:var(--g1)">📅 اختيار الأسبوع (الحالي أو استعراض الأسابيع السابقة):</b>' +
+      '<div class="muted">يمكنك تحضير الأسبوع الجاري، أو اختيار أي أسبوع سابق لاستعراض سجل أعضائك وبنودهم فيه.</div></div>' +
+      '<select style="width:auto;min-width:270px;padding:7px 12px;font-weight:700;border-color:var(--g2)" onchange="setPrepMode(this.value)">' + opts + '</select>' +
+    '</div></div>';
+}
 function tPrep() {
   const wait = '<div class="card"><p class="muted">جارٍ التحميل…</p></div>';
   if (A.PR == null) { prepLoad(); return wait; }
   if (A.PR === false) return wait;
   if (A.PR.err) return '<div class="err">' + esc(A.PR.err) + '</div><button onclick="A.PR=null;adminRender()">إعادة المحاولة</button>';
   const d = A.PR, items = d.items || [], ms = d.members || [];
+  const histBar = renderPrepHistoryBar(d.week);
+  if (A.prepHistIdx != null && A.R && A.rci && A.rci.indexOf(A.prepHistIdx) >= 0) {
+    A.pwIdx = A.prepHistIdx;
+    return histBar + renderPastWeekInspector({ ms: A.R.members || [], gids: (A.R.groups || []).map(function (g) { return g.id; }), itemsOk: true });
+  }
   if (!items.length || !ms.length) return '<div class="card"><p class="muted">لا يوجد أعضاء نشطون أو بنود لعرضها.</p></div>';
   const pal = [['#e6f3ec', '#1f7a4d'], ['#fdf3d8', '#9a6b00'], ['#e8eef9', '#2d4f8f'], ['#f6e9f3', '#8a3a78'], ['#fbeae6', '#b3402a']];
   const groups = [];
@@ -2227,7 +2367,7 @@ function tPrep() {
   while (k < 10 && !uniq()) k++;
   const sh = {}, used = {};
   act.forEach(function (m, ix) { let s = nm(m.name, k); if (used[s]) s += ' ' + (ix + 1); used[s] = 1; sh[m.id] = s; });
-  let h = '<div class="card"><h3>التحضير الجماعي</h3><p class="muted">الأسبوع الذي يبدأ ' + esc(d.week) + '</p><ol class="pr-steps"><li>أزل علامة «حاضر» عمّن لم يحضر اللقاء.</li><li>علّم ما أنجزه كل عضو، أو اضغط «الكل» بجانب البند ليشمل الجميع، أو «الكل» أسفل العضو لبنوده كلها.</li><li>اضغط على أي بند أو اسم لقراءته كاملاً، ثم راجع الأعداد واضغط «حفظ التحضير».</li></ol></div>';
+  let h = histBar + '<div class="card"><h3>التحضير الجماعي</h3><p class="muted">الأسبوع الذي يبدأ ' + esc(d.week) + '</p><ol class="pr-steps"><li>أزل علامة «حاضر» عمّن لم يحضر اللقاء.</li><li>علّم ما أنجزه كل عضو، أو اضغط «الكل» بجانب البند ليشمل الجميع، أو «الكل» أسفل العضو لبنوده كلها.</li><li>اضغط على أي بند أو اسم لقراءته كاملاً، ثم راجع الأعداد واضغط «حفظ التحضير».</li></ol></div>';
   if (!act.length) {
     h += '<div class="card"><p class="muted">لا يوجد أعضاء متاحون للتحضير الجماعي هذا الأسبوع.</p></div>';
   } else {

@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261113-195635">
+<meta name="build" content="20261113-200759">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -642,7 +642,7 @@ function wrOut() {
     return '<div class="grow" style="min-width:230px;background:' + bg + ';border-radius:12px;padding:10px 12px"><b style="color:' + fg + '">' + title + '</b>' +
       arr.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>';
   };
-  let h = '<div class="print-header" style="display:none;border-bottom:3px solid #0f7a43;padding-bottom:10px;margin-bottom:15px;text-align:center"><h2 style="color:#064e2b;margin:0 0 4px 0">متابعة ورد المحاسبة الأسبوعي</h2><p style="color:#5b7466;margin:0">تقرير: ' + esc(rp.scopeName) + ' | تاريخ الإصدار: ' + todayStr() + '</p></div>' +
+  let h = '<div class="print-header" style="display:none;border-bottom:4px solid var(--g2);padding-bottom:12px;margin-bottom:20px;text-align:right;background:#f2f8f4;padding:16px;border-radius:12px"><div style="display:flex;justify-content:space-between;align-items:center"><h1 style="color:var(--g1);margin:0;font-size:1.8rem">متابعة ورد المحاسبة الأسبوعي</h1><div style="text-align:left;color:#5b7466"><b>تاريخ الإصدار:</b> ' + todayStr() + '</div></div><p style="color:var(--g2);margin:8px 0 0 0;font-size:1.2rem;font-weight:bold">التقرير المخصص: ' + esc(s.name) + '</p></div><h2 style="color:#064e2b;margin:0 0 4px 0">متابعة ورد المحاسبة الأسبوعي</h2><p style="color:#5b7466;margin:0">تقرير: ' + esc(rp.scopeName) + ' | تاريخ الإصدار: ' + todayStr() + '</p></div>' +
     '<div class="card no-print-shadow"><div style="display:flex;justify-content:space-between;align-items:start"><div><div class="muted">تقرير متابعة الأسبوع</div><h2>' + esc(rp.scopeName) + '</h2></div><div class="row no-print" style="margin-top:4px"><button class="sec sm" onclick="wrCsv()">تصدير CSV</button><button class="sec sm" onclick="window.print()">تصدير PDF</button></div></div>' +
     '<div class="muted">آخر أسبوع مكتمل: ' + esc(String(rp.lastW || '—')) + ' · المقياس: ' + rp.mName + '</div>' +
     '<div class="row" style="margin-top:10px"><div class="grow"><div class="muted">الأعضاء</div><b>' + rp.nM + '</b></div>' +
@@ -1197,7 +1197,7 @@ function repExportExcel() {
   const s = oUnit(A.ok) || oUnit('o'); A.ok = s.k;
   const rp = oRep(s);
   const box = function (title, arr, bg, fg) { return '<div class="grow" style="min-width:230px;background:' + bg + ';border-radius:12px;padding:10px 12px"><b style="color:' + fg + '">' + title + '</b>' + arr.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>'; };
-  let h = '<div class="print-header" style="display:none;border-bottom:3px solid #0f7a43;padding-bottom:10px;margin-bottom:15px;text-align:center"><h2 style="color:#064e2b;margin:0 0 4px 0">متابعة ورد المحاسبة الأسبوعي</h2><p style="color:#5b7466;margin:0">تقرير: ' + esc(s.name) + ' | تاريخ الإصدار: ' + todayStr() + '</p></div>' +
+  let h = '<div class="print-header" style="display:none;border-bottom:4px solid var(--g2);padding-bottom:12px;margin-bottom:20px;text-align:right;background:#f2f8f4;padding:16px;border-radius:12px"><div style="display:flex;justify-content:space-between;align-items:center"><h1 style="color:var(--g1);margin:0;font-size:1.8rem">متابعة ورد المحاسبة الأسبوعي</h1><div style="text-align:left;color:#5b7466"><b>تاريخ الإصدار:</b> ' + todayStr() + '</div></div><p style="color:var(--g2);margin:8px 0 0 0;font-size:1.2rem;font-weight:bold">التقرير المخصص: ' + esc(s.name) + '</p></div><h2 style="color:#064e2b;margin:0 0 4px 0">متابعة ورد المحاسبة الأسبوعي</h2><p style="color:#5b7466;margin:0">تقرير: ' + esc(s.name) + ' | تاريخ الإصدار: ' + todayStr() + '</p></div>' +
     '<div class="card no-print-shadow"><div style="display:flex;justify-content:space-between;align-items:start"><div><div class="muted">تقرير المؤسسة (أرقام ومقارنات فقط)</div><h2>' + esc(s.name) + '</h2></div><div class="row no-print" style="margin-top:4px"><button class="sec sm" onclick="oCsv()">تصدير CSV</button><button class="sec sm" onclick="window.print()">تصدير PDF</button></div></div>' +
     '<div class="muted">آخر أسبوع مكتمل: ' + esc(String(rp.ws.length ? rp.ws[rp.ws.length - 1] : '—')) + ' · المقياس: ' + rp.mName + '</div>' +
     '<div class="row" style="margin-top:10px"><div class="grow"><div class="muted">الأعضاء</div><b>' + (s.u.n || 0) + '</b></div>' +

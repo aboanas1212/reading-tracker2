@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261114-002122">
+<meta name="build" content="20261114-020036">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -496,7 +496,7 @@ async function loadR() {
     alert(msg(e));
   }
   A.Rbusy = false;
-  if (A.tab === 'wr') adminRender();
+  /* == xss_rerender_fix_v1 == */ if (A.tab === 'wr' || A.tab === 'reports') adminRender();
 }
 function wrIdx() {
   if (A.Rx && A.Rx.src === A.R) return A.Rx;
@@ -719,12 +719,12 @@ function wrClear() { A.rsel = {}; wrRefresh(); }
 function wrReload() { A.R = null; A.Rx = null; adminRender(); }
 /* == org_wr_v1 == */
 function oLoad() {
-  if (A.orBusy) return; A.orBusy = true; if (!A.PL && A.role === 'org') rpc('admin_periods', { p_pass: A.pass }).then(function (r) { A.PL = Array.isArray(r) ? r : []; if (A.tab === 'wr' && A.OR) adminRender(); }).catch(function () {});
+  if (A.orBusy) return; A.orBusy = true; if (!A.PL && A.role === 'org') rpc('admin_periods', { p_pass: A.pass }).then(function (r) { A.PL = Array.isArray(r) ? r : []; if ((A.tab === 'wr' || A.tab === 'reports') && A.OR) adminRender(); }).catch(function () {});
   return rpc('admin_weekly_org', { p_pass: A.pass }).then(function (r) { A.OR = r || {}; }).catch(function (e) {
     A.OR = { weeks: [], items: [], branches: [], groups: [], org: { n: 0 }, hidden: {}, total_items: 0, current_week: '' }; alert(msg(e));
   }).then(function () {
     const R = A.OR; R.ci = []; (R.weeks || []).forEach(function (w, i) { if (String(w) < String(R.current_week)) R.ci.push(i); });
-    A.orBusy = false; if (A.tab === 'wr') adminRender();
+    A.orBusy = false; if (A.tab === 'wr' || A.tab === 'reports') adminRender();
   });
 }
 function oUnit(k) {
@@ -1175,7 +1175,7 @@ function oCharts(s, rp) {
     if (sel === 'trend' && rp.rows && rp.rows.length >= 1 && rp.rows.length <= 8 && rp.ws.length >= 2) {
       subTrends = '<div class="row" style="align-items:stretch;margin-top:10px">' +
         rp.rows.map(function (r) {
-          return svgCard('مسار تطور: ' + r.u.name + ' (عبر الأسابيع)', svgWeeklyProgression(rp.ws, r.s, null, rp.mName, r.u.name), 340);
+          return svgCard('مسار تطور: ' + esc(r.u.name) + ' (عبر الأسابيع)', svgWeeklyProgression(rp.ws, r.s, null, rp.mName, r.u.name), 340);
         }).join('') + '</div>';
     }
     out += '<div class="row" style="align-items:stretch;margin-top:8px">' +
@@ -1255,7 +1255,7 @@ function wrCharts(sc, rp) {
     if (sel === 'trend' && rp.rows && rp.rows.length >= 1 && rp.rows.length <= 8 && rp.ws.length >= 2) {
       subTrends = '<div class="row" style="align-items:stretch;margin-top:10px">' +
         rp.rows.map(function (r) {
-          return svgCard('مسار تطور: ' + r.u.name + ' (عبر الأسابيع)', svgWeeklyProgression(rp.ws, r.s, null, rp.mName, r.u.name), 340);
+          return svgCard('مسار تطور: ' + esc(r.u.name) + ' (عبر الأسابيع)', svgWeeklyProgression(rp.ws, r.s, null, rp.mName, r.u.name), 340);
         }).join('') + '</div>';
     }
     out += '<div class="row" style="align-items:stretch;margin-top:8px">' +

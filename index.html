@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261113-202134">
+<meta name="build" content="20261113-211902">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -181,7 +181,7 @@ body .err{border-radius:12px}
 window.onerror = function(msg, url, line) {
     alert("🚨 المتصفح يقول:\n\n" + msg + "\n\nالسطر: " + line);
 };
-</script><script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</script><script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="config.js"></script>
 <script>
 /* ============ أدوات عامة ============ */
@@ -646,7 +646,7 @@ function wrOut() {
       arr.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>';
   };
   let h = '<div class="print-header" style="display:none;border-bottom:3px solid var(--g2);margin-bottom:16px;text-align:right;background:#f2f8f4;padding:14px 18px;border-radius:12px"><div style="display:flex;justify-content:space-between;align-items:center"><h1 style="color:var(--g1);margin:0;font-size:1.5rem">متابعة ورد المحاسبة الأسبوعي</h1><div style="text-align:left;color:#5b7466;font-size:.9rem"><b>تاريخ الإصدار:</b> ' + todayStr() + '</div></div><div style="color:var(--g2);margin-top:6px;font-size:1.05rem;font-weight:700">تقرير متابعة الأسبوع: ' + esc(rp.scopeName) + ' · المقياس: ' + esc(rp.mName) + '</div></div>' +
-    '<div class="card no-print-shadow"><div style="display:flex;justify-content:space-between;align-items:start"><div><div class="muted">تقرير متابعة الأسبوع</div><h2>' + esc(rp.scopeName) + '</h2></div><div class="row no-print" style="margin-top:4px"><button class="sec sm" onclick="wrCsv()">تصدير CSV</button><button class="sec sm" onclick="window.print()">تصدير PDF</button></div></div>' +
+    '<div class="card no-print-shadow"><div style="display:flex;justify-content:space-between;align-items:start"><div><div class="muted">تقرير متابعة الأسبوع</div><h2>' + esc(rp.scopeName) + '</h2></div><div class="row no-print" style="margin-top:4px"><button class="sec sm" onclick="wrCsv()">تصدير إكسل</button><button class="sec sm" onclick="repExportTabPDF()">تصدير PDF</button></div></div>' +
     '<div class="muted">آخر أسبوع مكتمل: ' + esc(String(rp.lastW || '—')) + ' · المقياس: ' + rp.mName + '</div>' +
     '<div class="row" style="margin-top:10px"><div class="grow"><div class="muted">الأعضاء</div><b>' + rp.nM + '</b></div>' +
     '<div class="grow"><div class="muted">المجموعات</div><b>' + rp.nG + '</b></div>' +
@@ -1022,7 +1022,7 @@ function tReports() {
   h += '<div class="card no-print-shadow" style="margin-top:0; padding:16px; border-top:4px solid var(--o2); background:linear-gradient(90deg, #fff, #fffaf5); margin-bottom:16px">';
   h += '<div class="row" style="justify-content:space-between; align-items:start">';
   h += '<div><h2 style="margin:0">لوحة المؤشرات والتقارير</h2><div class="muted">تحليل بياني وتفصيلي للنطاق المحدد.</div></div>';
-  h += '<div class="row no-print"><button class="sec sm" style="color:#107c41; border-color:#107c41; font-weight:bold" onclick="repExportExcel()"><svg style="vertical-align:middle;margin-left:4px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>إكسل</button><button class="sec sm" onclick="window.print()">PDF</button></div>';
+  h += '<div class="row no-print"><button class="sec sm" style="color:#107c41; border-color:#107c41; font-weight:bold" onclick="repExportExcel()"><svg style="vertical-align:middle;margin-left:4px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>إكسل</button><button class="sec sm" onclick="repExportPDF()">PDF</button></div>';
   h += '</div></div>';
   
   /* الرسوم الجداول تتغير بناءً على المنطق الذكي */
@@ -1111,7 +1111,7 @@ function repTree() {
   return h || '<div class="muted" style="padding:10px">لا توجد نتائج مطابقة</div>';
 }
 
-/* == export_polish_v1 == */
+/* == export_pro_v2 == */
 function makeOrgCustomUnit(keys) {
   const R = A.OR || {}, wLen = (R.weeks || []).length;
   const selB = {}, units = [];
@@ -1177,12 +1177,8 @@ function repMain() {
   }
 }
 
-function oCsv() { repExportExcel('wr_tab'); }
-function wrCsv() { repExportExcel('wr_tab'); }
-
-function repExportExcel(sourceMode) {
-  if (typeof XLSX === 'undefined') { alert('جاري تحميل مكتبة إكسل، يرجى المحاولة بعد ثوانٍ.'); return; }
-  let rp, title, totN = 0, itemsList = null, catsList = [];
+function getExportContext(sourceMode) {
+  let rp, title, totN = 0, itemsList = null, catsList = [], sentSer = [], periodStats = [], scopeKind = 'o';
   const keys = Object.keys(A.rsel || {}).filter(function (k) { return A.rsel[k]; });
 
   if (A.role === 'org') {
@@ -1199,96 +1195,441 @@ function repExportExcel(sourceMode) {
       window.oUnit = function (k) { return k === 'custom' ? s : old_oUnit(k); };
       window.oKids = function () { return s.rowsUnits; };
     }
+    scopeKind = s.kind || 'o';
     rp = oRep(s);
     title = s.name;
     totN = (s.u && s.u.n) || 0;
+    sentSer = oSer(s.u, 'sent');
     itemsList = oItems(s.u);
     catsList = itemsList && itemsList.length ? wrCats(itemsList).sort(function (a, b) { return b.pct - a.pct; }) : [];
+    periodStats = calcPeriodStats(rp.ws || [], rp.ser || [], sentSer);
     window.oKids = old_oKids; window.oUnit = old_oUnit;
   } else {
     const sc = wrScope();
     rp = wrReport(sc);
     title = rp.scopeName;
     totN = rp.nM || 0;
+    sentSer = wrSer(sc.ms, 'sent');
     itemsList = wrItems(sc);
     catsList = itemsList && itemsList.length ? wrCats(itemsList).sort(function (a, b) { return b.pct - a.pct; }) : [];
+    periodStats = calcPeriodStats(rp.ws || [], rp.ser || [], sentSer);
+    scopeKind = sc.all ? 'b' : 'custom';
   }
+  return { rp: rp, title: title, totN: totN, itemsList: itemsList, catsList: catsList, sentSer: sentSer, periodStats: periodStats, scopeKind: scopeKind, keys: keys };
+}
 
-  const wsDates = rp.ws || [];
-  const infoRows = [
-    ['متابعة ورد المحاسبة الأسبوعي — تقرير رسمي مستخرج'],
-    ['النطاق:', title, 'المقياس:', rp.mName, 'تاريخ الإصدار:', todayStr()],
-    ['إجمالي الأعضاء:', totN, 'آخر أسبوع مكتمل:', (wsDates.length ? wsDates[wsDates.length - 1] : '—'), 'المتوسط العام:', rp.avg + '%'],
-    []
-  ];
+function oCsv() { repExportExcel('wr_tab'); }
+function wrCsv() { repExportExcel('wr_tab'); }
+function repExportTabPDF() { repExportPDF('wr_tab'); }
 
-  const hdrs = ['الوحدة / المستوى', 'عدد الأعضاء'].concat(wsDates.map(function (w) { return 'أسبوع ' + String(w).slice(5); })).concat(['المتوسط (%)', 'التغيّر الأخير']);
-  const data = infoRows.concat([hdrs]);
+function repExportExcel(sourceMode) {
+  if (typeof XLSX === 'undefined') { alert('جاري تحميل محرك إكسل، يرجى المحاولة بعد ثوانٍ.'); return; }
+  const ctx = getExportContext(sourceMode);
+  const rp = ctx.rp, title = ctx.title, totN = ctx.totN, wsDates = rp.ws || [];
+  const nowStamp = todayStr() + ' ' + new Date().toTimeString().slice(0, 5);
 
-  const fmtDiff = function (arr) {
-    if (!arr || arr.length < 2) return '—';
-    const d = arr[arr.length - 1] - arr[arr.length - 2];
-    return d > 0 ? '+' + d + '%' : d < 0 ? d + '%' : '0%';
+  const bThin = { top: { style: 'thin', color: { rgb: 'D7E6DC' } }, bottom: { style: 'thin', color: { rgb: 'D7E6DC' } }, left: { style: 'thin', color: { rgb: 'D7E6DC' } }, right: { style: 'thin', color: { rgb: 'D7E6DC' } } };
+  const bBottom = { bottom: { style: 'thin', color: { rgb: 'CBD5E1' } } };
+  const bTotal = { top: { style: 'thin', color: { rgb: 'D97706' } }, bottom: { style: 'medium', color: { rgb: 'D97706' } } };
+
+  const stTitle = { font: { name: 'Calibri', sz: 18, bold: true, color: { rgb: '064E2B' } }, alignment: { horizontal: 'right', vertical: 'center' } };
+  const stSub = { font: { name: 'Calibri', sz: 13, bold: true, color: { rgb: '1F2A24' } }, alignment: { horizontal: 'right', vertical: 'center' } };
+  const stMeta = { font: { name: 'Calibri', sz: 11, bold: false, color: { rgb: '5B7083' } }, alignment: { horizontal: 'right', vertical: 'center' } };
+  const stSec = { font: { name: 'Calibri', sz: 14, bold: true, color: { rgb: '0F7A43' } }, alignment: { horizontal: 'right', vertical: 'center' } };
+
+  const stThR = { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } }, fill: { patternType: 'solid', fgColor: { rgb: '064E2B' } }, alignment: { horizontal: 'right', vertical: 'center' }, border: bThin };
+  const stThC = { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } }, fill: { patternType: 'solid', fgColor: { rgb: '064E2B' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: bThin };
+
+  const stTdR = { font: { name: 'Calibri', sz: 11, color: { rgb: '1F2A24' } }, alignment: { horizontal: 'right', vertical: 'center' }, border: bBottom };
+  const stTdC = { font: { name: 'Calibri', sz: 11, color: { rgb: '1F2A24' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: bBottom };
+  const stTdNum = { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '1F2A24' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: bBottom, numFmt: '#,##0' };
+
+  const stTotR = { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '064E2B' } }, fill: { patternType: 'solid', fgColor: { rgb: 'FBE9B7' } }, alignment: { horizontal: 'right', vertical: 'center' }, border: bTotal };
+  const stTotNum = { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '064E2B' } }, fill: { patternType: 'solid', fgColor: { rgb: 'FBE9B7' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: bTotal, numFmt: '#,##0' };
+  const stTotPct = { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '064E2B' } }, fill: { patternType: 'solid', fgColor: { rgb: 'FBE9B7' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: bTotal, numFmt: '0%' };
+
+  const stPctCell = function (p, isBold) {
+    const v = Number(p) || 0;
+    const bg = v >= 75 ? 'E3F5EA' : v >= 50 ? 'FDF3D8' : 'FBEAE6';
+    const fg = v >= 75 ? '0B6B3A' : v >= 50 ? '8A5A00' : 'B3402A';
+    return { font: { name: 'Calibri', sz: 11, bold: !!isBold, color: { rgb: fg } }, fill: { patternType: 'solid', fgColor: { rgb: bg } }, alignment: { horizontal: 'center', vertical: 'center' }, border: bThin, numFmt: '0%' };
+  };
+  const stDiffCell = function (d) {
+    const fg = d > 0 ? '0B6B3A' : d < 0 ? 'B3402A' : '5B7083';
+    return { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: fg } }, alignment: { horizontal: 'center', vertical: 'center' }, border: bBottom, numFmt: '+0%;-0%;0%' };
+  };
+  const stBullet = { font: { name: 'Calibri', sz: 11, color: { rgb: '263445' } }, alignment: { horizontal: 'right', vertical: 'center' } };
+
+  const mkC = function (v, t, s) { return { v: v, t: t || (typeof v === 'number' ? 'n' : 's'), s: s || stTdR }; };
+
+  /* الورقة 1: الخلاصة والمقارنة */
+  const nCols1 = Math.max(6, wsDates.length + 5);
+  const rows1 = [], merges1 = [], rowH1 = [];
+
+  const addFullRow1 = function (text, style, h) {
+    const rIdx = rows1.length;
+    const row = [mkC(text, 's', style)];
+    for (let c = 1; c < nCols1; c++) row.push(mkC('', 's', style));
+    rows1.push(row);
+    merges1.push({ s: { r: rIdx, c: 0 }, e: { r: rIdx, c: nCols1 - 1 } });
+    rowH1.push({ hpt: h || 22 });
   };
 
-  const totalAvg = rp.ser.length ? Math.round(rp.ser.reduce(function (a, b) { return a + b; }, 0) / rp.ser.length) : 0;
-  data.push(['إجمالي النطاق (' + title + ')', totN].concat(rp.ser.map(function (v) { return v + '%'; })).concat([totalAvg + '%', fmtDiff(rp.ser)]));
+  addFullRow1('تقرير تنفيذي — متابعة ورد المحاسبة الأسبوعي', stTitle, 30);
+  addFullRow1('النطاق: ' + title + ' | المقياس: ' + rp.mName, stSub, 22);
+  addFullRow1('تاريخ الإصدار: ' + nowStamp + ' | آخر أسبوع مكتمل: ' + (wsDates.length ? wsDates[wsDates.length - 1] : '—'), stMeta, 20);
+  addFullRow1((rp.lines && rp.lines[0]) ? rp.lines[0] : '', stBullet, 24);
+  rows1.push([]); rowH1.push({ hpt: 12 });
 
+  addFullRow1('بطاقة المقارنة الأسبوعية للوحدات', stSec, 26);
+
+  const hRow1 = [mkC('الوحدة / المستوى', 's', stThR), mkC('النوع', 's', stThC), mkC('الأعضاء', 's', stThC)];
+  wsDates.forEach(function (w) { hRow1.push(mkC('أسبوع ' + String(w).slice(5), 's', stThC)); });
+  hRow1.push(mkC('المتوسط', 's', stThC));
+  hRow1.push(mkC('التغيّر الأخير', 's', stThC));
+  rows1.push(hRow1); rowH1.push({ hpt: 25 });
+
+  const kindLabel = function (k) { return k === 'b' ? 'فرع' : k === 'g' ? 'مجموعة' : k === 'm' ? 'عضو' : 'نطاق مجمّع'; };
   const rs = (rp.rows || []).slice().sort(function (a, b) { return b.last - a.last; });
+
   rs.forEach(function (r) {
     const n = r.u.ms ? r.u.ms.length : (r.u.u ? r.u.u.n : 0);
+    const knd = kindLabel(r.u.kind);
     const avg = r.s.length ? Math.round(r.s.reduce(function (a, b) { return a + b; }, 0) / r.s.length) : 0;
-    data.push([r.name || r.u.name, n].concat(r.s.map(function (v) { return v + '%'; })).concat([avg + '%', fmtDiff(r.s)]));
+    const diff = r.s.length >= 2 ? (r.s[r.s.length - 1] - r.s[r.s.length - 2]) : 0;
+    const row = [mkC(r.name || r.u.name, 's', stTdR), mkC(knd, 's', stTdC), mkC(n, 'n', stTdNum)];
+    r.s.forEach(function (p) { row.push(mkC((Number(p) || 0) / 100, 'n', stPctCell(p, false))); });
+    row.push(mkC(avg / 100, 'n', stPctCell(avg, true)));
+    row.push(mkC(diff / 100, 'n', stDiffCell(diff)));
+    rows1.push(row); rowH1.push({ hpt: 21 });
   });
 
-  data.push([]);
-  data.push(['الخلاصة التحليلية']);
-  (rp.lines || []).forEach(function (l) { data.push(['▪ ' + l]); });
-  data.push([]);
-  data.push(['جوانب القوة', 'جوانب الضعف']);
-  const maxSW = Math.max((rp.strong || []).length, (rp.weak || []).length);
-  for (let i = 0; i < maxSW; i++) {
-    data.push([rp.strong[i] ? '▪ ' + rp.strong[i] : '', rp.weak[i] ? '▪ ' + rp.weak[i] : '']);
+  const totAvg = rp.ser.length ? Math.round(rp.ser.reduce(function (a, b) { return a + b; }, 0) / rp.ser.length) : 0;
+  const totDiff = rp.ser.length >= 2 ? (rp.ser[rp.ser.length - 1] - rp.ser[rp.ser.length - 2]) : 0;
+  const totRow = [mkC('إجمالي النطاق (' + title + ')', 's', stTotR), mkC('إجمالي', 's', stTotNum), mkC(totN, 'n', stTotNum)];
+  rp.ser.forEach(function (p) { totRow.push(mkC((Number(p) || 0) / 100, 'n', stTotPct)); });
+  totRow.push(mkC(totAvg / 100, 'n', stTotPct));
+  totRow.push(mkC(totDiff / 100, 'n', stTotPct));
+  rows1.push(totRow); rowH1.push({ hpt: 24 });
+
+  rows1.push([]); rowH1.push({ hpt: 14 });
+
+  addFullRow1('المؤشرات الرئيسية للنطاق', stSec, 26);
+  const sentLast = ctx.sentSer.length ? ctx.sentSer[ctx.sentSer.length - 1] : 0;
+  const kpiList = [
+    ['إجمالي الأعضاء في النطاق', totN, 'n', stTdNum],
+    ['عدد الوحدات المقارَنة', rs.length, 'n', stTdNum],
+    [rp.mName + ' (آخر أسبوع مكتمل)', (rp.last || 0) / 100, 'n', stPctCell(rp.last || 0, true)],
+    ['المتوسط العام للأسابيع المكتملة (' + wsDates.length + ')', (rp.avg || 0) / 100, 'n', stPctCell(rp.avg || 0, true)],
+    ['نسبة الإرسال في آخر أسبوع مكتمل', sentLast / 100, 'n', stPctCell(sentLast, false)]
+  ];
+  kpiList.forEach(function (k) {
+    rows1.push([mkC(k[0], 's', stTdR), mkC(k[1], k[2], k[3])]);
+    rowH1.push({ hpt: 20 });
+  });
+
+  rows1.push([]); rowH1.push({ hpt: 14 });
+
+  addFullRow1('القراءة الذكية والتحليل التنفيذي', stSec, 26);
+  (rp.lines || []).forEach(function (l) { addFullRow1('•  ' + l, stBullet, 21); });
+  (rp.strong || []).forEach(function (s) {
+    addFullRow1('▲  قوة: ' + s, { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '0B6B3A' } }, alignment: { horizontal: 'right', vertical: 'center' } }, 21);
+  });
+  (rp.weak || []).forEach(function (w) {
+    addFullRow1('▼  فرصة تحسين: ' + w, { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'B3402A' } }, alignment: { horizontal: 'right', vertical: 'center' } }, 21);
+  });
+
+  if (ctx.periodStats && ctx.periodStats.length) {
+    rows1.push([]); rowH1.push({ hpt: 14 });
+    addFullRow1('مقارنة الفترات الشهرية', stSec, 26);
+    rows1.push([mkC('الفترة', 's', stThR), mkC('النطاق الزمني', 's', stThC), mkC('الأسابيع المكتملة', 's', stThC), mkC('متوسط ' + rp.mName, 's', stThC), mkC('متوسط الإرسال', 's', stThC)]);
+    rowH1.push({ hpt: 24 });
+    ctx.periodStats.forEach(function (ps) {
+      rows1.push([
+        mkC(ps.label, 's', stTdR),
+        mkC(ps.range, 's', stTdC),
+        mkC(ps.weeks, 'n', stTdNum),
+        mkC((ps.pct || 0) / 100, 'n', stPctCell(ps.pct, true)),
+        mkC((ps.sentPct || 0) / 100, 'n', stPctCell(ps.sentPct, false))
+      ]);
+      rowH1.push({ hpt: 21 });
+    });
   }
+
+  const ws1 = XLSX.utils.aoa_to_sheet(rows1);
+  ws1['!merges'] = merges1;
+  ws1['!rows'] = rowH1;
+  ws1['!cols'] = [{ wch: 38 }, { wch: 14 }, { wch: 14 }].concat(wsDates.map(function () { return { wch: 14 }; })).concat([{ wch: 14 }, { wch: 15 }]);
+  ws1['!views'] = [{ rightToLeft: true }];
+
+  /* الورقة 2: الأقسام والبنود الـ14 */
+  const rows2 = [], merges2 = [], rowH2 = [];
+  const addFullRow2 = function (text, style, h) {
+    const rIdx = rows2.length;
+    rows2.push([mkC(text, 's', style), mkC('', 's', style), mkC('', 's', style), mkC('', 's', style)]);
+    merges2.push({ s: { r: rIdx, c: 0 }, e: { r: rIdx, c: 3 } });
+    rowH2.push({ hpt: h || 22 });
+  };
+
+  addFullRow2('تحليل الأقسام الخمسة والبنود الأربعة عشر — ' + title, stTitle, 30);
+  addFullRow2('آخر أسبوع مكتمل: ' + (wsDates.length ? wsDates[wsDates.length - 1] : '—') + ' | إجمالي الأعضاء: ' + totN, stMeta, 20);
+  rows2.push([]); rowH2.push({ hpt: 12 });
+
+  addFullRow2('أولاً: أداء الأقسام الخمسة (مرتبة تنازلياً)', stSec, 26);
+  rows2.push([mkC('م', 's', stThC), mkC('القسم', 's', stThR), mkC('عدد البنود', 's', stThC), mkC('نسبة التنفيذ', 's', stThC)]);
+  rowH2.push({ hpt: 24 });
+
+  if (ctx.catsList && ctx.catsList.length) {
+    ctx.catsList.forEach(function (c, idx) {
+      const cnt = (ctx.itemsList || []).filter(function (i) { return i.cat === c.cat; }).length;
+      rows2.push([mkC(idx + 1, 'n', stTdC), mkC(c.cat, 's', stTdR), mkC(cnt, 'n', stTdNum), mkC((c.pct || 0) / 100, 'n', stPctCell(c.pct, true))]);
+      rowH2.push({ hpt: 21 });
+    });
+  } else {
+    addFullRow2('لا تتوفر بيانات تفصيلية للأقسام في هذا النطاق.', stMeta, 22);
+  }
+
+  rows2.push([]); rowH2.push({ hpt: 14 });
+  addFullRow2('ثانياً: تفصيل البنود الأربعة عشر (مرتبة تنازلياً)', stSec, 26);
+  rows2.push([mkC('م', 's', stThC), mkC('البند', 's', stThR), mkC('القسم', 's', stThC), mkC('نسبة التنفيذ', 's', stThC)]);
+  rowH2.push({ hpt: 24 });
+
+  if (ctx.itemsList && ctx.itemsList.length) {
+    ctx.itemsList.slice().sort(function (a, b) { return b.pct - a.pct; }).forEach(function (it, idx) {
+      rows2.push([mkC(idx + 1, 'n', stTdC), mkC(it.title, 's', stTdR), mkC(it.cat, 's', stTdC), mkC((it.pct || 0) / 100, 'n', stPctCell(it.pct, false))]);
+      rowH2.push({ hpt: 21 });
+    });
+  }
+
+  const ws2 = XLSX.utils.aoa_to_sheet(rows2);
+  ws2['!merges'] = merges2;
+  ws2['!rows'] = rowH2;
+  ws2['!cols'] = [{ wch: 8 }, { wch: 48 }, { wch: 24 }, { wch: 16 }];
+  ws2['!views'] = [{ rightToLeft: true }];
+
+  /* الورقة 3: الكشف الهيكلي التفصيلي */
+  const rows3 = [], merges3 = [], rowH3 = [];
+  const nCols3 = 4 + wsDates.length;
+
+  const stBrRow = { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } }, fill: { patternType: 'solid', fgColor: { rgb: '0F7A43' } }, alignment: { horizontal: 'right', vertical: 'center' }, border: bThin };
+  const stBrPct = { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } }, fill: { patternType: 'solid', fgColor: { rgb: '0F7A43' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: bThin, numFmt: '0%' };
+  const stGrpRow = { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '064E2B' } }, fill: { patternType: 'solid', fgColor: { rgb: 'E3F5EA' } }, alignment: { horizontal: 'right', vertical: 'center' }, border: bThin };
+
+  const r0 = [mkC('الكشف الهيكلي التفصيلي — ' + title, 's', stTitle)];
+  const r1 = [mkC('تاريخ الإصدار: ' + nowStamp + ' | المقياس: ' + rp.mName, 's', stMeta)];
+  for (let c = 1; c < nCols3; c++) { r0.push(mkC('', 's', stTitle)); r1.push(mkC('', 's', stMeta)); }
+  rows3.push(r0); merges3.push({ s: { r: 0, c: 0 }, e: { r: 0, c: nCols3 - 1 } }); rowH3.push({ hpt: 28 });
+  rows3.push(r1); merges3.push({ s: { r: 1, c: 0 }, e: { r: 1, c: nCols3 - 1 } }); rowH3.push({ hpt: 20 });
+  rows3.push([]); rowH3.push({ hpt: 10 });
+
+  const hRow3 = [mkC('الهيكل / الوحدة', 's', stThR), mkC('المستوى', 's', stThC), mkC('الأعضاء', 's', stThC)];
+  wsDates.forEach(function (w) { hRow3.push(mkC('أسبوع ' + String(w).slice(5), 's', stThC)); });
+  hRow3.push(mkC('المتوسط', 's', stThC));
+  rows3.push(hRow3); rowH3.push({ hpt: 25 });
+
+  if (A.role === 'org') {
+    const R = A.OR || {};
+    (R.branches || []).forEach(function (b) {
+      const bSer = oSer(b, A.om || 'exec');
+      const bAvg = bSer.length ? Math.round(bSer.reduce(function (a, v) { return a + v; }, 0) / bSer.length) : 0;
+      const bRow = [mkC('فرع: ' + b.name, 's', stBrRow), mkC('فرع', 's', stBrPct), mkC(b.n || 0, 'n', stBrPct)];
+      bSer.forEach(function (p) { bRow.push(mkC((Number(p) || 0) / 100, 'n', stBrPct)); });
+      bRow.push(mkC(bAvg / 100, 'n', stBrPct));
+      rows3.push(bRow); rowH3.push({ hpt: 23 });
+
+      const bgs = (R.groups || []).filter(function (g) { return g.branch_id === b.id; });
+      bgs.forEach(function (g) {
+        const gSer = oSer(g, A.om || 'exec');
+        const gAvg = gSer.length ? Math.round(gSer.reduce(function (a, v) { return a + v; }, 0) / gSer.length) : 0;
+        const gRow = [mkC('   ↳ مجموعة: ' + g.name + (g.has_sup === false ? ' (بلا مشرف)' : ''), 's', stTdR), mkC('مجموعة', 's', stTdC), mkC(g.n || 0, 'n', stTdNum)];
+        gSer.forEach(function (p) { gRow.push(mkC((Number(p) || 0) / 100, 'n', stPctCell(p, false))); });
+        gRow.push(mkC(gAvg / 100, 'n', stPctCell(gAvg, true)));
+        rows3.push(gRow); rowH3.push({ hpt: 20 });
+      });
+    });
+  } else {
+    const x = wrIdx();
+    (A.R.groups || []).forEach(function (g) {
+      const ms = x.mg[g.id] || [];
+      const gSer = wrSer(ms, A.rm || 'exec');
+      const gAvg = gSer.length ? Math.round(gSer.reduce(function (a, v) { return a + v; }, 0) / gSer.length) : 0;
+      const gRow = [mkC('مجموعة: ' + g.name, 's', stGrpRow), mkC('مجموعة', 's', stGrpRow), mkC(ms.length, 'n', stGrpRow)];
+      gSer.forEach(function (p) { gRow.push(mkC((Number(p) || 0) / 100, 'n', stPctCell(p, true))); });
+      gRow.push(mkC(gAvg / 100, 'n', stPctCell(gAvg, true)));
+      rows3.push(gRow); rowH3.push({ hpt: 22 });
+
+      ms.forEach(function (m, idx) {
+        const mSer = wrSer([m], A.rm || 'exec');
+        const mAvg = mSer.length ? Math.round(mSer.reduce(function (a, v) { return a + v; }, 0) / mSer.length) : 0;
+        const mRow = [mkC('   ' + (idx + 1) + '. ' + m.name, 's', stTdR), mkC('عضو', 's', stTdC), mkC(1, 'n', stTdC)];
+        mSer.forEach(function (p) { mRow.push(mkC((Number(p) || 0) / 100, 'n', stPctCell(p, false))); });
+        mRow.push(mkC(mAvg / 100, 'n', stPctCell(mAvg, false)));
+        rows3.push(mRow); rowH3.push({ hpt: 20 });
+      });
+    });
+  }
+
+  const ws3 = XLSX.utils.aoa_to_sheet(rows3);
+  ws3['!merges'] = merges3;
+  ws3['!rows'] = rowH3;
+  ws3['!cols'] = [{ wch: 40 }, { wch: 14 }, { wch: 12 }].concat(wsDates.map(function () { return { wch: 13 }; })).concat([{ wch: 14 }]);
+  ws3['!views'] = [{ rightToLeft: true, state: 'frozen', ySplit: 4 }];
 
   const wb = XLSX.utils.book_new();
   wb.Workbook = { Views: [{ RTL: true }] };
-
-  const ws1 = XLSX.utils.aoa_to_sheet(data);
-  ws1['!dir'] = 'rtl';
-  ws1['!cols'] = [{ wch: 34 }, { wch: 14 }].concat(wsDates.map(function () { return { wch: 13 }; })).concat([{ wch: 14 }, { wch: 14 }]);
-  XLSX.utils.book_append_sheet(wb, ws1, 'مقارنة الوحدات');
-
-  if (itemsList && itemsList.length) {
-    const sh2 = [
-      ['تفصيل الأقسام الخمسة والبنود الأربعة عشر — آخر أسبوع مكتمل'],
-      ['النطاق:', title, 'الأسبوع:', (wsDates.length ? wsDates[wsDates.length - 1] : '—')],
-      [],
-      ['أولاً: متوسط الأقسام الخمسة'],
-      ['القسم', 'نسبة التنفيذ (%)']
-    ];
-    catsList.forEach(function (c) { sh2.push([c.cat, c.pct + '%']); });
-    sh2.push([]);
-    sh2.push(['ثانياً: تفصيل البنود الأربعة عشر (مرتبة تنازلياً)']);
-    sh2.push(['#', 'البند', 'القسم', 'نسبة التنفيذ (%)']);
-    itemsList.slice().sort(function (a, b) { return b.pct - a.pct; }).forEach(function (it, idx) {
-      sh2.push([idx + 1, it.title, it.cat, it.pct + '%']);
-    });
-    const ws2 = XLSX.utils.aoa_to_sheet(sh2);
-    ws2['!dir'] = 'rtl';
-    ws2['!cols'] = [{ wch: 8 }, { wch: 46 }, { wch: 22 }, { wch: 16 }];
-    XLSX.utils.book_append_sheet(wb, ws2, 'الأقسام والبنود الـ14');
-  }
+  XLSX.utils.book_append_sheet(wb, ws1, 'الخلاصة');
+  XLSX.utils.book_append_sheet(wb, ws2, 'الأقسام والبنود');
+  XLSX.utils.book_append_sheet(wb, ws3, 'الكشف الهيكلي');
 
   const safeName = String(title).replace(/[\\/:*?"<>|«»]/g, '').replace(/\s+/g, '_').slice(0, 40) || 'تقرير';
   XLSX.writeFile(wb, 'متابعة_' + safeName + '_' + todayStr() + '.xlsx');
+}
+
+/* محرك تقرير الـ PDF التنفيذي المطابق لـ نماذج.pdf و نماذج2.pdf */
+function repExportPDF(sourceMode) {
+  const ctx = getExportContext(sourceMode);
+  const rp = ctx.rp, title = ctx.title, totN = ctx.totN, wsDates = rp.ws || [];
+  const nowStamp = todayStr() + ' ' + new Date().toTimeString().slice(0, 5);
+  const rs = (rp.rows || []).slice().sort(function (a, b) { return b.last - a.last; });
+  const sentLast = ctx.sentSer.length ? ctx.sentSer[ctx.sentSer.length - 1] : 0;
+
+  const badgeCol = function (p) {
+    return p >= 75 ? 'background:#e3f5ea;color:#0b6b3a' : p >= 50 ? 'background:#fdf3d8;color:#8a5a00' : 'background:#fbeae6;color:#b3402a';
+  };
+  const barCol = function (p) {
+    return p >= 75 ? '#1f7a4d' : p >= 50 ? '#d99a00' : '#b3402a';
+  };
+
+  let colsChartHtml = '';
+  if (rs.length) {
+    const topUnits = rs.slice(0, 14);
+    colsChartHtml = '<div class="sec-box page-break-avoid"><div class="sec-title">الرسم البياني — مقارنة الوحدات (' + esc(rp.mName) + ' في آخر أسبوع مكتمل)</div>' +
+      '<div style="display:flex;align-items:flex-end;justify-content:space-around;gap:10px;height:210px;padding:24px 12px 10px;border-bottom:2px solid #cbd5e1;direction:rtl">' +
+      topUnits.map(function (r) {
+        const p = Math.max(0, Math.min(100, Number(r.last) || 0));
+        const hPx = Math.max(6, Math.round(p * 1.55));
+        return '<div style="flex:1;max-width:68px;text-align:center">' +
+          '<div style="font-weight:700;font-size:11px;color:#064e2b;margin-bottom:4px">' + p + '%</div>' +
+          '<div style="height:' + hPx + 'px;background:' + barCol(p) + ';border-radius:6px 6px 0 0;margin:0 auto;width:72%"></div>' +
+          '</div>';
+      }).join('') + '</div>' +
+      '<div style="display:flex;justify-content:space-around;gap:10px;padding-top:6px;direction:rtl">' +
+      topUnits.map(function (r) {
+        const n = r.u.ms ? r.u.ms.length : (r.u.u ? r.u.u.n : 0);
+        return '<div style="flex:1;max-width:68px;text-align:center;font-size:10px;color:#334155;font-weight:600;line-height:1.3">' + esc(r.name || r.u.name) + '<div style="color:#64748b;font-weight:400">(' + n + ')</div></div>';
+      }).join('') + '</div></div>';
+  }
+
+  let distHtml = '';
+  if (ctx.catsList && ctx.catsList.length) {
+    distHtml += '<div class="sec-box page-break-avoid"><div class="sec-title">توزيع الأداء حسب الأقسام الخمسة والبنود الأربعة عشر</div>' +
+      '<div style="margin-bottom:12px"><div style="font-weight:700;color:#0f7a43;margin-bottom:6px;font-size:12px">أولاً: الأقسام الخمسة</div>' +
+      ctx.catsList.map(function (c) {
+        const p = Math.max(0, Math.min(100, Number(c.pct) || 0));
+        return '<div style="display:flex;align-items:center;gap:10px;margin:5px 0;font-size:11.5px">' +
+          '<div style="width:170px;font-weight:600;color:#1e293b">' + esc(c.cat) + '</div>' +
+          '<div style="flex:1;height:12px;background:#e2e8f0;border-radius:99px;overflow:hidden"><div style="height:100%;width:' + p + '%;background:' + barCol(p) + ';border-radius:99px"></div></div>' +
+          '<div style="width:52px;text-align:left;font-weight:700;direction:ltr;color:#064e2b">' + p + '%</div></div>';
+      }).join('') + '</div>';
+
+    if (ctx.itemsList && ctx.itemsList.length) {
+      distHtml += '<div style="margin-top:14px"><div style="font-weight:700;color:#0f7a43;margin-bottom:6px;font-size:12px">ثانياً: البنود الأربعة عشر (مرتبة تنازلياً)</div>' +
+        ctx.itemsList.slice().sort(function (a, b) { return b.pct - a.pct; }).map(function (it, idx) {
+          const p = Math.max(0, Math.min(100, Number(it.pct) || 0));
+          return '<div style="display:flex;align-items:center;gap:10px;margin:4px 0;font-size:11px">' +
+            '<div style="width:22px;color:#64748b;font-weight:700">' + (idx + 1) + '.</div>' +
+            '<div style="width:240px;color:#1e293b">' + esc(it.title) + ' <span style="color:#64748b;font-size:10px">(' + esc(it.cat) + ')</span></div>' +
+            '<div style="flex:1;height:10px;background:#e2e8f0;border-radius:99px;overflow:hidden"><div style="height:100%;width:' + p + '%;background:' + barCol(p) + ';border-radius:99px"></div></div>' +
+            '<div style="width:48px;text-align:left;font-weight:700;direction:ltr;color:#064e2b">' + p + '%</div></div>';
+        }).join('') + '</div>';
+    }
+    distHtml += '</div>';
+  }
+
+  let tableHtml = '<div class="sec-box"><div class="sec-title">جدول مقارنة الوحدات عبر الأسابيع المكتملة</div>' +
+    '<table><thead><tr><th>م</th><th>الوحدة / المستوى</th><th>الأعضاء</th>' +
+    wsDates.map(function (w) { return '<th>' + esc(String(w).slice(5)) + '</th>'; }).join('') +
+    '<th>المتوسط</th><th>التغيّر</th></tr></thead><tbody>';
+
+  rs.forEach(function (r, idx) {
+    const n = r.u.ms ? r.u.ms.length : (r.u.u ? r.u.u.n : 0);
+    const avg = r.s.length ? Math.round(r.s.reduce(function (a, b) { return a + b; }, 0) / r.s.length) : 0;
+    const diff = r.s.length >= 2 ? (r.s[r.s.length - 1] - r.s[r.s.length - 2]) : 0;
+    const diffStr = diff > 0 ? '<span style="color:#0b6b3a;font-weight:700">▲ +' + diff + '%</span>' : diff < 0 ? '<span style="color:#b3402a;font-weight:700">▼ ' + diff + '%</span>' : '<span style="color:#64748b">＝ 0%</span>';
+    tableHtml += '<tr><td style="text-align:center">' + (idx + 1) + '</td><td style="font-weight:700">' + esc(r.name || r.u.name) + '</td><td style="text-align:center;font-weight:600">' + n + '</td>' +
+      r.s.map(function (p) { return '<td style="text-align:center;' + badgeCol(p) + ';font-weight:600">' + p + '%</td>'; }).join('') +
+      '<td style="text-align:center;font-weight:700;' + badgeCol(avg) + '">' + avg + '%</td>' +
+      '<td style="text-align:center;direction:ltr">' + diffStr + '</td></tr>';
+  });
+
+  const totAvg = rp.ser.length ? Math.round(rp.ser.reduce(function (a, b) { return a + b; }, 0) / rp.ser.length) : 0;
+  const totDiff = rp.ser.length >= 2 ? (rp.ser[rp.ser.length - 1] - rp.ser[rp.ser.length - 2]) : 0;
+  tableHtml += '<tr class="tot-row"><td colspan="2">إجمالي النطاق (' + esc(title) + ')</td><td style="text-align:center">' + totN + '</td>' +
+    rp.ser.map(function (p) { return '<td style="text-align:center">' + p + '%</td>'; }).join('') +
+    '<td style="text-align:center">' + totAvg + '%</td><td style="text-align:center;direction:ltr">' + (totDiff > 0 ? '+' + totDiff + '%' : totDiff + '%') + '</td></tr></tbody></table></div>';
+
+  const htmlDoc = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير تنفيذي — ' + esc(title) + '</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">' +
+    '<style>' +
+    '*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}' +
+    'body{margin:0;padding:20px;font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;color:#1e293b;background:#fff;font-size:12px;line-height:1.6}' +
+    '.wrap{max-width:980px;margin:0 auto}' +
+    '.top-bar{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #064e2b;padding-bottom:12px;margin-bottom:16px}' +
+    '.top-bar h1{margin:0;color:#064e2b;font-size:20px}' +
+    '.top-bar .sub{color:#0f7a43;font-weight:700;font-size:13px;margin-top:4px}' +
+    '.top-bar .meta{text-align:left;color:#64748b;font-size:11.5px}' +
+    '.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}' +
+    '.kpi{background:#f8fafc;border:1px solid #cbd5e1;border-top:4px solid #0f7a43;border-radius:10px;padding:10px;text-align:center}' +
+    '.kpi .v{font-size:20px;font-weight:700;color:#064e2b;line-height:1.2}' +
+    '.kpi .l{font-size:11px;color:#475569;margin-top:4px}' +
+    '.sec-box{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:14px;margin-bottom:14px}' +
+    '.sec-title{font-size:13.5px;font-weight:700;color:#064e2b;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:10px}' +
+    '.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}' +
+    '.box-ok{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px}' +
+    '.box-warn{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px}' +
+    'table{width:100%;border-collapse:collapse;font-size:11px}' +
+    'th{background:#064e2b;color:#fff;padding:7px 6px;border:1px solid #064e2b;text-align:right}' +
+    'td{padding:6px;border:1px solid #cbd5e1;vertical-align:middle}' +
+    'tr:nth-child(even) td{background:#f8fafc}' +
+    'tr.tot-row td{background:#fbe9b7!important;color:#064e2b;font-weight:700;border-top:2px solid #d97706}' +
+    '.page-break-avoid{page-break-inside:avoid}' +
+    '.no-print-bar{display:flex;justify-content:space-between;align-items:center;background:#064e2b;color:#fff;padding:10px 16px;border-radius:10px;margin-bottom:16px}' +
+    '.no-print-bar button{background:#ee8a1f;color:#fff;border:0;border-radius:8px;padding:8px 16px;font-family:inherit;font-weight:700;cursor:pointer}' +
+    '@media print{body{padding:0}.no-print-bar{display:none!important}thead{display:table-header-group}}' +
+    '</style></head><body><div class="wrap">' +
+    '<div class="no-print-bar"><span>معاينة التقرير التنفيذي الجاهز للطباعة والحفظ كـ PDF</span><div><button onclick="window.print()">طباعة / حفظ PDF</button> <button style="background:#ffffff22;margin-right:6px" onclick="window.close()">إغلاق</button></div></div>' +
+    '<div class="top-bar"><div><h1>تقرير تنفيذي — متابعة ورد المحاسبة الأسبوعي</h1><div class="sub">نطاق التقرير: ' + esc(title) + ' | المقياس: ' + esc(rp.mName) + '</div></div>' +
+    '<div class="meta"><div><b>تاريخ الإصدار:</b> ' + esc(nowStamp) + '</div><div><b>آخر أسبوع مكتمل:</b> ' + esc(wsDates.length ? wsDates[wsDates.length - 1] : '—') + '</div></div></div>' +
+    '<div class="kpis">' +
+      '<div class="kpi"><div class="v">' + totN + '</div><div class="l">إجمالي الأعضاء</div></div>' +
+      '<div class="kpi"><div class="v">' + rs.length + '</div><div class="l">الوحدات المقارَنة</div></div>' +
+      '<div class="kpi"><div class="v">' + (rp.last || 0) + '%</div><div class="l">' + esc(rp.mName) + ' (الأخير)</div></div>' +
+      '<div class="kpi"><div class="v">' + (rp.avg || 0) + '%</div><div class="l">المتوسط العام (' + wsDates.length + ' أسابيع)</div></div>' +
+      '<div class="kpi"><div class="v">' + sentLast + '%</div><div class="l">نسبة الإرسال</div></div>' +
+    '</div>' +
+    '<div class="sec-box page-break-avoid"><div class="sec-title">الخلاصة والقراءة الذكية</div>' +
+      (rp.lines || []).map(function (l) { return '<div style="margin:4px 0">• ' + esc(l) + '</div>'; }).join('') +
+    '</div>' +
+    '<div class="grid-2 page-break-avoid">' +
+      '<div class="box-ok"><div style="font-weight:700;color:#0b6b3a;margin-bottom:6px">▲ جوانب القوة</div>' + (rp.strong || []).map(function (s) { return '<div style="margin:3px 0">▪ ' + esc(s) + '</div>'; }).join('') + '</div>' +
+      '<div class="box-warn"><div style="font-weight:700;color:#b3402a;margin-bottom:6px">▼ جوانب الضعف وفرص التحسين</div>' + (rp.weak || []).map(function (w) { return '<div style="margin:3px 0">▪ ' + esc(w) + '</div>'; }).join('') + '</div>' +
+    '</div>' +
+    colsChartHtml + distHtml + tableHtml +
+    '</div></body></html>';
+
+  const w = window.open('', '_blank');
+  if (!w) { window.print(); return; }
+  w.document.open();
+  w.document.write(htmlDoc);
+  w.document.close();
+  setTimeout(function () { try { w.focus(); w.print(); } catch (e) {} }, 450);
 }
 function oOut() {
   const s = oUnit(A.ok) || oUnit('o'); A.ok = s.k;
   const rp = oRep(s);
   const box = function (title, arr, bg, fg) { return '<div class="grow" style="min-width:230px;background:' + bg + ';border-radius:12px;padding:10px 12px"><b style="color:' + fg + '">' + title + '</b>' + arr.map(function (t) { return '<div style="margin-top:4px">▪ ' + esc(t) + '</div>'; }).join('') + '</div>'; };
   let h = '<div class="print-header" style="display:none;border-bottom:3px solid var(--g2);margin-bottom:16px;text-align:right;background:#f2f8f4;padding:14px 18px;border-radius:12px"><div style="display:flex;justify-content:space-between;align-items:center"><h1 style="color:var(--g1);margin:0;font-size:1.5rem">متابعة ورد المحاسبة الأسبوعي</h1><div style="text-align:left;color:#5b7466;font-size:.9rem"><b>تاريخ الإصدار:</b> ' + todayStr() + '</div></div><div style="color:var(--g2);margin-top:6px;font-size:1.05rem;font-weight:700">تقرير المؤسسة: ' + esc(s.name) + ' · المقياس: ' + esc(rp.mName) + '</div></div>' +
-    '<div class="card no-print-shadow"><div style="display:flex;justify-content:space-between;align-items:start"><div><div class="muted">تقرير المؤسسة (أرقام ومقارنات فقط)</div><h2>' + esc(s.name) + '</h2></div><div class="row no-print" style="margin-top:4px"><button class="sec sm" onclick="oCsv()">تصدير CSV</button><button class="sec sm" onclick="window.print()">تصدير PDF</button></div></div>' +
+    '<div class="card no-print-shadow"><div style="display:flex;justify-content:space-between;align-items:start"><div><div class="muted">تقرير المؤسسة (أرقام ومقارنات فقط)</div><h2>' + esc(s.name) + '</h2></div><div class="row no-print" style="margin-top:4px"><button class="sec sm" onclick="oCsv()">تصدير إكسل</button><button class="sec sm" onclick="repExportTabPDF()">تصدير PDF</button></div></div>' +
     '<div class="muted">آخر أسبوع مكتمل: ' + esc(String(rp.ws.length ? rp.ws[rp.ws.length - 1] : '—')) + ' · المقياس: ' + rp.mName + '</div>' +
     '<div class="row" style="margin-top:10px"><div class="grow"><div class="muted">الأعضاء</div><b>' + (s.u.n || 0) + '</b></div>' +
     '<div class="grow"><div class="muted">' + rp.mName + '</div><b style="font-size:22px">' + rp.last + '%</b> ' + wrArr(rp.ser) + '</div>' +

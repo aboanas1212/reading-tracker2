@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261114-020036">
+<meta name="build" content="20261114-020938">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -256,7 +256,7 @@ const errBox = (e, retry) => '<div class="err">' + esc(msg(e)) + '</div>' + (ret
 })();
 function route() {
   const h = location.hash;
-  /* == test_links_route == */ const ta = h.match(/^#a=([A-Za-z0-9]+)/); if (ta) { history.replaceState(null, '', location.pathname); return testLink(ta[1]); } if (h.startsWith('#admin')) return adminEntry();
+  /* == t1_closed_v1 == */ if (h.startsWith('#admin')) return adminEntry();
   const m = h.match(/#m=([A-Za-z0-9]+)/);
   if (m) { S.code = m[1].toUpperCase(); localStorage.setItem('code', S.code); history.replaceState(null, '', location.pathname); }
   if (S.code) return home(); login();
@@ -300,7 +300,7 @@ async function adminLogin() {
     adminLoad();
   } catch (e) { alert(msg(e)); }
 }
-/* == test_links_v1 == */ async function testLink(c) { const i = document.createElement('input'); i.id = 'ap'; i.type = 'hidden'; i.value = c; document.body.appendChild(i); try { await adminLogin(); } finally { i.remove(); } if (!A.pass) adminEntry(); } function adminOut() { const p = A.pass; adminClear(); if (p) { try { rpc('admin_logout', { p_pass: p }).catch(function () {}); } catch (_) {} } location.hash = ''; login(); }
+function adminOut() { const p = A.pass; adminClear(); if (p) { try { rpc('admin_logout', { p_pass: p }).catch(function () {}); } catch (_) {} } location.hash = ''; login(); }
 async function adminLoad() {
   A.O = null; A.ob = null; A.og = null; A.PL = null; A.AP = null; A.PR = null;
 /* == members_branch_v1 == */ /* == group_role_ui_v1 == */ if (A.role === 'branch' || A.role === 'group') { show(loading); try { A.L = null; A.W = null; A.R = null; A.data = await rpc('admin_members', { p_pass: A.pass }); /* == group_access_ui_v1 == */ A.GA = null; if (A.role === 'branch') { try { A.GA = await rpc('admin_group_access_list', { p_pass: A.pass }); } catch (_) { A.GA = null; } } adminRender(); } catch (e) { if (String(e.message) === 'bad_admin') { adminClear(); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); } return; }

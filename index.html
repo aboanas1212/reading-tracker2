@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261113-235029">
+<meta name="build" content="20261114-002122">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -342,17 +342,18 @@ async function gaSet(id, rot, act) {
   } catch (e) { alert(msg(e)); }
 }
 async function sCall(fn, args) { try { await rpc(fn, args); await adminLoad(); return true; } catch (e) { alert(msg(e)); return false; } }
+/* == cleanup_leader_v1 == */
 function tStruct() {
   const d = A.data || {}, gs = d.groups || [], ms = d.members || [];
-  let h = '<div class="card"><div class="row"><div class="grow"><b>هيكل الفرع: ' + esc(A.branchName || '') + '</b><div class="muted">المجموعات ومشرفوها. المشرف عضو من المجموعة نفسها.</div></div><button class="sec sm" onclick="sGroupAdd()">＋ إضافة مجموعة</button></div>';
+  let h = '<div class="card"><div class="row"><div class="grow"><b>هيكل الفرع: ' + esc(A.branchName || '') + '</b><div class="muted">إدارة مجموعات الفرع ورموز دخول مسؤولي المجموعات.</div></div><button class="sec sm" onclick="sGroupAdd()">＋ إضافة مجموعة</button></div>';
   if (!gs.length) return h + '<p class="muted">لا توجد مجموعات بعد. ابدأ بإضافة مجموعة.</p></div>';
-  h += '<div class="scroll"><table><tr><th>المجموعة</th><th>الأعضاء</th><th>المشرفون</th><th></th></tr>';
+  h += '<div class="scroll"><table><tr><th>المجموعة</th><th>الأعضاء النشطون</th><th>رمز مسؤول المجموعة والإجراءات</th></tr>';
   gs.forEach(g => {
-    const mm = ms.filter(m => m.group_id === g.id && m.active), sp = mm.filter(m => m.leader).map(m => esc(m.name));
-    h += '<tr><td>' + esc(g.name) + '</td><td>' + mm.length + '</td><td>' + (sp.length ? sp.join('، ') : '<span class="muted">لا مشرف</span>') + '</td><td class="row">' +
-      gaCell(g.id) + gaBtns(g.id) + '<button class="sec sm" onclick="sSup(' + g.id + ')">تعيين المشرفين</button>' +
+    const mm = ms.filter(m => m.group_id === g.id && m.active);
+    h += '<tr><td><b>' + esc(g.name) + '</b></td><td>' + mm.length + '</td><td class="row">' +
+      gaCell(g.id) + gaBtns(g.id) +
       '<button class="sec sm" onclick="sGroupRename(' + g.id + ')">تسمية</button>' +
-      '<button class="sec sm" onclick="sGroupDel(' + g.id + ')">حذف</button></td></tr>';
+      '<button class="danger sm" onclick="sGroupDel(' + g.id + ')">حذف</button></td></tr>';
   });
   const none = ms.filter(m => m.group_id == null && m.active).length;
   return h + '</table></div>' + (none ? '<p class="muted">أعضاء بلا مجموعة: ' + none + '</p>' : '') + '</div>';
@@ -634,7 +635,7 @@ function wrReport(sc) {
   if (ser.length && sentLast >= 90) strong.push('الإرسال مرتفع: ' + sentLast + '%.');
   if (notSent > 0) weak.push('الأعضاء الذين لم يرسلوا في آخر أسبوع: ' + notSent + '.');
   const noSup = Object.keys(gset).map(function (id) { return x.gby[id]; }).filter(function (g) { return g && !(g.supervisors || []).length; });
-  if (noSup.length) weak.push('مجموعات بلا مشرف (' + noSup.length + '): ' + noSup.slice(0, 3).map(function (g) { return '«' + g.name + '»'; }).join('، ') + (noSup.length > 3 ? ' وغيرها' : ''));
+  
   if (!strong.length) strong.push('لا شيء بارز بعد.');
   if (!weak.length) weak.push('لا ملاحظات سلبية.');
   return { ser: ser, last: last, d: d, avg: avg, lastW: lastW, ws: ws, mName: mName, sentLast: sentLast, lines: lines, strong: strong, weak: weak, rows: rows, nM: sc.ms.length, nG: Object.keys(gset).length, nB: Object.keys(bset).length, scopeName: scopeName };
@@ -787,7 +788,7 @@ function oRep(s) {
   if (ser.length && sentLast >= 90) strong.push('الإرسال مرتفع: ' + sentLast + '%.');
   const gl = s.kind === 'o' ? (R.groups || []) : s.kind === 'b' ? rows.map(function (r) { return r.u.u; }) : [u];
   const noSup = gl.filter(function (g) { return g && g.has_sup === false; });
-  if (noSup.length) weak.push('مجموعات بلا مشرف (' + noSup.length + '): ' + noSup.slice(0, 3).map(function (g) { return '«' + g.name + '»'; }).join('، ') + (noSup.length > 3 ? ' وغيرها' : ''));
+  
   if (!strong.length) strong.push('لا شيء بارز بعد.');
   if (!weak.length) weak.push('لا ملاحظات سلبية.');
   return { ser: ser, last: last, d: d, avg: avg, ws: ws, mName: mName, lines: lines, strong: strong, weak: weak, rows: rows };
@@ -1780,7 +1781,7 @@ function repExportExcel(sourceMode) {
       bgs.forEach(function (g) {
         const gSer = oSer(g, A.om || 'exec');
         const gAvg = gSer.length ? Math.round(gSer.reduce(function (a, v) { return a + v; }, 0) / gSer.length) : 0;
-        const gRow = [mkC('   ↳ مجموعة: ' + g.name + (g.has_sup === false ? ' (بلا مشرف)' : ''), 's', stTdR), mkC('مجموعة', 's', stTdC), mkC(g.n || 0, 'n', stTdNum)];
+        const gRow = [mkC('   ↳ مجموعة: ' + g.name, 's', stTdR), mkC('مجموعة', 's', stTdC), mkC(g.n || 0, 'n', stTdNum)];
         gSer.forEach(function (p) { gRow.push(mkC((Number(p) || 0) / 100, 'n', stPctCell(p, false))); });
         gRow.push(mkC(gAvg / 100, 'n', stPctCell(gAvg, true)));
         rows3.push(gRow); rowH3.push({ hpt: 20 });
@@ -2126,12 +2127,12 @@ async function rqDecide(id, ok) {
 }
 function tMembers() {
   const d = A.data;
-  let h = rqBox() + '<div class="card"><h3>إضافة أعضاء</h3><p class="muted">' + (A.role === 'group' ? 'سطر لكل عضو: الاسم فقط، أو «الاسم | | م» إن كان مشرفاً' : 'سطر لكل عضو بالصيغة: الاسم | المجموعة | م (اكتب «م» إن كان مشرف مجموعة)') + '</p><textarea id="newm" placeholder="أحمد علي | الشمال | م&#10;سعيد حسن | الشمال&#10;خالد | الجنوب"></textarea><p><button onclick="addMembers()">إضافة</button> <button class="sec" onclick="printCards()">طباعة البطاقات</button></p></div>';
+  let h = rqBox() + '<div class="card"><h3>إضافة أعضاء</h3><p class="muted">' + 'سطر لكل عضو جديد (اكتب اسم العضو في كل سطر)' + '</p><textarea id="newm" placeholder="أحمد علي&#10;سعيد حسن&#10;خالد محمد"></textarea><p><button onclick="addMembers()">إضافة</button> <button class="sec" onclick="printCards()">طباعة البطاقات</button></p></div>';
   if (A.role === 'branch') h = rqBox() + '<div class="card"><p class="muted">عرض للقراءة فقط: إضافة الأعضاء وتعديلهم من مسؤول المجموعة.</p></div>'; h += '<div class="scroll"><table><tr><th>الاسم</th><th>المجموعة</th>' + (A.role === 'branch' ? '' : '<th>الرمز</th>') + '<th></th></tr>';
   d.members.forEach(m => {
-    h += '<tr style="' + (m.active ? '' : 'opacity:.45') + '"><td>' + esc(m.name) + (m.leader ? ' <span class="badge b-wait">مشرف</span>' : '') + '</td><td>' + esc(m.grp) + '</td>' + (A.role === 'branch' ? '' : '<td style="direction:ltr">' + esc(m.code) + '</td>') + '<td class="row">' +
+    h += '<tr style="' + (m.active ? '' : 'opacity:.45') + '"><td>' + esc(m.name) + '' + '</td><td>' + esc(m.grp) + '</td>' + (A.role === 'branch' ? '' : '<td style="direction:ltr">' + esc(m.code) + '</td>') + '<td class="row">' +
       (A.role === 'branch' ? '' : '<button class="sec sm" onclick="copyLink(\'' + m.code + '\')">نسخ الرابط</button>') +
-      (A.role === 'branch' ? '' : '<button class="sec sm" onclick="toggleLeader(' + m.id + ',' + !m.leader + ')">' + (m.leader ? 'إلغاء الإشراف' : 'جعله مشرفاً') + '</button>') +
+      
       (A.role === 'branch' ? '' : '<button class="sec sm" onclick="editMember(' + m.id + ')">تعديل</button>') + (A.role === 'branch' ? '<button class="sec sm" onclick="moveMember(' + m.id + ')">نقل</button><button class="danger sm" onclick="delMember(' + m.id + ')">حذف</button>' : '') +
       (A.role === 'branch' ? '' : '<button class="sec sm" onclick="toggleActive(' + m.id + ',' + !m.active + ')">' + (m.active ? 'تعطيل' : 'تفعيل') + '</button>') + '</td></tr>';
   });

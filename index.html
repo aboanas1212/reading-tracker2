@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261113-195401">
+<meta name="build" content="20261113-195635">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -310,7 +310,7 @@ function adminRender() {
 const tabs = grp ? [['reports', 'التقارير'], ['wr', 'متابعة الأسبوع'], ['prep', 'التحضير الجماعي'], ['members', 'الأعضاء']] : org ? [['reports', 'التقارير'], ['wr', 'متابعة الأسبوع'], ['week', 'الفروع'], ['periods', 'الفترات'], ['appr', 'الاعتماد']] : [['reports', 'التقارير'], ['wr', 'متابعة الأسبوع'], ['week', 'الهيكل'], ['members', 'الأعضاء'], ['appr', 'الاعتماد']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'reports'; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
   let h = '<div class="row noprint"><div class="grow"><h1>' + esc(ttl) + '</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
-  h += (({ reports: tReports, reports: tReports, wr: tWR, week: tWeek, members: tMembers, prep: tPrep, periods: tPeriods, appr: tAppr })[A.tab] || tReports)();
+  h += (({ reports: tReports, wr: tWR, week: tWeek, members: tMembers, prep: tPrep, periods: tPeriods, appr: tAppr })[A.tab] || tReports)();
   show(h);
 }
 

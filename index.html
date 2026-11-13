@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261113-194235">
+<meta name="build" content="20261113-194907">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -967,90 +967,40 @@ function wrCharts(sc, rp) {
     '</div>';
 }
 
-/* == adv_reports_v1: شاشة التقارير والمقارنات المستقلة (نمط HrArchive) وتصدير Excel == */
-function advExportExcel() {
-  if (typeof XLSX === 'undefined') { alert('مكتبة التصدير قيد التحميل، يرجى المحاولة بعد قليل.'); return; }
-  /* تجهيز البيانات حسب النطاق المحدد لتصديرها لإكسل */
-  const sc = wrScope(), rp = wrReport(sc);
-  const ws_data = [['الوحدة', 'الأعضاء'].concat(rp.ws.map(w => String(w).slice(5))).concat(['المتوسط'])];
-  
-  const rs = rp.rows.slice().sort((a, b) => b.last - a.last);
-  const allRows = [{ name: 'إجمالي النطاق المحدد', n: sc.ms.length, s: rp.ser }].concat(rs.map(r => ({ name: r.u.name, n: r.u.ms ? r.u.ms.length : (r.u.u.n||0), s: r.s })));
-  
-  allRows.forEach(r => {
-    ws_data.push([r.name, r.n].concat(r.s).concat([Math.round(r.s.reduce((a,b)=>a+b,0)/Math.max(1,r.s.length))||0]));
-  });
+/* == reports_dashboard_v2: شاشة التقارير المستقلة (شجرة متعددة التحديد بـ Checkboxes، طي افتراضي، مقارنة مخصصة، وإكسل) == */
+function advToggle(k) { if(A.rsel[k]) delete A.rsel[k]; else A.rsel[k]=true; document.getElementById('rep-tree').innerHTML=repTree(); document.getElementById('rep-main').innerHTML=repMain(); }
+function advExp(k) { if(A.rexp[k]) delete A.rexp[k]; else A.rexp[k]=true; document.getElementById('rep-tree').innerHTML=repTree(); }
+function repSearch(v) { A.rq = v; document.getElementById('rep-tree').innerHTML=repTree(); }
+function repClear() { A.rsel = {}; document.getElementById('rep-tree').innerHTML=repTree(); document.getElementById('rep-main').innerHTML=repMain(); }
 
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
-  ws['!dir'] = 'rtl'; /* توجيه الشيت من اليمين لليسار */
-  XLSX.utils.book_append_sheet(wb, ws, "تقرير المقارنة");
-  XLSX.writeFile(wb, "تقرير_المتابعة_" + todayStr() + ".xlsx");
-}
-
-function tAdv() {
-  wrInit();
-  if (!A.R && !A.OR) { 
-    if (A.role === 'org') oLoad(); else loadR(); 
-    return '<p class="muted">جارٍ تحميل البيانات وبناء محرك التقارير…</p>'; 
-  }
-  
-  /* الهيكل المنفصل: شجرة على اليمين، ونتائج على اليسار */
-  let h = '<div class="row" style="align-items:start;gap:20px;flex-wrap:nowrap">';
-  
-  /* الجزء الأيمن: محرك البحث وشجرة الهيكل (Sidebar) */
-  h += '<div class="card no-print" style="flex:0 0 320px;max-height:82vh;overflow-y:auto;position:sticky;top:10px">';
-  h += '<h3 style="margin-top:0;color:var(--g1)">تحديد نطاق المقارنة</h3>';
-  h += '<p class="muted" style="font-size:0.85rem">اختر فرعاً أو أكثر، أو مجموعات محددة لعرض المقارنة المباشرة بينها.</p>';
-  h += '<input type="text" placeholder="بحث سريع في الهيكل..." value="' + esc(A.rq) + '" oninput="wrSearch(this.value)">';
-  h += '<div class="row" style="margin-top:10px;margin-bottom:10px"><button class="sec sm grow" onclick="wrClear()">مسح التحديد</button></div>';
-  h += '<div id="wr-tree" style="margin-top:10px">' + (A.role === 'org' ? oTree() : wrTree()) + '</div>';
-  h += '</div>';
-
-  /* الجزء الأيسر: منصة عرض التقرير والرسوم والتصدير (Main Area) */
-  h += '<div style="flex:1;min-width:0">';
-  h += '<div class="card no-print row" style="background:linear-gradient(90deg, #f6fcf8, #fff);border-color:#a9d6bb;margin-top:0">';
-  h += '<div class="grow"><b>خيارات العرض والتصدير</b></div>';
-  h += '<button class="sm" onclick="advExportExcel()" style="background:#107c41;color:#fff;gap:6px;display:flex;align-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> تصدير Excel</button>';
-  h += '<button class="sec sm" onclick="window.print()" style="gap:6px;display:flex;align-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><path d="M6 14h12v8H6z"/></svg> تصدير PDF</button>';
-  h += '</div>';
-  
-  /* مساحة الرسوم البيانية والجداول */
-  h += '<div id="wr-out">' + (A.role === 'org' ? oOut() : wrOut()) + '</div>';
-  
-  h += '</div></div>';
-  return h;
-}
-/* == reports_dashboard_v1: شاشة التقارير المستقلة (نمط HrArchive: شجرة جانبية + منصة مقارنات + إكسل) == */
 function repInit() {
-  if(!A.repSel) A.repSel = A.role === 'org' ? 'o' : ('b:' + A.branch);
+  if(!A.rsel) A.rsel = {};
+  if(!A.rexp) A.rexp = {};
   if(A.rq == null) A.rq = '';
 }
+
 function tReports() {
   repInit();
   if (A.role === 'org' && !A.OR) { oLoad(); return '<p class="muted">جارٍ بناء محرك التقارير…</p>'; }
   if (A.role !== 'org' && !A.R) { loadR(); return '<p class="muted">جارٍ بناء محرك التقارير…</p>'; }
   
   let h = '<div class="row" style="align-items:stretch; flex-wrap:nowrap; gap:16px">';
-  
   /* الجانب الأيمن: الشجرة ومحرك البحث (Sidebar) */
   h += '<div class="card no-print" style="flex:0 0 280px; margin:0; position:sticky; top:10px; max-height:85vh; display:flex; flex-direction:column; background:#fbfdfc; border-top:4px solid var(--g2)">';
   h += '<h3 style="margin-top:0; display:flex; align-items:center; gap:8px; color:var(--g1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> الهيكل التنظيمي</h3>';
-  h += '<input type="text" placeholder="بحث سريع..." value="'+esc(A.rq)+'" oninput="A.rq=this.value; document.getElementById(\'rep-tree\').innerHTML=repTree()" style="margin-bottom:12px; border-radius:8px">';
+  h += '<input type="text" placeholder="بحث سريع..." value="'+esc(A.rq)+'" oninput="repSearch(this.value)" style="margin-bottom:12px; border-radius:8px">';
+  h += '<div class="row" style="margin-top:0;margin-bottom:10px"><button class="sec sm grow" onclick="repClear()">مسح التحديد</button></div>';
   h += '<div id="rep-tree" class="scroll" style="flex:1; border:none; padding-left:4px; box-shadow:none">' + repTree() + '</div>';
   h += '</div>';
   
   /* الجانب الأيسر: منصة عرض التقرير والرسوم (Main Content) */
   h += '<div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:16px">';
-  
-  /* ترويسة المنصة وأزرار التصدير */
   h += '<div class="card no-print-shadow" style="margin:0; padding:16px; border-top:4px solid var(--o2); background:linear-gradient(90deg, #fff, #fffaf5)">';
   h += '<div class="row" style="justify-content:space-between; align-items:start">';
-  h += '<div><h2 style="margin:0">لوحة المؤشرات والتقارير</h2><div class="muted">تحليل بياني وتفصيلي للوحدة المحددة في الشجرة الجانبية.</div></div>';
+  h += '<div><h2 style="margin:0">لوحة المؤشرات والتقارير</h2><div class="muted">حدد عنصراً أو أكثر من الشجرة (☑) لمقارنتها مباشرة.</div></div>';
   h += '<div class="row no-print"><button class="sec sm" style="color:#107c41; border-color:#107c41; font-weight:bold" onclick="repExportExcel()"><svg style="vertical-align:middle;margin-left:4px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>تصدير Excel</button><button class="sec sm" onclick="window.print()">تصدير PDF</button></div>';
   h += '</div></div>';
   
-  /* الرسوم والجداول */
   h += '<div id="rep-main">' + repMain() + '</div>';
   h += '</div></div>';
   
@@ -1062,41 +1012,81 @@ function repTree() {
   const isOrg = A.role === 'org', R = isOrg ? A.OR : A.R;
   if(!R) return '';
   
-  const drawNode = (k, label, icon, sub, isMatch) => {
-    const sel = A.repSel === k;
-    return '<div onclick="A.repSel=\''+k+'\'; document.getElementById(\'rep-tree\').innerHTML=repTree(); document.getElementById(\'rep-main\').innerHTML=repMain()" style="display:flex; align-items:center; gap:8px; padding:8px 10px; margin:2px 0; border-radius:8px; cursor:pointer; font-size:0.9rem; transition:0.2s; ' + (sel ? 'background:#e8f4ec; color:#064e2b; font-weight:bold; border-right:3px solid var(--g2)' : 'background:transparent; color:var(--ink)') + '"><span style="font-size:1.1rem">'+icon+'</span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(label) + '</span><span class="muted" style="font-size:0.75rem">'+sub+'</span></div>';
+  const cb = (k, lbl, ext, dis, isMatch) => {
+    const on = !!A.rsel[k] || dis;
+    return '<label style="display:flex;gap:8px;align-items:center;margin:2px 0; cursor:pointer"><input type="checkbox" style="width:auto;margin:0" '+(on?'checked ':'')+(dis?'disabled ':'')+'onchange="advToggle(\''+k+'\')"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+(isMatch?'font-weight:bold;color:var(--g1)':'')+'">'+esc(lbl)+'</span><span class="muted" style="font-size:0.75rem">'+ext+'</span></label>';
   };
+  const tg = (k, open, hasKids) => hasKids ? '<button class="link sm no-print" style="padding:0 6px;min-width:24px" onclick="advExp(\''+k+'\')">'+(open?'▾':'◂')+'</button>' : '<span style="display:inline-block;min-width:24px"></span>';
   
   let h = '';
   if(isOrg) {
-     h += drawNode('o', 'المؤسسة ككل', '🏢', R.org && R.org.n ? R.org.n : 0, !q || 'المؤسسة'.indexOf(q)>=0);
-     (R.branches||[]).forEach(b => {
-        const bm = !q || (b.name||'').toLowerCase().indexOf(q) >= 0;
-        const bgs = (R.groups||[]).filter(g => g.branch_id === b.id);
-        const gm = bgs.some(g => (g.name||'').toLowerCase().indexOf(q) >= 0);
-        if(bm || gm) {
-           h += '<div style="margin-top:6px">' + drawNode('b:'+b.id, b.name, '📍', b.n||0, bm) + '</div>';
-           if(bgs.length) {
-             h += '<div style="margin-right:16px; border-right:1px dashed #c9d3cc; padding-right:8px">';
-             bgs.forEach(g => {
-                if(!q || bm || (g.name||'').toLowerCase().indexOf(q)>=0) h += drawNode('g:'+g.id, g.name, '👥', g.n||0, true);
-             });
-             h += '</div>';
+     const om = !q || 'المؤسسة'.indexOf(q)>=0;
+     const oSel = !!A.rsel['o'];
+     const oOpen = !!A.rexp['o'] || !!q; // مطوي افتراضياً ما لم يطلب الفتح أو يبحث
+     h += '<div style="display:flex;align-items:center;gap:4px">' + tg('o', oOpen, (R.branches||[]).length>0) + cb('o', 'المؤسسة كلها', '('+(R.org&&R.org.n?R.org.n:0)+')', false, om) + '</div>';
+     
+     if(oOpen && R.branches) {
+        h += '<div style="margin-right:22px; border-right:1px dashed #c9d3cc; padding-right:6px">';
+        R.branches.forEach(b => {
+           const bm = !q || (b.name||'').toLowerCase().indexOf(q)>=0;
+           const bgs = (R.groups||[]).filter(g => g.branch_id === b.id);
+           const gm = bgs.some(g => (g.name||'').toLowerCase().indexOf(q)>=0);
+           if(q && !bm && !gm) return;
+           
+           const bSel = oSel || !!A.rsel['b:'+b.id];
+           const bOpen = !!A.rexp['b:'+b.id] || (!!q && gm);
+           h += '<div style="display:flex;align-items:center;gap:4px;margin-top:4px">' + tg('b:'+b.id, bOpen, bgs.length>0) + cb('b:'+b.id, b.name, '('+(b.n||0)+')', oSel, bm) + '</div>';
+           
+           if(bOpen && bgs.length) {
+              h += '<div style="margin-right:22px; border-right:1px dashed #c9d3cc; padding-right:6px">';
+              bgs.forEach(g => {
+                 const gpm = !q || (g.name||'').toLowerCase().indexOf(q)>=0;
+                 if(q && !bm && !gpm) return;
+                 h += '<div style="display:flex;align-items:center;gap:4px">' + tg('g:'+g.id, false, false) + cb('g:'+g.id, g.name, '('+(g.n||0)+')', bSel, gpm) + '</div>';
+              });
+              h += '</div>';
            }
-        }
-     });
+        });
+        h += '</div>';
+     }
   } else {
-     const x = wrIdx();
+     const x = typeof wrIdx === 'function' ? wrIdx() : null;
+     if(!x) return '';
      (R.branches||[]).forEach(b => {
-        const bm = !q || (b.name||'').toLowerCase().indexOf(q) >= 0;
-        const bn = (x.bg[b.id]||[]).reduce((s,g)=>s+(x.mg[g.id]||[]).length,0);
-        h += drawNode('b:'+b.id, b.name, '📍', bn, bm);
+        const bm = !q || (b.name||'').toLowerCase().indexOf(q)>=0;
         const bgs = x.bg[b.id]||[];
-        if(bgs.length) {
-           h += '<div style="margin-right:16px; border-right:1px dashed #c9d3cc; padding-right:8px">';
+        const gm = bgs.some(g => (g.name||'').toLowerCase().indexOf(q)>=0);
+        const mm = bgs.some(g => (x.mg[g.id]||[]).some(m => (m.name||'').toLowerCase().indexOf(q)>=0));
+        if(q && !bm && !gm && !mm) return;
+        
+        const bSel = !!A.rsel['b:'+b.id];
+        const bOpen = !!A.rexp['b:'+b.id] || (!!q && (gm || mm));
+        const bn = bgs.reduce((s,g)=>s+(x.mg[g.id]||[]).length,0);
+        
+        h += '<div style="display:flex;align-items:center;gap:4px;margin-top:4px">' + tg('b:'+b.id, bOpen, bgs.length>0) + cb('b:'+b.id, b.name, '('+bn+')', false, bm) + '</div>';
+        
+        if(bOpen && bgs.length) {
+           h += '<div style="margin-right:22px; border-right:1px dashed #c9d3cc; padding-right:6px">';
            bgs.forEach(g => {
+              const gpm = !q || (g.name||'').toLowerCase().indexOf(q)>=0;
               const ms = x.mg[g.id]||[];
-              if(!q || bm || (g.name||'').toLowerCase().indexOf(q)>=0) h += drawNode('g:'+g.id, g.name, '👥', ms.length, true);
+              const gmm = ms.some(m => (m.name||'').toLowerCase().indexOf(q)>=0);
+              if(q && !bm && !gpm && !gmm) return;
+              
+              const gSel = bSel || !!A.rsel['g:'+g.id];
+              const gOpen = !!A.rexp['g:'+g.id] || (!!q && gmm);
+              
+              h += '<div style="display:flex;align-items:center;gap:4px">' + tg('g:'+g.id, gOpen, ms.length>0) + cb('g:'+g.id, g.name, '('+ms.length+')', bSel, gpm) + '</div>';
+              
+              if(gOpen && ms.length) {
+                 h += '<div style="margin-right:22px; border-right:1px dashed #c9d3cc; padding-right:6px">';
+                 ms.forEach(m => {
+                    const mpm = !q || (m.name||'').toLowerCase().indexOf(q)>=0;
+                    if(q && !bm && !gpm && !mpm) return;
+                    h += '<div style="display:flex;align-items:center;gap:4px">' + tg('m:'+m.id, false, false) + cb('m:'+m.id, m.name, '', gSel, mpm) + '</div>';
+                 });
+                 h += '</div>';
+              }
            });
            h += '</div>';
         }
@@ -1106,44 +1096,74 @@ function repTree() {
 }
 
 function repMain() {
-  const oldOk = A.ok, oldRsel = A.rsel;
   let h = '';
   if(A.role === 'org') {
-     A.ok = A.repSel; h = oOut(); A.ok = oldOk;
+     const keys = Object.keys(A.rsel).filter(k => A.rsel[k]);
+     const s = keys.length === 1 ? oUnit(keys[0]) : oUnit('o');
+     
+     /* Override oKids momentarily to feed selected checkboxes directly to oOut comparison logic */
+     const old_oKids = window.oKids;
+     window.oKids = function(unit) {
+        if(keys.length === 0) return (A.OR.branches||[]).map(b => oUnit('b:'+b.id)); // الافتراضي
+        if(keys.length === 1) {
+           const u = oUnit(keys[0]);
+           if(u.kind === 'o') return (A.OR.branches||[]).map(b => oUnit('b:'+b.id));
+           if(u.kind === 'b') return (A.OR.groups||[]).filter(g => g.branch_id === u.u.id).map(g => oUnit('g:'+g.id));
+           return [u];
+        }
+        return keys.map(k => oUnit(k)).filter(Boolean); // إرجاع كل ما تم تحديده (فرع ١ وفرع ٢ مثلاً)
+     };
+     
+     const old_ok = A.ok; A.ok = s.k;
+     h = oOut();
+     A.ok = old_ok;
+     window.oKids = old_oKids;
   } else {
-     A.rsel = {}; A.rsel[A.repSel] = true; h = wrOut(); A.rsel = oldRsel;
+     h = wrOut();
   }
-  // إزالة البطاقة الخارجية الافتراضية لدمجها بسلاسة في المنصة
-  return h.replace(/<div class="card">/i, '<div class="card" style="margin-top:0; border:none; box-shadow:none; padding:0">');
+  return h.replace(/<div class="card"/i, '<div class="card" style="margin-top:0; border:none; box-shadow:none; padding:0"');
 }
 
 function repExportExcel() {
    if (typeof XLSX === 'undefined') { alert('جاري تحميل مكتبة إكسل، يرجى المحاولة بعد ثوانٍ.'); return; }
    let rp, title;
    if(A.role === 'org') {
-       const s = oUnit(A.repSel) || oUnit('o');
-       rp = oRep(s); title = s.name;
+       const keys = Object.keys(A.rsel).filter(k => A.rsel[k]);
+       const s = keys.length === 1 ? oUnit(keys[0]) : oUnit('o');
+       
+       const old_oKids = window.oKids;
+       window.oKids = function(unit) {
+          if(keys.length === 0) return (A.OR.branches||[]).map(b => oUnit('b:'+b.id));
+          if(keys.length === 1) {
+             const u = oUnit(keys[0]);
+             if(u.kind === 'o') return (A.OR.branches||[]).map(b => oUnit('b:'+b.id));
+             if(u.kind === 'b') return (A.OR.groups||[]).filter(g => g.branch_id === u.u.id).map(g => oUnit('g:'+g.id));
+             return [u];
+          }
+          return keys.map(k => oUnit(k)).filter(Boolean);
+       };
+       rp = oRep(s); title = keys.length === 1 ? s.name : (keys.length ? 'مقارنة_مخصصة' : s.name);
+       window.oKids = old_oKids;
    } else {
-       const oldRsel = A.rsel; A.rsel = {}; A.rsel[A.repSel] = true;
-       const sc = wrScope(); rp = wrReport(sc); title = rp.scopeName; A.rsel = oldRsel;
+       const sc = wrScope(); rp = wrReport(sc); title = rp.scopeName;
    }
    
    const hdrs = ['الوحدة', 'الأعضاء'].concat(rp.ws.map(w => String(w).slice(5))).concat(['المتوسط']);
    const rs = rp.rows.slice().sort((a,b) => b.last - a.last);
    const data = [hdrs];
    
-   const totN = rp.nM || rp.n || (A.role !== 'org' ? (wrScope().ms||[]).length : 0);
+   const totN = rp.nM || (rp.ser ? (rp.ser.length ? (rp.nM || (rp.scopeName === 'المؤسسة كلها' && A.OR.org ? A.OR.org.n : 0)) : 0) : 0);
    const totalRow = [title, totN].concat(rp.ser).concat([Math.round(rp.ser.reduce((a,b)=>a+b,0)/Math.max(1,rp.ser.length))||0]);
    data.push(totalRow);
    
    rs.forEach(r => {
        const n = r.u.ms ? r.u.ms.length : (r.u.u ? r.u.u.n : 0);
-       data.push([r.u.name, n].concat(r.s).concat([Math.round(r.s.reduce((a,b)=>a+b,0)/Math.max(1,r.s.length))||0]));
+       data.push([r.name || r.u.name, n].concat(r.s).concat([Math.round(r.s.reduce((a,b)=>a+b,0)/Math.max(1,r.s.length))||0]));
    });
    
    const wb = XLSX.utils.book_new();
    const ws = XLSX.utils.aoa_to_sheet(data);
-   ws['!dir'] = 'rtl'; /* توجيه شيت الإكسل من اليمين لليسار */
+   ws['!dir'] = 'rtl';
    XLSX.utils.book_append_sheet(wb, ws, "تقرير المقارنة");
    XLSX.writeFile(wb, "تقرير_" + title.replace(/\s+/g,'_') + "_" + todayStr() + ".xlsx");
 }

@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'mutabaa-offline-v2';
+﻿const CACHE_NAME = 'mutabaa-offline-v3';
 const CORE_ASSETS = ['./', './index.html', './config.js'];
 
 self.addEventListener('install', event => {
@@ -37,3 +37,4 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+

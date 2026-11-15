@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261115-031951">
+<meta name="build" content="20261115-062159">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -194,7 +194,21 @@ const show = h => { document.getElementById('app').innerHTML = h; window.scrollT
 const loading = '<p class="muted">جارٍ التحميل…</p>';
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
+/* == v2_device_items_v1: device token == */
+const DEV_FNS = { my_week: 1, my_weeks: 1, submit_week: 1, request_reopen: 1 };
+let DEV_MEM = '';
+function devTok() {
+  try {
+    let t = localStorage.getItem('device_token');
+    if (!t || t.length < 16) {
+      t = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('d' + Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2));
+      localStorage.setItem('device_token', t);
+    }
+    return t;
+  } catch (e) { if (!DEV_MEM) DEV_MEM = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2); return DEV_MEM; }
+}
 async function rpc(fn, args) {
+  if (DEV_FNS[fn]) { args = Object.assign({}, args); if (!args.p_device) args.p_device = devTok(); }
   const h = { 'Content-Type': 'application/json', 'apikey': CFG.key };
   if (CFG.key && CFG.key.startsWith('eyJ')) h['Authorization'] = 'Bearer ' + CFG.key;
   const r = await fetch(CFG.url + '/rest/v1/rpc/' + fn, { method: 'POST', headers: h, body: JSON.stringify(args || {}) });
@@ -203,11 +217,11 @@ async function rpc(fn, args) {
   if (!r.ok) throw new Error((d && d.message) || ('http_' + r.status));
   return d;
 }
-function msg(e) {
+/* == v2_offline_sync_v1_ratios: historical denominator == */ function tiW(R, i, fb) { try { var a = R && R.ti_w, v = Array.isArray(a) ? a[i] : (a && R.weeks ? a[R.weeks[i]] : null); v = Number(v); if (v > 0) return v; } catch (e) {} return fb != null ? fb : ((R && R.total_items) || 0); } function msg(e) {
   const m = String((e && e.message) || e);
   if (m.startsWith('too_early')) return 'لم يمضِ الوقت الأدنى للقراءة بعد.';
   if (m === 'bad_code') return 'الرمز غير صحيح أو معطّل.';
-  if (m === 'bad_admin') return 'كلمة المرور أو الرمز غير صحيح.';
+  if (m === 'bad_admin') return 'كلمة المرور أو الرمز غير صحيح.'; /* == v2_device_items_v1 == */ if (m === 'device_locked') return 'هذا الرابط مرتبط بجهاز آخر، تواصل مع مسؤول مجموعتك لفك الارتباط.'; if (m === 'device_required') return 'تعذّر التعرف على جهازك. حدّث الصفحة وأعد المحاولة.'; if (m === 'reactivate_not_allowed') return 'لا يمكن إعادة تفعيل بند موقوف؛ أضف بنداً جديداً بدلاً منه.'; if (m === 'item_disabled') return 'هذا البند موقوف ولا يمكن تعديله.'; if (m === 'empty_title') return 'عنوان البند مطلوب.'; if (m === 'bad_time') return 'وقت التعبئة لا يقع ضمن الأسبوع المطلوب.';
   if (m.startsWith('locked')) { const s = parseInt(m.split(':')[1], 10) || 0; return 'محاولات خاطئة كثيرة. انتظر ' + (s ? Math.ceil(s / 60) + ' دقيقة' : 'قليلاً') + ' ثم أعد المحاولة.'; }
   if (m === 'forbidden') return 'هذه الصلاحية غير متاحة لحسابك.';
   if (m === 'group_required') return 'يجب اختيار المجموعة.';
@@ -302,7 +316,7 @@ async function adminLogin() {
 }
 function adminOut() { const p = A.pass; adminClear(); if (p) { try { rpc('admin_logout', { p_pass: p }).catch(function () {}); } catch (_) {} } location.hash = ''; login(); }
 async function adminLoad() {
-  A.O = null; A.ob = null; A.og = null; A.PL = null; A.AP = null; A.PR = null;
+  A.O = null; A.ob = null; A.og = null; A.PL = null; A.AP = null; A.PR = null; A.IT = null;
 /* == members_branch_v1 == */ /* == group_role_ui_v1 == */ if (A.role === 'branch' || A.role === 'group') { show(loading); try { A.L = null; A.W = null; A.R = null; A.data = await rpc('admin_members', { p_pass: A.pass }); /* == group_access_ui_v1 == */ A.GA = null; if (A.role === 'branch') { try { A.GA = await rpc('admin_group_access_list', { p_pass: A.pass }); } catch (_) { A.GA = null; } } adminRender(); } catch (e) { if (String(e.message) === 'bad_admin') { adminClear(); adminEntry(); alert(msg(e)); } else show(errBox(e, 'adminLoad()')); } return; }
   show(loading);
   try { A.L = null; A.W = null; A.data = null; /* == adminload_org_v1 == */ adminRender(); }
@@ -310,13 +324,59 @@ async function adminLoad() {
 }
 function adminRender() {
 /* == roles_tabs_v1 == */ /* == titles_v1 == */ const grp = A.role === 'group', org = A.role !== 'branch' && !grp, ttl = grp ? 'مشرف المجموعة: ' + (A.groupName || '') : org ? 'المسؤول العام للمؤسسة' : 'مسؤول الفرع: ' + (A.branchName || '');
-const tabs = grp ? [['reports', 'التقارير'], ['nr', 'تقارير جديدة'], ['wr', 'متابعة الأسبوع'], ['prep', 'التحضير الجماعي'], ['members', 'الأعضاء']] : org ? [['reports', 'التقارير'], ['nr', 'تقارير جديدة'], ['wr', 'متابعة الأسبوع'], ['week', 'الفروع'], ['periods', 'الفترات'], ['appr', 'الاعتماد']] : [['reports', 'التقارير'], ['nr', 'تقارير جديدة'], ['wr', 'متابعة الأسبوع'], ['week', 'الهيكل'], ['members', 'الأعضاء'], ['appr', 'الاعتماد']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'reports'; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
+const tabs = grp ? [['reports', 'التقارير'], ['nr', 'تقارير جديدة'], ['wr', 'متابعة الأسبوع'], ['prep', 'التحضير الجماعي'], ['members', 'الأعضاء']] : org ? [['reports', 'التقارير'], ['nr', 'تقارير جديدة'], ['wr', 'متابعة الأسبوع'], ['week', 'الفروع'], ['periods', 'الفترات'], ['items', 'البنود'], ['appr', 'الاعتماد']] : [['reports', 'التقارير'], ['nr', 'تقارير جديدة'], ['wr', 'متابعة الأسبوع'], ['week', 'الهيكل'], ['members', 'الأعضاء'], ['appr', 'الاعتماد']]; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'reports'; if (!tabs.some(t => t[0] === A.tab)) A.tab = 'wr';
   let h = '<div class="row noprint"><div class="grow"><h1>' + esc(ttl) + '</h1></div><button class="sec sm" onclick="adminLoad()">تحديث</button><button class="sec sm" onclick="adminOut()">خروج</button></div><div class="tabs noprint">' +
     tabs.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" onclick="A.tab=\'' + t[0] + '\';adminRender()">' + t[1] + '</button>').join('') + '</div>';
-  h += (({ reports: tReports, nr: tNR, wr: tWR, week: tWeek, members: tMembers, prep: tPrep, periods: tPeriods, appr: tAppr })[A.tab] || tReports)();
+  h += (({ reports: tReports, nr: tNR, wr: tWR, week: tWeek, members: tMembers, prep: tPrep, periods: tPeriods, items: tItems, appr: tAppr })[A.tab] || tReports)();
   show(h);
 }
 
+/* == v2_device_items_v1: items tab == */
+function itLoad() {
+  if (A.itBusy) return; A.itBusy = true;
+  return rpc('admin_checklist', { p_pass: A.pass }).then(function (r) { A.IT = Array.isArray(r) ? r : []; }).catch(function (e) { A.IT = []; alert(msg(e)); }).then(function () { A.itBusy = false; if (A.tab === 'items') adminRender(); });
+}
+async function itCall(fn, args) {
+  
+  try { const r = await rpc(fn, args); A.IT = null; adminRender(); if (r && r.versioned) alert('حُفظ التعديل كإصدار جديد يبدأ من الأسبوع الجاري، وبقي الإصدار القديم في الأسابيع السابقة.'); } catch (e) { alert(msg(e)); }
+}
+function itAdd() {
+  const t = prompt('عنوان البند الجديد:'); if (t === null || !t.trim()) return;
+  const cats = (A.IT || []).map(x => x.cat || '').filter((v, i, a) => v && a.indexOf(v) === i);
+  const c = prompt('القسم' + (cats.length ? ' (الأقسام الحالية: ' + cats.join('، ') + ')' : '') + ':', cats[0] || ''); if (c === null) return;
+  itCall('admin_check_save', { p_pass: A.pass, p_id: null, p_title: t.trim(), p_cat: c.trim(), p_active: null });
+}
+function itEdit(id) {
+  const x = (A.IT || []).filter(y => y.id === id)[0]; if (!x) return;
+  const t = prompt('عنوان البند:', x.title); if (t === null) return;
+  const c = prompt('القسم:', x.cat || ''); if (c === null) return;
+  if (t.trim() === String(x.title).trim() && c.trim() === String(x.cat || '').trim()) return;
+  itCall('admin_check_save', { p_pass: A.pass, p_id: id, p_title: t.trim(), p_cat: c.trim(), p_active: null });
+}
+function itDel(id) {
+  const x = (A.IT || []).filter(y => y.id === id)[0]; if (!x) return;
+  if (!confirm('سيُوقف البند «' + x.title + '» من بداية الأسبوع الجاري، ويبقى ظاهراً ومحسوباً في الأسابيع السابقة.')) return;
+  itCall('admin_check_delete', { p_pass: A.pass, p_id: id });
+}
+async function itMove(id, dir) {
+  try { await rpc('admin_check_move', { p_pass: A.pass, p_id: id, p_dir: dir }); A.IT = null; adminRender(); } catch (e) { alert(msg(e)); }
+}
+function tItems() {
+  if (!A.IT) { itLoad(); return '<p class="muted">جارٍ تحميل البنود…</p>'; }
+  const act = A.IT.filter(x => x.active), off = A.IT.filter(x => !x.active);
+  let h = '<div class="card"><h3>إدارة البنود</h3><p class="muted">البنود الفعّالة الآن: <b>' + act.length + '</b>. أي إضافة أو تعديل أو إيقاف يسري من بداية الأسبوع الجاري فقط، وتبقى الأسابيع السابقة وتقاريرها كما كانت.</p><p><button onclick="itAdd()">إضافة بند</button></p></div>';
+  h += '<div class="scroll"><table><tr><th>#</th><th>البند</th><th>القسم</th><th>يسري من</th><th></th></tr>';
+  act.forEach(function (x, i) {
+    h += '<tr><td>' + (i + 1) + '</td><td>' + esc(x.title) + '</td><td>' + esc(x.cat) + '</td><td style="direction:ltr">' + esc(x.from) + '</td><td class="row">' +
+      '<button class="sec sm" onclick="itEdit(' + x.id + ')">تعديل</button><button class="sec sm" onclick="itMove(' + x.id + ',-1)">↑</button><button class="sec sm" onclick="itMove(' + x.id + ',1)">↓</button><button class="danger sm" onclick="itDel(' + x.id + ')">إيقاف</button></td></tr>';
+  });
+  h += '</table></div>';
+  if (off.length) {
+    h += '<details class="card"><summary>بنود موقوفة أو سابقة (' + off.length + ')</summary><div class="scroll"><table><tr><th>البند</th><th>القسم</th><th>من</th><th>إلى</th></tr>' +
+      off.map(x => '<tr style="opacity:.6"><td>' + esc(x.title) + '</td><td>' + esc(x.cat) + '</td><td style="direction:ltr">' + esc(x.from) + '</td><td style="direction:ltr">' + esc(x.to) + '</td></tr>').join('') + '</table></div></details>';
+  }
+  return h;
+}
 /* == nr_skel_v1 == */
 function tNR() {
   if (!A.N || A.N.pass !== A.pass) A.N = { pass: A.pass, meta: null, err: false, busy: false };
@@ -383,10 +443,10 @@ function nrBranchHtml(R, M) {
   const srcOf = function (m, b) { return b.i < 0 ? '' : ((m.src || [])[b.i] || ''); };
   const stat = function (list, bl) {
     const ok = bl.filter(function (b) { return b.ok; });
-    let sent = 0, done = 0, grp = 0;
-    ok.forEach(function (b) { list.forEach(function (m) { if (cell(m, b, 's')) { sent++; done += cell(m, b, 'd'); if (srcOf(m, b) === 'group') grp++; } }); });
+    let sent = 0, done = 0, grp = 0, tdn = 0;
+    ok.forEach(function (b) { list.forEach(function (m) { if (cell(m, b, 's')) { sent++; done += cell(m, b, 'd'); tdn += tiW(R, b.i, ti); if (srcOf(m, b) === 'group') grp++; } }); });
     const poss = list.length * ok.length;
-    return { nw: ok.length, sent: sent, poss: poss, sp: poss ? Math.round(100 * sent / poss) : null, ep: sent && ti ? Math.round(100 * done / (sent * ti)) : null, gp: sent ? Math.round(100 * grp / sent) : null };
+    return { nw: ok.length, sent: sent, poss: poss, sp: poss ? Math.round(100 * sent / poss) : null, ep: sent && tdn ? Math.round(100 * done / tdn) : null, gp: sent ? Math.round(100 * grp / sent) : null };
   };
   const bl = blocksOf(per), okb = bl.filter(function (b) { return b.ok; });
   const all = stat(ms, bl);
@@ -457,17 +517,17 @@ function nrBranchHtml(R, M) {
     h += '<div class="card"><h3>التفصيل: أعضاء ' + esc(og.g.name) + ' بأسمائهم</h3><div class="muted">قراءة فقط لمسؤول الفرع.</div><div class="muted" style="margin:6px 0">' +
       '<span class="nrb-d" style="background:#0f5b52;border:2px solid #0f5b52"></span>ذاتي <span class="nrb-d" style="background:#cfe5df;border:2px solid #0f5b52"></span>جماعي <span class="nrb-d" style="background:#e4a72b;border:2px solid #b07a10"></span>أُعيد فتحه بإذن <span class="nrb-d" style="border:2px solid #a9b8b3"></span>لم يُرسل</div><div class="scroll"><table><tr><th>العضو</th><th>الأسابيع</th><th>التنفيذ</th><th>ملاحظة</th></tr>' +
       ord.map(function (o) {
-        const m = o.m; let d = 0, ro = false;
+        const m = o.m; let d = 0, ro = false, md = 0;
         const dots = okb.map(function (b) {
           const s = cell(m, b, 's'), g = srcOf(m, b) === 'group', r = cell(m, b, 'ro');
-          if (s) d += cell(m, b, 'd'); if (r) ro = true;
+          if (s) { d += cell(m, b, 'd'); md += tiW(R, b.i, ti); } if (r) ro = true;
           const t = r ? 'أُعيد فتحه بإذن' : !s ? 'لم يُرسل' : g ? 'جماعي' : 'ذاتي';
           const st = r ? 'background:#e4a72b;border:2px solid #b07a10' : !s ? 'border:2px solid #a9b8b3' : g ? 'background:#cfe5df;border:2px solid #0f5b52' : 'background:#0f5b52;border:2px solid #0f5b52';
           return '<span class="nrb-d" title="' + dm(b.w) + ' · ' + t + '" style="' + st + '"></span>';
         }).join('');
         const last2 = okb.length >= 2 && !cell(m, okb[okb.length - 1], 's') && !cell(m, okb[okb.length - 2], 's');
         const note = last2 ? 'لم يُرسل أسبوعين متتاليين' : ro ? 'أُعيد فتح أسبوع له بإذن' : (o.n === 0 && okb.length ? 'لم يُرسل في الفترة' : (o.n === 1 && okb.length >= 2 ? 'أرسل أسبوعاً واحداً فقط' : ''));
-        return '<tr><td><b>' + esc(m.name) + '</b></td><td style="white-space:nowrap">' + dots + '</td><td>' + (o.n && ti ? Math.round(100 * d / (o.n * ti)) + '%' : '—') + '</td><td style="color:' + (last2 ? '#a22e25' : '#6b746e') + '">' + note + '</td></tr>';
+        return '<tr><td><b>' + esc(m.name) + '</b></td><td style="white-space:nowrap">' + dots + '</td><td>' + (o.n && md ? Math.round(100 * d / md) + '%' : '—') + '</td><td style="color:' + (last2 ? '#a22e25' : '#6b746e') + '">' + note + '</td></tr>';
       }).join('') + '</table></div></div>';
   }
   const unsent = all.poss - all.sent;
@@ -485,10 +545,10 @@ function nrBranchHtml(R, M) {
   try {
     const memX = function (o) {
       return o.l.map(function (m) {
-        let d = 0, nn = 0;
-        const st = okb.map(function (b) { const s = cell(m, b, 's'), g = srcOf(m, b) === 'group', r = cell(m, b, 'ro'); if (s) { nn++; d += cell(m, b, 'd'); } return r ? 'ro' : !s ? 'n' : g ? 'g' : 's'; });
+        let d = 0, nn = 0, md = 0;
+        const st = okb.map(function (b) { const s = cell(m, b, 's'), g = srcOf(m, b) === 'group', r = cell(m, b, 'ro'); if (s) { nn++; d += cell(m, b, 'd'); md += tiW(R, b.i, ti); } return r ? 'ro' : !s ? 'n' : g ? 'g' : 's'; });
         const l2 = okb.length >= 2 && !cell(m, okb[okb.length - 1], 's') && !cell(m, okb[okb.length - 2], 's');
-        return { name: m.name, st: st, n: nn, sp: okb.length ? Math.round(100 * nn / okb.length) : null, ep: nn && ti ? Math.round(100 * d / (nn * ti)) : null, note: l2 ? 'لم يُرسل أسبوعين متتاليين' : st.indexOf('ro') >= 0 ? 'أُعيد فتح أسبوع له بإذن' : (nn === 0 && okb.length ? 'لم يُرسل في الفترة' : (nn === 1 && okb.length >= 2 ? 'أرسل أسبوعاً واحداً فقط' : '')) };
+        return { name: m.name, st: st, n: nn, sp: okb.length ? Math.round(100 * nn / okb.length) : null, ep: nn && md ? Math.round(100 * d / md) : null, note: l2 ? 'لم يُرسل أسبوعين متتاليين' : st.indexOf('ro') >= 0 ? 'أُعيد فتح أسبوع له بإذن' : (nn === 0 && okb.length ? 'لم يُرسل في الفترة' : (nn === 1 && okb.length >= 2 ? 'أرسل أسبوعاً واحداً فقط' : '')) };
       }).sort(function (a, b) { return a.n - b.n || String(a.name).localeCompare(String(b.name), 'ar'); });
     };
     N.exp = {
@@ -558,8 +618,8 @@ function nrOrgHtml(R, M, AP) {
   const stat = function (u, bl) {
     const ok = okOf(bl);
     if (!ok.some(function (b) { return b.i >= 0; })) return { sp: null, ep: null, sent: 0 };
-    const sent = sumAt(u.s, ok), done = sumAt(u.d, ok), poss = (u.n || 0) * ok.length;
-    return { sp: poss ? Math.round(100 * sent / poss) : null, ep: sent && ti ? Math.round(100 * done / (sent * ti)) : null, sent: sent };
+    const sent = sumAt(u.s, ok), done = sumAt(u.d, ok), poss = (u.n || 0) * ok.length; const tdn = ok.reduce(function (t, b) { return b.i >= 0 ? t + (((u.s || [])[b.i] || 0) * tiW(R, b.i, ti)) : t; }, 0);
+    return { sp: poss ? Math.round(100 * sent / poss) : null, ep: sent && tdn ? Math.round(100 * done / tdn) : null, sent: sent };
   };
   const cats = [], catIds = {};
   items.forEach(function (it) { const c = it.cat || 'غير مصنّف'; if (!catIds[c]) { catIds[c] = []; cats.push(c); } catIds[c].push(String(it.id)); });
@@ -810,7 +870,7 @@ function nrOrgPdf() {
       title: 'تقرير المؤسسة — ' + perTxt, sub: 'المسؤول العام · المؤسسة بلا أسماء | الفترة: ' + perTxt,
       charts: [{ id: 'o_cmp', label: 'مقارنة الفروع' }, { id: 'o_trend', label: 'الاتجاه عبر الفترات' }, { id: 'o_items', label: 'تنفيذ البنود' }],
       build: function (o) {
-        const c1 = nrxCmp(o, 'o_items', 'تنفيذ البنود الأربعة عشر في المؤسسة', 'نسبة التنفيذ بين المُرسَل.', items.map(function (x, i) { return (i + 1) + '. ' + x.title; }), [{ name: 'التنفيذ', vals: E.orgItems }]);
+        const c1 = nrxCmp(o, 'o_items', 'تنفيذ البنود في المؤسسة', 'نسبة التنفيذ بين المُرسَل.', items.map(function (x, i) { return (i + 1) + '. ' + x.title; }), [{ name: 'التنفيذ', vals: E.orgItems }]);
         const c2 = nrxCmp(o, 'o_cmp', 'مقارنة الفروع: الإرسال والتنفيذ', 'الإرسال = المُرسَل ÷ (الأعضاء × الأسابيع المكتملة). التنفيذ بين المُرسَل فقط.', rows.map(function (r) { return r.name; }), [{ name: 'الإرسال', vals: rows.map(function (r) { return r.sp; }) }, { name: 'التنفيذ', vals: rows.map(function (r) { return r.ep; }) }]);
         const c3 = nrxBox(o, 'o_trend', 'الاتجاه عبر الفترات', E.trend.length < 2 ? 'يبدأ الاتجاه مع الفترة الثانية؛ لا بيانات تكفي للمقارنة بعد.' : '', E.trend.length < 2 ? nrxNo() : nrxTrend(E.trend.map(function (x) { return String(x.p.start).slice(5); }), [{ name: 'الإرسال', vals: E.trend.map(function (x) { return x.sp; }) }, { name: 'التنفيذ', vals: E.trend.map(function (x) { return x.ep; }) }], o), nrxLeg(['الإرسال', 'التنفيذ'], o));
         return [{ title: 'تقرير المؤسسة: الملخص', html: p1 + c1 }, { title: 'مقارنة الفروع', html: c2 + c3 + p2 }, { title: 'التفصيل: المجموعات والبنود', html: p3 }];
@@ -1092,7 +1152,7 @@ function nrBranchPdf() {
       p1 += nrxCmp(o, 'b_cmp', 'مقارنة المجموعات: الإرسال والتنفيذ', 'الإرسال = المُرسَل ÷ (الأعضاء × الأسابيع المكتملة). التنفيذ بين المُرسَل فقط.', E.groups.map(function (g) { return g.name; }), [{ name: 'الإرسال', vals: E.groups.map(function (g) { return g.sp; }) }, { name: 'التنفيذ', vals: E.groups.map(function (g) { return g.ep; }) }]);
       p1 += nrxBox(o, 'b_trend', 'اتجاه الإرسال عبر الأسابيع المكتملة', E.trend.length ? '' : 'لا أسبوع مكتمل بعد.', E.trend.length ? nrxTrend(E.trend.map(function (t) { return t.l; }), [{ name: 'الإرسال', vals: E.trend.map(function (t) { return t.p; }) }], o) : nrxNo(), nrxLeg(['الإرسال'], o));
       let p2 = '<div class="grid-2"><div class="box-warn"><div class="sec-title">أضعف ثلاثة بنود في الفرع</div>' + nrxList(ip.slice(0, 3)) + '</div><div class="box-ok"><div class="sec-title">أقوى ثلاثة بنود في الفرع</div>' + nrxList(ip.slice(-3).reverse()) + '</div></div>';
-      p2 += nrxCmp(o, 'b_items', 'تنفيذ البنود الأربعة عشر في الفرع', 'نسبة التنفيذ بين المُرسَل.', E.items.map(function (x, i) { return (i + 1) + '. ' + x.title; }), [{ name: 'التنفيذ', vals: E.items.map(function (x) { return x.v; }) }]);
+      p2 += nrxCmp(o, 'b_items', 'تنفيذ البنود في الفرع', 'نسبة التنفيذ بين المُرسَل.', E.items.map(function (x, i) { return (i + 1) + '. ' + x.title; }), [{ name: 'التنفيذ', vals: E.items.map(function (x) { return x.v; }) }]);
       p2 += nrxBox(o, 'b_heat', 'الخريطة الحرارية: المجموعات × البنود', 'أحمر دون 35%، أصفر دون 65%، أخضر ما فوق. الأرقام في الرأس هي أرقام البنود.', nrxHeat(E.groups.map(function (g) { return g.name; }), E.items.map(function (x, i) { return i + 1; }), E.groups.map(function (g) { return g.cells; }), E.items.map(function (x) { return x.title; }), E.secs));
       let p3 = nrxBoxP('المجموعات من الأضعف', '<table>' + nrxTh(['#', 'المجموعة', 'الأعضاء', 'الإرسال', 'التنفيذ', 'جماعي']) + E.groups.map(function (g, i) { return '<tr>' + nrxTx(i + 1, 1) + '<td><b>' + esc(g.name) + '</b></td>' + nrxTx(g.n, 1) + nrxTd(g.sp) + nrxTd(g.ep) + nrxTd(g.gp) + '</tr>'; }).join('') + '</table>');
       if (E.prev) p3 += nrxBoxP('مقارنة بالفترة السابقة', 'الفترة السابقة: إرسال ' + nrxPt(E.prev.sp) + '، تنفيذ ' + nrxPt(E.prev.ep) + ' ← الحالية: إرسال ' + nrxPt(E.all.sp) + '، تنفيذ ' + nrxPt(E.all.ep) + '.');
@@ -1149,7 +1209,7 @@ function nrGroupPdf() {
       p1 += nrxCmp(o, 'g_mem', 'إرسال وتنفيذ كل عضو', 'الإرسال = الأسابيع المُرسَلة ÷ الأسابيع المكتملة. التنفيذ بين ما أُرسل فقط.', E.members.map(function (m) { return m.name; }), [{ name: 'الإرسال', vals: E.members.map(function (m) { return m.sp; }) }, { name: 'التنفيذ', vals: E.members.map(function (m) { return m.ep; }) }]);
       p1 += nrxBox(o, 'g_trend', 'اتجاه الإرسال عبر الأسابيع المكتملة', E.trend.length ? '' : 'لا أسبوع مكتمل بعد.', E.trend.length ? nrxTrend(E.trend.map(function (t) { return t.l; }), [{ name: 'الإرسال', vals: E.trend.map(function (t) { return t.p; }) }], o) : nrxNo(), nrxLeg(['نسبة المُرسِلين'], o));
       let p2 = '<div class="grid-2"><div class="box-warn"><div class="sec-title">أضعف ثلاثة بنود: موضوع اللقاء القادم</div>' + nrxList(ip.slice(0, 3)) + '</div><div class="box-ok"><div class="sec-title">أقوى ثلاثة بنود</div>' + nrxList(ip.slice(-3).reverse()) + '</div></div>';
-      p2 += nrxCmp(o, 'g_items', 'تنفيذ البنود الأربعة عشر في المجموعة', 'نسبة التنفيذ بين المُرسَل.', E.items.map(function (x, i) { return (i + 1) + '. ' + x.title; }), [{ name: 'التنفيذ', vals: E.items.map(function (x) { return x.v; }) }]);
+      p2 += nrxCmp(o, 'g_items', 'تنفيذ البنود في المجموعة', 'نسبة التنفيذ بين المُرسَل.', E.items.map(function (x, i) { return (i + 1) + '. ' + x.title; }), [{ name: 'التنفيذ', vals: E.items.map(function (x) { return x.v; }) }]);
       if (need.length) p2 += nrxBoxP('يحتاجون تواصلاً الآن', need.map(function (m) { return '<div><b>' + esc(m.name) + ':</b> ' + esc(m.note || '') + '</div>'; }).join(''));
       let p3 = nrxBoxP('أعضاء المجموعة', '<table>' + nrxTh(['العضو'].concat(nrxWkHeads(E)).concat(['الإرسال', 'التنفيذ', 'ملاحظة'])) + E.members.map(function (m) { return '<tr><td><b>' + esc(m.name) + '</b></td>' + m.st.map(nrxWkCell).join('') + nrxTd(m.sp) + nrxTd(m.ep) + '<td>' + esc(m.note || '') + '</td></tr>'; }).join('') + '</table>');
       p3 += nrxBoxP('طريقة الحساب وحدود التقرير', 'الإرسال = المُرسَل ÷ (الأعضاء × الأسابيع المكتملة). التنفيذ = البنود المنفَّذة ÷ (المُرسَل × ' + E.ti + ' بنداً). الأسبوع الجاري لا يُحتسب. أسباب طلبات إعادة الفتح لا تدخل هذا التقرير.');
@@ -1256,19 +1316,19 @@ function nrGroupHtml(R, M) {
   const cell = function (m, b, f) { return b.i < 0 ? 0 : ((m[f] || [])[b.i] || 0); };
   const srcOf = function (m, b) { return b.i < 0 ? '' : ((m.src || [])[b.i] || ''); };
   let sent = 0, done = 0;
-  okb.forEach(function (b) { ms.forEach(function (m) { if (cell(m, b, 's')) { sent++; done += cell(m, b, 'd'); } }); });
+  let tdn = 0; okb.forEach(function (b) { ms.forEach(function (m) { if (cell(m, b, 's')) { sent++; done += cell(m, b, 'd'); tdn += tiW(R, b.i, ti); } }); });
   const poss = ms.length * okb.length;
-  const sp = poss ? Math.round(100 * sent / poss) : null, ep = sent && ti ? Math.round(100 * done / (sent * ti)) : null;
+  const sp = poss ? Math.round(100 * sent / poss) : null, ep = sent && tdn ? Math.round(100 * done / tdn) : null;
   const rows = ms.map(function (m) {
     const n = okb.filter(function (b) { return cell(m, b, 's'); }).length;
     let d = 0, ro = false;
-    okb.forEach(function (b) { if (cell(m, b, 's')) d += cell(m, b, 'd'); if (cell(m, b, 'ro')) ro = true; });
+    let md = 0; okb.forEach(function (b) { if (cell(m, b, 's')) { d += cell(m, b, 'd'); md += tiW(R, b.i, ti); } if (cell(m, b, 'ro')) ro = true; });
     const last2 = okb.length >= 2 && !cell(m, okb[okb.length - 1], 's') && !cell(m, okb[okb.length - 2], 's');
     const why = [];
     if (last2) why.push('لم يُرسل أسبوعين متتاليين');
     if (okb.length >= 2 && n === 0) why.push('لم يُرسل في الفترة');
     else if (okb.length >= 2 && n === 1) why.push('أرسل أسبوعاً واحداً من ' + okb.length);
-    return { m: m, n: n, d: d, ro: ro, last2: last2, why: why, need: why.length > 0 };
+    return { m: m, n: n, d: d, md: md, ro: ro, last2: last2, why: why, need: why.length > 0 };
   }).sort(function (a, b) { return a.n - b.n || String(a.m.name).localeCompare(String(b.m.name), 'ar'); });
   const need = rows.filter(function (r) { return r.need; });
   const rqPend = (N.rq || []).filter(function (r) { return r.status === 'pending'; });
@@ -1301,7 +1361,7 @@ function nrGroupHtml(R, M) {
         return '<span class="nrg-d" title="' + dm(b.w) + ' · ' + t + '" style="' + st + '"></span>';
       }).join('');
       const note = r.last2 ? 'لم يُرسل أسبوعين متتاليين' : r.ro ? 'أُعيد فتح أسبوع له بإذن' : (r.why[0] || '');
-      return '<tr><td><b>' + esc(r.m.name) + '</b> <button class="sec sm" onclick="nrMc(' + (+r.m.id) + ')">بطاقة</button></td><td style="white-space:nowrap">' + dots + '</td><td>' + (r.n && ti ? Math.round(100 * r.d / (r.n * ti)) + '%' : '—') + '</td><td style="color:' + (r.last2 ? '#a22e25' : '#6b746e') + '">' + esc(note) + '</td></tr>';
+      return '<tr><td><b>' + esc(r.m.name) + '</b> <button class="sec sm" onclick="nrMc(' + (+r.m.id) + ')">بطاقة</button></td><td style="white-space:nowrap">' + dots + '</td><td>' + (r.n && r.md ? Math.round(100 * r.d / r.md) + '%' : '—') + '</td><td style="color:' + (r.last2 ? '#a22e25' : '#6b746e') + '">' + esc(note) + '</td></tr>';
     }).join('') + '</table></div>' : '<p class="muted">لا أعضاء في المجموعة بعد.</p>') + '</div>';
   N.curPer = per;
   h += nrMcHtml(ms, per);
@@ -1318,7 +1378,7 @@ function nrGroupHtml(R, M) {
       weeks: okb.map(function (b) { return b.w; }),
       items: items.map(function (it) { let d = 0; okb.forEach(function (b) { if (b.i >= 0) { const og2 = (R.gi || {})[String(gid)]; const a = og2 && og2[String(it.id)]; d += a ? (a[b.i] || 0) : 0; } }); return { title: it.title, cat: it.cat || 'غير مصنّف', v: gSent ? Math.round(100 * d / gSent) : null }; }),
       members: rows.map(function (r) {
-        return { name: r.m.name, st: okb.map(function (b) { return cell(r.m, b, 'ro') ? 'ro' : !cell(r.m, b, 's') ? 'n' : srcOf(r.m, b) === 'group' ? 'g' : 's'; }), n: r.n, sp: okb.length ? Math.round(100 * r.n / okb.length) : null, ep: r.n && ti ? Math.round(100 * r.d / (r.n * ti)) : null, note: r.last2 ? 'لم يُرسل أسبوعين متتاليين' : r.ro ? 'أُعيد فتح أسبوع له بإذن' : (r.why[0] || ''), need: r.need };
+        return { name: r.m.name, st: okb.map(function (b) { return cell(r.m, b, 'ro') ? 'ro' : !cell(r.m, b, 's') ? 'n' : srcOf(r.m, b) === 'group' ? 'g' : 's'; }), n: r.n, sp: okb.length ? Math.round(100 * r.n / okb.length) : null, ep: r.n && r.md ? Math.round(100 * r.d / r.md) : null, note: r.last2 ? 'لم يُرسل أسبوعين متتاليين' : r.ro ? 'أُعيد فتح أسبوع له بإذن' : (r.why[0] || ''), need: r.need };
       }),
       trend: tr.map(function (x) { return { l: x.l, n: x.n, p: ms.length ? Math.round(100 * x.n / ms.length) : null }; }),
       rqPend: N.rq ? rqPend.length : null
@@ -1563,7 +1623,7 @@ function wrSer(ms, metric) {
     if (!ms.length) return 0;
     let s = 0;
     ms.forEach(function (m) { s += metric === 'sent' ? ((m.s || [])[i] || 0) : ((m.d || [])[i] || 0); });
-    return Math.round(metric === 'sent' ? 100 * s / ms.length : 100 * s / (ms.length * ti));
+    return Math.round(metric === 'sent' ? 100 * s / ms.length : 100 * s / (ms.length * tiW(A.R, i, ti)));
   });
 }
 function wrDelta(a) { return a.length < 2 ? 0 : a[a.length - 1] - a[a.length - 2]; }
@@ -1745,7 +1805,7 @@ function oUnit(k) {
 }
 function oSer(u, m) {
   const R = A.OR, ti = R.total_items || 1, n = u.n || 0;
-  return R.ci.map(function (i) { if (!n) return 0; return Math.round(m === 'sent' ? 100 * ((u.s || [])[i] || 0) / n : 100 * ((u.d || [])[i] || 0) / (n * ti)); });
+  return R.ci.map(function (i) { if (!n) return 0; return Math.round(m === 'sent' ? 100 * ((u.s || [])[i] || 0) / n : 100 * ((u.d || [])[i] || 0) / (n * tiW(R, i, ti))); });
 }
 function oItems(u) {
   const R = A.OR; if (!R.ci.length || !u.n) return null;
@@ -2122,7 +2182,7 @@ function repControlPanel() {
     ['donut', 'دائرة نسبة الإرسال'],
     ['periods', 'مقارنة الفترات الشهرية'],
     ['cats', 'توزيع الأقسام الخمسة'],
-    ['items', 'تفصيل البنود الأربعة عشر'],
+    ['items', 'تفصيل البنود'],
     ['none', 'بدون رسوم بيانية (الجداول فقط)']
   ];
 
@@ -2237,7 +2297,7 @@ function oCharts(s, rp) {
     const its = oItems(u);
     const sortedItems = its && its.length ? its.slice().sort(function (a, b) { return b.pct - a.pct; }) : [];
     const itemsBars = svgHBars(sortedItems.map(function (it) { return { label: it.title, sub: it.cat, pct: it.pct }; }), 'لا بيانات للبنود في هذا النطاق.');
-    out += '<div class="row" style="align-items:stretch;margin-top:10px">' + svgCard('تفصيل البنود الأربعة عشر (' + timeLbl + ' — مرتبة تنازلياً)', itemsBars, 320) + '</div>';
+    out += '<div class="row" style="align-items:stretch;margin-top:10px">' + svgCard('تفصيل البنود (' + timeLbl + ' — مرتبة تنازلياً)', itemsBars, 320) + '</div>';
   }
 
   return out;
@@ -2313,7 +2373,7 @@ function wrCharts(sc, rp) {
     const its = wrItems(sc);
     const sortedItems = its && its.length ? its.slice().sort(function (a, b) { return b.pct - a.pct; }) : [];
     const itemsBars = svgHBars(sortedItems.map(function (it) { return { label: it.title, sub: it.cat, pct: it.pct }; }), sc.itemsOk ? 'لا بيانات للبنود بعد.' : 'تفصيل البنود يتاح عند اختيار فرع أو مجموعة فقط.');
-    out += '<div class="row" style="align-items:stretch;margin-top:10px">' + svgCard('تفصيل البنود الأربعة عشر (' + timeLbl + ' — مرتبة تنازلياً)', itemsBars, 320) + '</div>';
+    out += '<div class="row" style="align-items:stretch;margin-top:10px">' + svgCard('تفصيل البنود (' + timeLbl + ' — مرتبة تنازلياً)', itemsBars, 320) + '</div>';
   }
 
   return out;
@@ -2718,7 +2778,7 @@ function repExportExcel(sourceMode) {
     rowH2.push({ hpt: h || 22 });
   };
 
-  addFullRow2('تحليل الأقسام الخمسة والبنود الأربعة عشر — ' + title, stTitle, 30);
+  addFullRow2('تحليل الأقسام الخمسة والبنود — ' + title, stTitle, 30);
   addFullRow2('الفترة: ' + ctx.timeLabel + ' | إجمالي الأعضاء: ' + totN, stMeta, 20);
   rows2.push([]); rowH2.push({ hpt: 12 });
 
@@ -2737,7 +2797,7 @@ function repExportExcel(sourceMode) {
   }
 
   rows2.push([]); rowH2.push({ hpt: 14 });
-  addFullRow2('ثانياً: تفصيل البنود الأربعة عشر (مرتبة تنازلياً)', stSec, 26);
+  addFullRow2('ثانياً: تفصيل البنود (مرتبة تنازلياً)', stSec, 26);
   rows2.push([mkC('م', 's', stThC), mkC('البند', 's', stThR), mkC('القسم', 's', stThC), mkC('نسبة التنفيذ', 's', stThC)]);
   rowH2.push({ hpt: 24 });
 
@@ -2933,7 +2993,7 @@ function repExportPDF(sourceMode) {
       }).join('') + '</div>';
   }
   if ((showAll || sel === 'items') && ctx.itemsList && ctx.itemsList.length) {
-    distHtml += '<div class="sec-box page-break-avoid"><div class="sec-title">تفصيل البنود الأربعة عشر (' + esc(ctx.timeLabel) + ' — مرتبة تنازلياً)</div>' +
+    distHtml += '<div class="sec-box page-break-avoid"><div class="sec-title">تفصيل البنود (' + esc(ctx.timeLabel) + ' — مرتبة تنازلياً)</div>' +
       ctx.itemsList.slice().sort(function (a, b) { return b.pct - a.pct; }).map(function (it, idx) {
         const p = Math.max(0, Math.min(100, Number(it.pct) || 0));
         return '<div style="display:flex;align-items:center;gap:10px;margin:4px 0;font-size:10.5px">' +
@@ -3142,7 +3202,7 @@ function tMembers() {
     h += '<tr style="' + (m.active ? '' : 'opacity:.45') + '"><td>' + esc(m.name) + '' + '</td><td>' + esc(m.grp) + '</td>' + (A.role === 'branch' ? '' : '<td style="direction:ltr">' + esc(m.code) + '</td>') + '<td class="row">' +
       (A.role === 'branch' ? '' : '<button class="sec sm" onclick="copyLink(\'' + m.code + '\')">نسخ الرابط</button>') +
       
-      (A.role === 'branch' ? '' : '<button class="sec sm" onclick="editMember(' + m.id + ')">تعديل</button>') + (A.role === 'branch' ? '<button class="sec sm" onclick="moveMember(' + m.id + ')">نقل</button><button class="danger sm" onclick="delMember(' + m.id + ')">حذف</button>' : '') +
+      (A.role === 'group' && m.bound ? '<button class="sec sm" onclick="resetDevice(' + m.id + ')">فك ربط الجهاز</button>' : '') + (A.role === 'branch' ? '' : '<button class="sec sm" onclick="editMember(' + m.id + ')">تعديل</button>') + (A.role === 'branch' ? '<button class="sec sm" onclick="moveMember(' + m.id + ')">نقل</button><button class="danger sm" onclick="delMember(' + m.id + ')">حذف</button>' : '') +
       (A.role === 'branch' ? '' : '<button class="sec sm" onclick="toggleActive(' + m.id + ',' + !m.active + ')">' + (m.active ? 'تعطيل' : 'تفعيل') + '</button>') + '</td></tr>';
   });
 return h + '</table></div>' + (A.role === 'branch' ? '<p class="muted">مجموعات فرعك: ' + (((d.groups || []).map(g => esc(g.name)).join('، ')) || 'لا توجد مجموعات بعد (تُنشأ من تبويب «الهيكل»)') + '</p>' : '');
@@ -3152,6 +3212,12 @@ async function addMembers() { /* == m23_branch_ro_v1 == */ if (A.role === 'branc
   if (!rows.length) return;
 if (A.role === 'branch') { const gs = (A.data && A.data.groups) || [], nm = x => String(x || '').trim(), bad = []; rows.forEach(r => { const g = gs.filter(x => nm(x.name) === nm(r.grp))[0]; if (g) r.group_id = g.id; else bad.push(r.grp || '(فارغ)'); }); if (bad.length) { alert('مجموعة غير موجودة في فرعك: ' + bad.filter((v, i, a) => a.indexOf(v) === i).join('، ')); return; } try { await rpc('admin_add_members', { p_pass: A.pass, p_rows: rows }); await adminLoad(); } catch (e) { alert(msg(e)); } return; }
   try { await rpc('admin_add_members', { p_pass: A.pass, p_rows: rows }); await adminLoad(); } catch (e) { alert(msg(e)); }
+}
+/* == v2_device_items_v1: reset device == */
+async function resetDevice(id) {
+  const m = ((A.data || {}).members || []).filter(x => x.id === id)[0]; if (!m) return;
+  if (!confirm('سيُفك ربط جهاز «' + m.name + '» ويرتبط الرابط بأول جهاز يفتحه بعد الآن. متابعة؟')) return;
+  try { await rpc('admin_member_reset_device', { p_pass: A.pass, p_member_id: id }); await adminLoad(); } catch (e) { alert(msg(e)); }
 }
 function copyLink(code) {
   const u = baseUrl() + '#m=' + code;
@@ -3234,7 +3300,7 @@ function renderPastWeekInspector(sc) {
   const cIdxs = A.rci;
   const selIdx = (A.pwIdx != null && cIdxs.indexOf(A.pwIdx) >= 0) ? A.pwIdx : cIdxs[cIdxs.length - 1];
   const wStr = R.weeks[selIdx];
-  const ti = R.total_items || 14;
+  const ti = tiW(R, selIdx, R.total_items || 14);
   const x = wrIdx();
   const ms = (sc && sc.ms) ? sc.ms : (R.members || []);
 
@@ -3310,7 +3376,7 @@ function renderPastWeekInspector(sc) {
 
   /* تفصيل البنود الـ 14 في هذا الأسبوع */
   if (weekItems.length) {
-    h += '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700;color:var(--g1)">📊 عرض تفصيل إنجاز البنود الأربعة عشر في أسبوع (' + esc(wStr) + ')</summary>' +
+    h += '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700;color:var(--g1)">📊 عرض تفصيل إنجاز البنود في أسبوع (' + esc(wStr) + ')</summary>' +
       '<div class="scroll" style="margin-top:8px;max-height:340px"><table><thead><tr><th>#</th><th>البند</th><th>القسم</th><th>عدد المنجزين</th><th>النسبة</th></tr></thead><tbody>' +
       weekItems.map(function (it, k) {
         return '<tr><td>' + (k + 1) + '</td><td><b>' + esc(it.title) + '</b></td><td>' + esc(it.cat) + '</td><td style="text-align:center">' + it.cnt + ' / ' + den + '</td><td style="background:' + wrCol(it.pct) + ';text-align:center;font-weight:700">' + it.pct + '%</td></tr>';
@@ -3682,7 +3748,7 @@ async function wkSend() {
   try {
     var r = await rpc('submit_week', { p_code: S.code, p_week: wkw, p_answers: WKS.items.map(function (i) { return { item: i.id, on: WKS.a[i.id] === true }; }) });
     wkDrop(wkw); wkClose(); WKS = null;
-    var banner = '<div class="card wk-done"><div style="font-size:2.6rem">🎉</div><b>تم إرسال أسبوعك</b><div class="muted">نفّذتَ ' + r.done + ' من ' + r.total + '. أحسنت!</div></div>';
+    var banner = '<div class="card wk-done"><div style="font-size:2.6rem">🎉</div><b>' + (window.__offQ ? 'حُفظ أسبوعك على جهازك وسيُرسل تلقائياً عند عودة الاتصال' : 'تم إرسال أسبوعك') + '</b><div class="muted">نفّذتَ ' + r.done + ' من ' + r.total + '. أحسنت!</div></div>';
     try { wkRenderList(await rpc('my_weeks', { p_code: S.code }), banner); }
     catch (e2) { show(banner + '<button onclick="week()">عرض الأسابيع</button>'); }
   } catch (e) {
@@ -3936,6 +4002,181 @@ async function week(w) {
     'body .wk3-ph b#wk3n{color:#2f7d54}'
   ].join('');
   document.head.appendChild(st);
+})();
+</script>
+<script>/* == v2_offline_sync_v1 == */
+(function BLOCK() {
+  var NET = rpc;
+  var RD = { my_week: 1, my_weeks: 1, admin_weekly_org: 1, admin_weekly_report: 1, admin_report_meta: 1, admin_approvals: 1, admin_reopen_list: 1, admin_member_card: 1, admin_members: 1, group_prep_get: 1, admin_periods: 1, admin_checklist: 1, admin_sync_notices: 1 };
+  var TTL_A = 3 * 86400000, TTL_M = 14 * 86400000, QK = 'off_queue';
+  function isMem(fn) { return fn.indexOf('my_') === 0; }
+  function isNet(e) { return e instanceof TypeError || (e && /Failed to fetch|NetworkError|Load failed/i.test(String(e.message))); }
+  function down() { return navigator.onLine === false; }
+  function key(fn, a) {
+    var c = Object.assign({}, a); delete c.p_pass; delete c.p_device;
+    return (isMem(fn) ? 'offm_' : 'offa_') + fn + '|' + (isMem(fn) ? '' : [A.role, A.branch, A.group].join(':')) + '|' + JSON.stringify(c);
+  }
+  function bar(on, ts) {
+    var b = document.getElementById('offbar');
+    if (!on) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement('div'); b.id = 'offbar'; b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:98;background:#b45309;color:#fff;text-align:center;padding:8px;font:700 13px sans-serif'; document.body.appendChild(b); }
+    b.textContent = '📡 وضع عدم الاتصال — تستعرض آخر بيانات محفوظة محلياً (لا تتغير الأرقام حتى تتصل بالإنترنت)' + (ts ? ' · ' + new Date(ts).toLocaleString('ar') : '');
+  }
+  function toast(t) {
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed;bottom:60px;left:10px;right:10px;z-index:98;background:#064e2b;color:#fff;text-align:center;padding:10px;border-radius:10px;font:700 13px sans-serif';
+    d.textContent = t; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 7000);
+  }
+  function qGet() { try { return JSON.parse(localStorage.getItem(QK) || '[]') || []; } catch (e) { return []; } }
+  function qSave(q) { try { localStorage.setItem(QK, JSON.stringify(q)); } catch (e) {} }
+  function qAdd(a) {
+    var q = qGet().filter(function (x) { return !(x.code === a.p_code && x.week === a.p_week); });
+    q.push({ code: a.p_code, week: a.p_week, answers: a.p_answers, filled: new Date().toISOString() });
+    qSave(q);
+  }
+  rpc = async function (fn, args) {
+    if (fn === 'submit_week') {
+      try {
+        if (down()) throw new TypeError('offline');
+        window.__offQ = false;
+        return await NET(fn, args);
+      } catch (e) {
+        if (isNet(e) || down()) {
+          qAdd(args); window.__offQ = true;
+          var an = args.p_answers || [];
+          return { ok: true, queued: true, done: an.filter(function (x) { return x.on; }).length, total: an.length };
+        }
+        throw e;
+      }
+    }
+    if (!RD[fn]) return NET(fn, args);
+    var k = key(fn, args);
+    try {
+      if (down()) throw new TypeError('offline');
+      var d = await NET(fn, args);
+      try { localStorage.setItem(k, JSON.stringify({ t: Date.now(), d: d })); } catch (_) {}
+      bar(false); return d;
+    } catch (e) {
+      if (isNet(e) || down()) {
+        var raw = null; try { raw = localStorage.getItem(k); } catch (_) {}
+        if (raw) { var o = JSON.parse(raw); if (Date.now() - o.t < (isMem(fn) ? TTL_M : TTL_A)) { bar(true, o.t); return o.d; } }
+      }
+      throw e;
+    }
+  };
+  var _ao = adminOut;
+  adminOut = function () {
+    /* v2_offline_session_v1: كاش التقارير يبقى بعد الخروج أو إغلاق اللسان ويُحمى بكلمة المرور */
+    return _ao.apply(this, arguments);
+  };
+  var flushing = false;
+  async function flush() {
+    if (flushing) return; var q = qGet(); if (!q.length) return;
+    flushing = true; var ok = 0, bad = 0;
+    for (var i = 0; i < q.length; i++) {
+      var it = q[i];
+      try {
+        await NET('sync_offline_week', { p_code: it.code, p_week: it.week, p_answers: it.answers, p_filled_at: it.filled, p_device: devTok() });
+        ok++; q.splice(i, 1); i--; qSave(q);
+      } catch (e) {
+        if (isNet(e)) break;
+        bad++; q.splice(i, 1); i--; qSave(q);
+      }
+    }
+    flushing = false;
+    if (ok) toast('أُرسلت متابعتك المحفوظة على جهازك (' + ok + ') بنجاح.');
+    if (bad) toast('تعذّر إرسال ' + bad + ' من المتابعات المحفوظة. تواصل مع مسؤول مجموعتك.');
+  }
+  window.addEventListener('online', function () { flush(); });
+  setTimeout(function () { if (!down()) flush(); }, 2000);
+  var SNd = null, SNt = 0, SNbusy = false;
+  function snHtml() {
+    if (!SNd) return '';
+    var ws = [], ex = {};
+    if (SNd.role === 'org') { if (!SNd.count) return ''; (SNd.weeks || []).forEach(function (x) { ws.push({ w: x.week, t: ' (' + x.n + ' حالة)' }); }); }
+    else {
+      (SNd.items || []).forEach(function (x) { var e = ex[x.week] || (ex[x.week] = []); if (e.indexOf(x.member) < 0) e.push(x.member); });
+      Object.keys(ex).sort().forEach(function (w) { ws.push({ w: w, t: ': ' + ex[w].map(esc).join('، ') }); });
+    }
+    if (!ws.length) return '';
+    return '<div id="snbox" class="card noprint" style="border-right:5px solid #ee8a1f;background:#fff8ec">' + ws.map(function (x) { return '<div>⚡ تغيرت بيانات الأسبوع ' + esc(x.w) + ' لوصول متابعة معبأة مسبقاً أثناء انقطاع الإنترنت' + x.t + '</div>'; }).join('') + '</div>';
+  }
+  function snInject() {
+    var t = document.querySelector('#app .tabs'); if (!t) return;
+    var old = document.getElementById('snbox'); if (old) old.remove();
+    var h = snHtml(); if (h) t.insertAdjacentHTML('afterend', h);
+  }
+  var _ar = adminRender;
+  adminRender = function () {
+    _ar.apply(this, arguments); snInject();
+    if (A.pass && !SNbusy && Date.now() - SNt > 60000) {
+      SNbusy = true; SNt = Date.now();
+      rpc('admin_sync_notices', { p_pass: A.pass }).then(function (d) { SNd = d; snInject(); }).catch(function () {}).then(function () { SNbusy = false; });
+    }
+  };
+})();
+</script>
+<script>/* == v2_offline_session_v1 == */
+(function () {
+  var LK = 'last_auth', KEYS = ['apass', 'arole', 'abranch', 'abname', 'agroup', 'agname'];
+  function hasC() { return !!(window.crypto && window.crypto.subtle && window.TextEncoder); }
+  function isNet(e) { return e instanceof TypeError || (e && /Failed to fetch|NetworkError|Load failed|http_5|offline/i.test(String(e.message))); }
+  function b64(u) { var s = ''; u = new Uint8Array(u); for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
+  function unb64(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  function normSec(secret, role) {
+    return (role === 'branch' || role === 'group') ? String(secret).toUpperCase().replace(/[^A-Z0-9]/g, '') : String(secret);
+  }
+  async function kdf(secret, salt) {
+    var k = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), 'PBKDF2', false, ['deriveBits']);
+    return b64(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: salt, iterations: 150000 }, k, 256));
+  }
+  function saveTabSession() {
+    try {
+      var v = { apass: A.pass, arole: A.role, abranch: A.branch || '', abname: A.branchName, agroup: A.group || '', agname: A.groupName };
+      KEYS.forEach(function (k) { sessionStorage.setItem(k, v[k]); });
+    } catch (_) {}
+  }
+  async function laSave(secret) {
+    try {
+      if (!hasC()) return;
+      var role = A.role || 'org';
+      var clean = normSec(secret, role);
+      var snap = { token: A.pass, role: role, branch: A.branch, branchName: A.branchName, group: A.group, groupName: A.groupName, t: Date.now() };
+      var salt = crypto.getRandomValues(new Uint8Array(16));
+      snap.salt = b64(salt); snap.hash = await kdf(clean, salt);
+      localStorage.setItem(LK, JSON.stringify(snap));
+    } catch (_) {}
+  }
+  async function laTry(secret) {
+    if (!hasC()) return false;
+    var o = null; try { o = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (_) {}
+    if (!o || !o.salt || !o.hash || !o.token) return false;
+    var clean = normSec(secret, o.role || 'org');
+    var h = await kdf(clean, unb64(o.salt));
+    if (h !== o.hash) return false;
+    A.pass = o.token; A.role = o.role || 'org'; A.branch = o.branch || null; A.branchName = o.branchName || '';
+    A.group = o.group || null; A.groupName = o.groupName || '';
+    saveTabSession(); adminLoad(); return true;
+  }
+  var OFFMSG = 'كلمة المرور أو الرمز غير صحيح، أو أنه غير مطابق لآخر حساب تم الدخول به على هذا المتصفح قبل انقطاع الإنترنت.';
+  adminLogin = async function () {
+    var s = String((document.getElementById('ap') || {}).value || '').trim(); if (!s) return;
+    var off = navigator.onLine === false;
+    try {
+      if (off) throw new TypeError('offline');
+      var r = await rpc('admin_login', { p_secret: s });
+      if (!r || !r.ok) throw new Error(r && r.error === 'locked' ? 'locked:' + (r.seconds || 0) : 'bad_admin');
+      A.pass = r.token; A.role = r.role || 'org'; A.branch = r.branch_id || null; A.branchName = r.branch_name || ''; A.group = r.group_id || null; A.groupName = r.group_name || '';
+      saveTabSession(); await laSave(s); adminLoad();
+    } catch (e) {
+      if (off || isNet(e)) {
+        var ok = false; try { ok = await laTry(s); } catch (_) {}
+        if (!ok) alert(OFFMSG);
+        return;
+      }
+      alert(msg(e));
+    }
+  };
 })();
 </script>
 <script>/* == ver_v1 == */

@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261115-062159">
+<meta name="build" content="20261115-070355">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -340,19 +340,63 @@ async function itCall(fn, args) {
   
   try { const r = await rpc(fn, args); A.IT = null; adminRender(); if (r && r.versioned) alert('حُفظ التعديل كإصدار جديد يبدأ من الأسبوع الجاري، وبقي الإصدار القديم في الأسابيع السابقة.'); } catch (e) { alert(msg(e)); }
 }
-function itAdd() {
-  const t = prompt('عنوان البند الجديد:'); if (t === null || !t.trim()) return;
-  const cats = (A.IT || []).map(x => x.cat || '').filter((v, i, a) => v && a.indexOf(v) === i);
-  const c = prompt('القسم' + (cats.length ? ' (الأقسام الحالية: ' + cats.join('، ') + ')' : '') + ':', cats[0] || ''); if (c === null) return;
-  itCall('admin_check_save', { p_pass: A.pass, p_id: null, p_title: t.trim(), p_cat: c.trim(), p_active: null });
+/* == v2_cat_dropdown_v1: نافذة اختيار القسم بقائمة منسدلة == */
+function normCatJs(s) {
+  return String(s || '').replace(/[\u0640\u064B-\u0652\u0670]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim();
 }
-function itEdit(id) {
-  const x = (A.IT || []).filter(y => y.id === id)[0]; if (!x) return;
-  const t = prompt('عنوان البند:', x.title); if (t === null) return;
-  const c = prompt('القسم:', x.cat || ''); if (c === null) return;
-  if (t.trim() === String(x.title).trim() && c.trim() === String(x.cat || '').trim()) return;
-  itCall('admin_check_save', { p_pass: A.pass, p_id: id, p_title: t.trim(), p_cat: c.trim(), p_active: null });
+function canonCatJs(s, cats) {
+  const n = normCatJs(s);
+  for (let i = 0; i < cats.length; i++) { if (normCatJs(cats[i]) === n) return cats[i]; }
+  return String(s || '').trim();
 }
+function itModalOpen(id) {
+  const x = id != null ? (A.IT || []).filter(y => y.id === id)[0] : null;
+  if (id != null && !x) return;
+  const cats = (A.IT || []).map(z => z.cat || '').filter((v, i, a) => v && a.indexOf(v) === i);
+  const curCat = x ? (x.cat || '') : (cats[0] || '');
+  let oldBox = document.getElementById('it_modal_bg');
+  if (oldBox) oldBox.remove();
+
+  const bg = document.createElement('div');
+  bg.id = 'it_modal_bg';
+  bg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px';
+  const opts = cats.map(c => '<option value="' + esc(c) + '"' + (c === curCat ? ' selected' : '') + '>' + esc(c) + '</option>').join('') +
+               '<option value="__NEW__">＋ قسم جديد...</option>';
+
+  bg.innerHTML = '<div class="card" style="max-width:440px;width:100%;margin:0;box-shadow:0 10px 30px rgba(0,0,0,0.3)">' +
+    '<h3 style="margin-top:0">' + (x ? 'تعديل البند' : 'إضافة بند جديد') + '</h3>' +
+    '<label style="display:block;margin-bottom:6px;font-weight:bold">عنوان البند:</label>' +
+    '<input id="it_m_title" type="text" value="' + (x ? esc(x.title) : '') + '" placeholder="مثال: قراءة سورة الكهف" style="width:100%;margin-bottom:12px;padding:8px;box-sizing:border-box">' +
+    '<label style="display:block;margin-bottom:6px;font-weight:bold">القسم:</label>' +
+    '<select id="it_m_sel" onchange="document.getElementById(\'it_m_new_wrap\').style.display=(this.value===\'__NEW__\'?\'block\':\'none\')" style="width:100%;margin-bottom:12px;padding:8px;box-sizing:border-box">' + opts + '</select>' +
+    '<div id="it_m_new_wrap" style="display:' + (cats.length === 0 ? 'block' : 'none') + ';margin-bottom:12px">' +
+      '<label style="display:block;margin-bottom:6px;font-weight:bold">اسم القسم الجديد:</label>' +
+      '<input id="it_m_new" type="text" placeholder="اكتب اسم القسم الجديد..." style="width:100%;padding:8px;box-sizing:border-box">' +
+    '</div>' +
+    '<div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px">' +
+      '<button class="sec" onclick="document.getElementById(\'it_modal_bg\').remove()">إلغاء</button>' +
+      '<button id="it_m_save">حفظ</button>' +
+    '</div>' +
+  '</div>';
+
+  document.body.appendChild(bg);
+  const titleEl = document.getElementById('it_m_title');
+  if (titleEl) titleEl.focus();
+
+  document.getElementById('it_m_save').onclick = function () {
+    const tVal = String(document.getElementById('it_m_title').value || '').trim();
+    if (!tVal) { alert('عنوان البند مطلوب.'); return; }
+    const selVal = document.getElementById('it_m_sel').value;
+    let rawCat = selVal === '__NEW__' ? String(document.getElementById('it_m_new').value || '').trim() : selVal;
+    if (!rawCat) { alert('يرجى اختيار القسم أو كتابة اسم القسم الجديد.'); return; }
+    const finalCat = canonCatJs(rawCat, cats);
+    bg.remove();
+    if (x && tVal === String(x.title).trim() && finalCat === String(x.cat || '').trim()) return;
+    itCall('admin_check_save', { p_pass: A.pass, p_id: x ? x.id : null, p_title: tVal, p_cat: finalCat, p_active: null });
+  };
+}
+function itAdd() { itModalOpen(null); }
+function itEdit(id) { itModalOpen(id); }
 function itDel(id) {
   const x = (A.IT || []).filter(y => y.id === id)[0]; if (!x) return;
   if (!confirm('سيُوقف البند «' + x.title + '» من بداية الأسبوع الجاري، ويبقى ظاهراً ومحسوباً في الأسابيع السابقة.')) return;

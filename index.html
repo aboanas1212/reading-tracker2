@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261114-235124">
+<meta name="build" content="20261115-030232">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -425,7 +425,7 @@ function nrBranchHtml(R, M) {
     '<div class="muted">الفترة: ' + esc(String(per.start)) + ' إلى ' + esc(String(per.end)) + ' · ' + okb.length + ' من ' + bl.length + ' أسابيع مكتملة' + (bl.some(function (b) { return !b.ok && b.w <= today; }) ? ' · الأسبوع الجاري (من ' + dm(bl.filter(function (b) { return !b.ok && b.w <= today; })[0].w) + ') غير محتسب' : '') + '</div></div>' +
     '<span class="nrb-pill" style="background:' + (apSt === 'approved' ? '#e3f0ec;color:#0f5b52' : apSt === 'unlocked' ? '#fbe9e5;color:#8a2c23' : '#fbefd2;color:#6b4600') + '">الاعتماد: ' + (stl[apSt] || esc(String(apSt))) + '</span> ' +
     (pers.length > 1 ? '<select onchange="nrPer(this.value)">' + pers.slice(0, 8).map(function (p) { return '<option value="' + p.id + '"' + (p.id === per.id ? ' selected' : '') + '>' + dm(p.start) + ' إلى ' + dm(p.end) + '</option>'; }).join('') + '</select> ' : '') +
-    '<button class="sec sm" onclick="A.N=null;adminRender()">تحديث</button></div></div>';
+    '<button class="sec sm" onclick="nrBranchXlsx()">تصدير Excel</button><button class="sec sm" onclick="nrBranchPdf()">تصدير PDF</button><button class="sec sm" onclick="A.N=null;adminRender()">تحديث</button></div></div>';
   h += '<div class="nrb-k">' +
     '<div><div class="muted">نسبة الإرسال</div><b>' + pv(all.sp) + '</b><div class="muted">' + all.sent + ' من ' + all.poss + ' ممكنة (' + ms.length + ' عضواً × ' + all.nw + ' أسابيع)</div></div>' +
     '<div><div class="muted">نسبة التنفيذ</div><b>' + pv(all.ep) + '</b><div class="muted">من ' + all.sent + ' إرسالاً × ' + ti + ' بنداً</div></div>' +
@@ -480,8 +480,28 @@ function nrBranchHtml(R, M) {
   if (all.nw === bl.length) ck.push(['تم', '#0f5b52', 'كل أسابيع الفترة مكتملة، والأسبوع الجاري غير داخل في الأرقام.']);
   h += '<div class="card" style="border:2px solid #0f5b52"><div class="row"><div class="grow"><h3>قبل اعتماد تقرير الفرع</h3>' +
     ck.map(function (k) { return '<div style="display:flex;gap:10px"><b style="color:' + k[1] + ';min-width:56px">' + k[0] + '</b><span>' + k[2] + '</span></div>'; }).join('') +
-    '<div class="muted" style="margin-top:8px">عند الاعتماد تُغلق الفترة على كل مجموعات الفرع وأعضائه، ولا يفكّ الإغلاق إلا المسؤول العام.</div></div>' +
+    '<div class="muted" style="margin-top:8px">عند الاعتماد تُغلق الفترة على كل مجموعات الفرع وأعضائه، ولا يفكّ الإغلاق إلا المسؤول العام.</div><div class="muted" style="margin-top:4px">الاعتماد يخص الفترة المعروضة أعلاه (اخترها من القائمة). يرفض الخادم الاعتماد قبل بداية الفترة فقط. إن ظهرت لك رسالة خطأ عند الضغط فانقل نصها كما هي.</div></div>' +
     (apSt !== 'approved' ? '<button onclick="nrApprove(' + per.id + ')">' + (apSt === 'unlocked' ? 'إعادة الاعتماد' : 'اعتماد التقرير ورفعه') + '</button>' : '<span class="nrb-pill" style="background:#e3f0ec;color:#0f5b52">معتمد</span>') + '</div></div>';
+  try {
+    const memX = function (o) {
+      return o.l.map(function (m) {
+        let d = 0, nn = 0;
+        const st = okb.map(function (b) { const s = cell(m, b, 's'), g = srcOf(m, b) === 'group', r = cell(m, b, 'ro'); if (s) { nn++; d += cell(m, b, 'd'); } return r ? 'ro' : !s ? 'n' : g ? 'g' : 's'; });
+        const l2 = okb.length >= 2 && !cell(m, okb[okb.length - 1], 's') && !cell(m, okb[okb.length - 2], 's');
+        return { name: m.name, st: st, n: nn, sp: okb.length ? Math.round(100 * nn / okb.length) : null, ep: nn && ti ? Math.round(100 * d / (nn * ti)) : null, note: l2 ? 'لم يُرسل أسبوعين متتاليين' : st.indexOf('ro') >= 0 ? 'أُعيد فتح أسبوع له بإذن' : (nn === 0 && okb.length ? 'لم يُرسل في الفترة' : (nn === 1 && okb.length >= 2 ? 'أرسل أسبوعاً واحداً فقط' : '')) };
+      }).sort(function (a, b) { return a.n - b.n || String(a.name).localeCompare(String(b.name), 'ar'); });
+    };
+    N.exp = {
+      role: 'branch', name: A.branchName || '', per: per, bl: bl.length, okn: okb.length, ti: ti, nm: ms.length,
+      all: { sp: all.sp, ep: all.ep, gp: all.gp }, prev: prevS ? { sp: prevS.sp, ep: prevS.ep } : null, apSt: stl[apSt] || String(apSt),
+      weeks: okb.map(function (b) { return b.w; }), secs: secs,
+      items: items.map(function (it) { let d = 0; gs.forEach(function (o) { d += gDone(o, it); }); return { title: it.title, cat: it.cat || 'غير مصنّف', v: totSent ? Math.round(100 * d / totSent) : null }; }),
+      groups: gs.map(function (o, i) { return { name: o.g.name, n: o.n, sp: o.st.sp, ep: o.st.ep, gp: o.st.gp, cells: heat[i] ? heat[i].cells : [] }; }),
+      trend: tr.map(function (x) { return { l: x.l, p: x.p }; }),
+      rq: { pend: rqPend, loaded: !!N.rq },
+      mem: og ? { gname: og.g.name, rows: memX(og) } : null
+    };
+  } catch (e) { N.exp = null; }
   return h;
 }
 /* == nr_group_v2 == */
@@ -786,26 +806,357 @@ function nrOrgPdf() {
     p3 += '<div style="page-break-before:always"></div>' + box('البنود × الفروع (نسبة التنفيذ بين المُرسَل)', '<table>' + th(['البند', 'القسم', 'المؤسسة'].concat(rows.map(function (r) { return r.name; }))) +
       items.map(function (it, i) { return '<tr>' + tx(it.title) + tx(it.cat || 'غير مصنّف', 1) + td(E.orgItems[i]) + rows.map(function (r) { return td(r.it[i]); }).join('') + '</tr>'; }).join('') + '</table>');
 
-    const hd = function (t) { return '<div class="top-bar"><div><h1>' + esc(t) + '</h1><div class="sub">المسؤول العام · المؤسسة بلا أسماء | الفترة: ' + esc(perTxt) + '</div></div><div class="meta"><b>تاريخ الإصدار:</b> ' + esc(now) + '</div></div>'; };
-    const css = '@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}' +
-      'body{margin:0;padding:16px;font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;color:#1e293b;background:#fff;font-size:11.5px;line-height:1.55}.wrap{max-width:1320px;margin:0 auto}' +
-      '.top-bar{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #064e2b;padding-bottom:10px;margin-bottom:14px}.top-bar h1{margin:0;color:#064e2b;font-size:19px}.top-bar .sub{color:#0f7a43;font-weight:700;font-size:12.5px;margin-top:3px}.top-bar .meta{text-align:left;color:#64748b;font-size:11px}' +
-      '.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}.kpi{background:#f8fafc;border:1px solid #cbd5e1;border-top:4px solid #0f7a43;border-radius:10px;padding:8px 10px;text-align:center}.kpi .v{font-size:19px;font-weight:700;color:#064e2b}.kpi .l{font-size:10.5px;color:#475569;margin-top:3px}' +
-      '.sec-box{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:12px 14px;margin-bottom:12px;page-break-inside:avoid}.sec-title{font-size:13px;font-weight:700;color:#064e2b;border-bottom:1px solid #e2e8f0;padding-bottom:5px;margin-bottom:8px}' +
-      '.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}.box-ok{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px}.box-warn{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px}' +
-      'table{width:100%;border-collapse:collapse;font-size:10.8px}th{background:#064e2b;color:#fff;padding:6px 5px;border:1px solid #064e2b;text-align:right}td{padding:5px;border:1px solid #cbd5e1;vertical-align:middle}tr{page-break-inside:avoid}' +
-      '.pg{page-break-after:always}.no-print-bar{display:flex;justify-content:space-between;align-items:center;background:#064e2b;color:#fff;padding:10px 16px;border-radius:10px;margin-bottom:14px}.no-print-bar button{background:#ee8a1f;color:#fff;border:0;border-radius:8px;padding:7px 15px;font-family:inherit;font-weight:700;cursor:pointer}' +
-      '@media print{body{padding:0}.no-print-bar{display:none!important}thead{display:table-header-group}}';
-    const doc = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير المؤسسة — ' + esc(perTxt) + '</title><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet"><style>' + css + '</style></head><body><div class="wrap">' +
-      '<div class="no-print-bar"><span>معاينة تقرير المؤسسة بالعرض الأفقي (A4 Landscape) — جاهز للطباعة والحفظ كـ PDF</span><div><button onclick="window.print()">طباعة / حفظ PDF</button> <button style="background:#ffffff22;margin-right:6px" onclick="window.close()">إغلاق</button></div></div>' +
-      '<div class="pg">' + hd('تقرير المؤسسة: الملخص') + p1 + '</div><div class="pg">' + hd('مقارنة الفروع') + p2 + '</div><div>' + hd('التفصيل: المجموعات والبنود') + p3 + '</div></div></body></html>';
-    const w = window.open('', '_blank');
-    if (!w) { alert('تعذّر فتح نافذة المعاينة؛ اسمح بالنوافذ المنبثقة لهذا الموقع.'); return; }
-    w.document.open(); w.document.write(doc); w.document.close();
-    setTimeout(function () { try { w.focus(); w.print(); } catch (e) {} }, 450);
+    nrxPdf({
+      title: 'تقرير المؤسسة — ' + perTxt, sub: 'المسؤول العام · المؤسسة بلا أسماء | الفترة: ' + perTxt,
+      charts: [{ id: 'o_cmp', label: 'مقارنة الفروع' }, { id: 'o_trend', label: 'الاتجاه عبر الفترات' }, { id: 'o_items', label: 'تنفيذ البنود' }],
+      build: function (o) {
+        const c1 = nrxCmp(o, 'o_items', 'تنفيذ البنود الأربعة عشر في المؤسسة', 'نسبة التنفيذ بين المُرسَل.', items.map(function (x, i) { return (i + 1) + '. ' + x.title; }), [{ name: 'التنفيذ', vals: E.orgItems }]);
+        const c2 = nrxCmp(o, 'o_cmp', 'مقارنة الفروع: الإرسال والتنفيذ', 'الإرسال = المُرسَل ÷ (الأعضاء × الأسابيع المكتملة). التنفيذ بين المُرسَل فقط.', rows.map(function (r) { return r.name; }), [{ name: 'الإرسال', vals: rows.map(function (r) { return r.sp; }) }, { name: 'التنفيذ', vals: rows.map(function (r) { return r.ep; }) }]);
+        const c3 = nrxBox(o, 'o_trend', 'الاتجاه عبر الفترات', E.trend.length < 2 ? 'يبدأ الاتجاه مع الفترة الثانية؛ لا بيانات تكفي للمقارنة بعد.' : '', E.trend.length < 2 ? nrxNo() : nrxTrend(E.trend.map(function (x) { return String(x.p.start).slice(5); }), [{ name: 'الإرسال', vals: E.trend.map(function (x) { return x.sp; }) }, { name: 'التنفيذ', vals: E.trend.map(function (x) { return x.ep; }) }], o), nrxLeg(['الإرسال', 'التنفيذ'], o));
+        return [{ title: 'تقرير المؤسسة: الملخص', html: p1 + c1 }, { title: 'مقارنة الفروع', html: c2 + c3 + p2 }, { title: 'التفصيل: المجموعات والبنود', html: p3 }];
+      }
+    });
   } catch (e) { alert('تعذّر إنشاء تقرير PDF.'); }
 }
-function nrMcScroll() { setTimeout(function () { const e = document.getElementById('nrmc'); if (e && e.scrollIntoView) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60); }
+/* == nr_export_v2 == */
+/* وحدة تصدير موحّدة: رسوم SVG + لوحة خيارات + PDF وExcel للفرع والمجموعة (وتغذّي PDF المؤسسة بالرسوم) */
+const NX_PAL = { green: ['#0f5b52', '#d9a441', '#7fb5a9'], vivid: ['#2563eb', '#e8590c', '#7c3aed'], mono: ['#2b2b2b', '#8a8a8a', '#c4c4c4'] };
+function nrxO() { if (!A.NX) A.NX = { kind: 'bars', trend: 'line', pal: 'green', vals: 1, order: 'weak', off: {} }; return A.NX; }
+function nrxOn(o, id) { return !o.off[id]; }
+function nrxCol(o, i) { return (NX_PAL[o.pal] || NX_PAL.green)[i] || '#999'; }
+function nrxTr(s, n) { s = String(s == null ? '' : s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+function nrxPt(v) { return v == null ? 'لا بيانات' : v + '%'; }
+function nrxPcs(v) { return v == null ? 'background:#f0efe9;color:#8a97a3' : (v < 35 ? 'background:#fbeae6;color:#b3402a' : v < 65 ? 'background:#fdf3d8;color:#8a5a00' : 'background:#e3f5ea;color:#0b6b3a'); }
+function nrxTd(v) { return '<td style="text-align:center;font-weight:700;' + nrxPcs(v) + '">' + nrxPt(v) + '</td>'; }
+function nrxTx(v, c) { return '<td' + (c ? ' style="text-align:center"' : '') + '>' + esc(v) + '</td>'; }
+function nrxTh(a) { return '<tr>' + a.map(function (x) { return '<th>' + esc(x) + '</th>'; }).join('') + '</tr>'; }
+function nrxBoxP(t, body) { return '<div class="sec-box"><div class="sec-title">' + esc(t) + '</div>' + body + '</div>'; }
+function nrxKpi(v, l) { return '<div class="kpi"><div class="v">' + esc(v) + '</div><div class="l">' + esc(l) + '</div></div>'; }
+function nrxList(a) { return a.length ? '<table>' + a.map(function (x) { return '<tr>' + nrxTx(x.t) + nrxTd(x.v) + '</tr>'; }).join('') + '</table>' : '<div>لا بيانات.</div>'; }
+function nrxNo() { return '<div class="nodata">لا بيانات تكفي للرسم بعد.</div>'; }
+function nrxSort(cats, ser, o) {
+  const idx = cats.map(function (_, i) { return i; });
+  if (o.order === 'weak' || o.order === 'strong') {
+    const w = o.order === 'weak';
+    idx.sort(function (a, b) { const x = ser[0].vals[a], y = ser[0].vals[b]; const xv = x == null ? (w ? 101 : -1) : x, yv = y == null ? (w ? 101 : -1) : y; return w ? xv - yv : yv - xv; });
+  }
+  return { cats: idx.map(function (i) { return cats[i]; }), ser: ser.map(function (s) { return { name: s.name, vals: idx.map(function (i) { return s.vals[i]; }) }; }) };
+}
+function nrxLeg(names, o) { return '<div class="leg">' + names.map(function (n, i) { return '<span><i style="background:' + nrxCol(o, i) + '"></i>' + esc(n) + '</span>'; }).join('') + '</div>'; }
+function nrxWrap(c, m) {
+  c = String(c == null ? '' : c); if (c.length <= m) return [c, ''];
+  let k = c.lastIndexOf(' ', m); if (k < 3) k = m;
+  return [c.slice(0, k), nrxTr(c.slice(k).trim(), m)];
+}
+function nrxBars(cats, ser, o, force) {
+  const n = cats.length; if (!n) return nrxNo();
+  const k = ser.length, W = 640, horiz = force === 'v' ? false : (o.kind === 'hbars' || n > 8);
+  let g = '';
+  if (horiz) {
+    const rh = k * 13 + 9, top = 18, LW = 190, x0 = W - LW, mx = x0 - 46, H = top + n * rh + 6;
+    [0, 50, 100].forEach(function (t) { const x = x0 - t / 100 * mx; g += '<line x1="' + x + '" y1="' + (top - 4) + '" x2="' + x + '" y2="' + (H - 4) + '" stroke="#d5ddda"' + (t ? ' stroke-dasharray="3 3"' : '') + '/><text x="' + x + '" y="10" font-size="8.5" fill="#6b746e" text-anchor="middle">' + t + '%</text>'; });
+    cats.forEach(function (c, i) {
+      const y = top + i * rh;
+      g += '<text x="' + (W - 4) + '" y="' + (y + rh / 2) + '" font-size="10.5" text-anchor="end" fill="#1e293b" dominant-baseline="middle">' + esc(nrxTr(c, 32)) + '<title>' + esc(c) + '</title></text>';
+      ser.forEach(function (s, j) {
+        const v = s.vals[i], by = y + 2 + j * 13;
+        if (v == null) { g += '<text x="' + (x0 - 4) + '" y="' + (by + 5) + '" font-size="9" text-anchor="end" fill="#8a97a3" dominant-baseline="middle">—</text>'; return; }
+        const w = Math.max(1, v / 100 * mx);
+        g += '<rect x="' + (x0 - w) + '" y="' + by + '" width="' + w + '" height="10" rx="2" fill="' + nrxCol(o, j) + '"/>';
+        if (o.vals) g += '<text x="' + (x0 - w - 3) + '" y="' + (by + 5) + '" font-size="9" text-anchor="end" fill="#1e293b" dominant-baseline="middle">' + v + '%</text>';
+      });
+    });
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;direction:ltr;display:block">' + g + '</svg>';
+  }
+  const PL = 30, PR = 14, PT = 20, PH = 170, LB = 54, H = PT + PH + LB, band = (W - PL - PR) / n, bw = Math.min(34, band * 0.78 / k);
+  [0, 25, 50, 75, 100].forEach(function (t) { const y = PT + PH - t / 100 * PH; g += '<line x1="' + PL + '" y1="' + y + '" x2="' + (W - PR) + '" y2="' + y + '" stroke="#d5ddda"' + (t ? ' stroke-dasharray="3 3"' : '') + '/><text x="' + (PL - 4) + '" y="' + (y + 3) + '" font-size="8.5" fill="#6b746e" text-anchor="end">' + t + '</text>'; });
+  cats.forEach(function (c, i) {
+    const cx = W - PR - (i + 0.5) * band;
+    ser.forEach(function (s, j) {
+      const v = s.vals[i]; if (v == null) return;
+      const bx = cx - k * bw / 2 + j * bw, h = Math.max(1, v / 100 * PH);
+      g += '<rect x="' + bx + '" y="' + (PT + PH - h) + '" width="' + (bw - 1) + '" height="' + h + '" rx="2" fill="' + nrxCol(o, j) + '"/>';
+      if (o.vals && bw >= 11) g += '<text x="' + (bx + bw / 2) + '" y="' + (PT + PH - h - 3) + '" font-size="8.5" text-anchor="middle" fill="#1e293b">' + v + '</text>';
+    });
+    const m = Math.max(5, Math.floor(band / 5.2)), l = nrxWrap(c, m);
+    g += '<text x="' + cx + '" y="' + (PT + PH + 13) + '" font-size="9.5" text-anchor="middle" fill="#1e293b">' + esc(l[0]) + (l[1] ? '<tspan x="' + cx + '" dy="11">' + esc(l[1]) + '</tspan>' : '') + '<title>' + esc(c) + '</title></text>';
+  });
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;direction:ltr;display:block">' + g + '</svg>';
+}
+function nrxLine(cats, ser, o) {
+  const n = cats.length; if (!n) return nrxNo();
+  const W = 640, H = 210, L = 38, R = 22, T = 18, B = 34, PH = H - T - B;
+  const px = function (i) { return n === 1 ? (L + (W - L - R) / 2) : L + i * (W - L - R) / (n - 1); }, py = function (v) { return T + PH - v / 100 * PH; };
+  let g = '';
+  [0, 25, 50, 75, 100].forEach(function (t) { g += '<line x1="' + L + '" y1="' + py(t) + '" x2="' + (W - R) + '" y2="' + py(t) + '" stroke="#d5ddda"' + (t ? ' stroke-dasharray="3 3"' : '') + '/><text x="' + (L - 5) + '" y="' + (py(t) + 3) + '" font-size="8.5" fill="#6b746e" text-anchor="end">' + t + '</text>'; });
+  ser.forEach(function (s, j) {
+    const col = nrxCol(o, j); let seg = [];
+    const flush = function () { if (seg.length > 1) g += '<polyline fill="none" stroke="' + col + '" stroke-width="2.2" points="' + seg.map(function (p) { return p[0] + ',' + p[1]; }).join(' ') + '"/>'; seg = []; };
+    s.vals.forEach(function (v, i) { if (v == null) { flush(); return; } seg.push([px(i), py(v)]); });
+    flush();
+    s.vals.forEach(function (v, i) {
+      if (v == null) return;
+      g += '<circle cx="' + px(i) + '" cy="' + py(v) + '" r="3.4" fill="' + col + '"/>';
+      if (o.vals) g += '<text x="' + px(i) + '" y="' + (py(v) + (j ? 14 : -7)) + '" font-size="9" text-anchor="middle" fill="' + col + '" font-weight="700">' + v + '%</text>';
+    });
+  });
+  cats.forEach(function (c, i) { g += '<text x="' + px(i) + '" y="' + (H - 14) + '" font-size="9.5" text-anchor="' + (n > 1 && i === 0 ? 'start' : n > 1 && i === n - 1 ? 'end' : 'middle') + '" fill="#1e293b">' + esc(nrxTr(c, 18)) + '</text>'; });
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;direction:ltr;display:block">' + g + '</svg>';
+}
+function nrxTrend(cats, ser, o) { return o.trend === 'bars' ? nrxBars(cats, ser, o, 'v') : nrxLine(cats, ser, o); }
+function nrxDonut(v, label, o) {
+  const r = 42, c = 2 * Math.PI * r, d = v == null ? 0 : c * v / 100;
+  return '<div class="kpi dn"><svg viewBox="0 0 110 110" width="96" height="96"><circle cx="55" cy="55" r="' + r + '" fill="none" stroke="#e8eeec" stroke-width="13"/><circle cx="55" cy="55" r="' + r + '" fill="none" stroke="' + nrxCol(o, 0) + '" stroke-width="13" stroke-dasharray="' + d + ' ' + (c - d) + '" transform="rotate(-90 55 55)"/><text x="55" y="61" text-anchor="middle" font-size="18" font-weight="700" fill="#064e2b">' + (v == null ? '—' : v + '%') + '</text></svg><div class="l">' + esc(label) + '</div></div>';
+}
+function nrxHeat(rowNames, heads, mat, key, secs) {
+  if (!rowNames.length) return nrxNo();
+  let h = '<table class="hm">';
+  if (secs && secs.length) h += '<tr><th></th>' + secs.map(function (s) { return '<th colspan="' + s.span + '" class="sc">' + esc(s.name) + '</th>'; }).join('') + '</tr>';
+  h += '<tr><th></th>' + heads.map(function (x) { return '<th>' + esc(x) + '</th>'; }).join('') + '</tr>';
+  rowNames.forEach(function (r, i) { h += '<tr><td class="rn">' + esc(r) + '</td>' + (mat[i] || []).map(function (v) { return '<td style="text-align:center;font-weight:700;' + nrxPcs(v) + '">' + (v == null ? '—' : v) + '</td>'; }).join('') + '</tr>'; });
+  h += '</table>';
+  if (key) h += '<div class="key">' + key.map(function (t, i) { return '<span><b>' + (i + 1) + '</b> ' + esc(t) + '</span>'; }).join('') + '</div>';
+  return h;
+}
+function nrxBox(o, id, title, note, body, legend) {
+  if (!nrxOn(o, id)) return '';
+  return '<div class="sec-box"><div class="sec-title">' + esc(title) + '</div>' + (legend || '') + body + (note ? '<div class="note">' + esc(note) + '</div>' : '') + '</div>';
+}
+/* رسم مقارنة بسلسلتين أو سلسلة (مع الترتيب المختار) */
+function nrxCmp(o, id, title, note, cats, ser) {
+  if (!nrxOn(o, id)) return '';
+  const s = nrxSort(cats, ser, o);
+  return nrxBox(o, id, title, note, nrxBars(s.cats, s.ser, o), nrxLeg(ser.map(function (x) { return x.name; }), o));
+}
+function nrxWkCell(s) {
+  const m = { s: ['ذاتي', '#0f5b52', '#e3f0ec'], g: ['جماعي', '#0f5b52', '#cfe5df'], ro: ['أُعيد فتحه', '#8a5a00', '#fdf3d8'], n: ['لم يُرسل', '#8a97a3', '#f0efe9'] }[s] || ['', '#000', '#fff'];
+  return '<td style="text-align:center;font-size:10px;color:' + m[1] + ';background:' + m[2] + '">' + m[0] + '</td>';
+}
+const NX_CSS = '@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}' +
+  'body{margin:0;padding:16px;font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;color:#1e293b;background:#fff;font-size:11.5px;line-height:1.55}.wrap{max-width:1320px;margin:0 auto}' +
+  '.top-bar{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #064e2b;padding-bottom:10px;margin-bottom:14px}.top-bar h1{margin:0;color:#064e2b;font-size:19px}.top-bar .sub{color:#0f7a43;font-weight:700;font-size:12.5px;margin-top:3px}.top-bar .meta{text-align:left;color:#64748b;font-size:11px}' +
+  '.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px;align-items:stretch}.kpi{background:#f8fafc;border:1px solid #cbd5e1;border-top:4px solid #0f7a43;border-radius:10px;padding:8px 10px;text-align:center}.kpi .v{font-size:19px;font-weight:700;color:#064e2b}.kpi .l{font-size:10.5px;color:#475569;margin-top:3px}.kpi.dn{padding:4px 6px}' +
+  '.sec-box{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:12px 14px;margin-bottom:12px;page-break-inside:avoid}.sec-title{font-size:13px;font-weight:700;color:#064e2b;border-bottom:1px solid #e2e8f0;padding-bottom:5px;margin-bottom:8px}' +
+  '.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}.box-ok{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px}.box-warn{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px}' +
+  'table{width:100%;border-collapse:collapse;font-size:10.8px}th{background:#064e2b;color:#fff;padding:6px 5px;border:1px solid #064e2b;text-align:right}td{padding:5px;border:1px solid #cbd5e1;vertical-align:middle}tr{page-break-inside:avoid}' +
+  '.leg{display:flex;gap:14px;margin-bottom:6px;font-size:10.5px;color:#334155}.leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-left:5px;vertical-align:middle}.note{font-size:10px;color:#64748b;margin-top:6px}.nodata{color:#64748b;padding:10px 0}' +
+  '.hm th{background:#e6efec;color:#234640;border:1px solid #fff;text-align:center;padding:3px 2px;font-size:10px}.hm th.sc{background:#cfe5df}.hm td{border:2px solid #fff;padding:6px 3px;font-size:10.5px}.hm td.rn{background:#f8fafc;text-align:right;font-weight:600;white-space:nowrap;border:1px solid #e2e8f0}.key{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:8px;font-size:10px;color:#475569}.key b{color:#064e2b}' +
+  '.pg{page-break-after:always}.no-print-bar{background:#064e2b;color:#fff;padding:10px 16px;border-radius:10px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:12px}.no-print-bar select{font-family:inherit;font-size:12px;padding:3px 6px;border-radius:6px;border:0;margin-right:4px}.no-print-bar label{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.no-print-bar .grp{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:0 0 0 12px;border-left:1px solid #ffffff44}.no-print-bar button{background:#ee8a1f;color:#fff;border:0;border-radius:8px;padding:7px 15px;font-family:inherit;font-weight:700;cursor:pointer}' +
+  '@media print{body{padding:0}.no-print-bar{display:none!important}thead{display:table-header-group}}';
+/* إطار المعاينة: cfg = { title, sub, file, charts:[{id,label}], build(o) -> [{title, html}] } */
+function nrxPdf(cfg) {
+  const w = window.open('', '_blank');
+  if (!w) { alert('تعذّر فتح نافذة المعاينة؛ اسمح بالنوافذ المنبثقة لهذا الموقع.'); return; }
+  A.NXC = cfg;
+  const o = nrxO();
+  const sel = function (id, lab, opts) { return '<label>' + lab + '<select id="' + id + '" onchange="opener.nrxApply(window)">' + opts.map(function (x) { return '<option value="' + x[0] + '"' + (String(o[id.slice(2)]) === x[0] ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select></label>'; };
+  const ctl = '<div class="no-print-bar"><b>خيارات الرسوم</b><span class="grp">' +
+    sel('o_kind', 'المقارنات', [['bars', 'أعمدة (وأشرطة عند كثرة العناصر)'], ['hbars', 'أشرطة أفقية دائماً']]) +
+    sel('o_trend', 'الاتجاه', [['line', 'خط'], ['bars', 'أعمدة']]) +
+    sel('o_pal', 'الألوان', [['green', 'أخضر المؤسسة'], ['vivid', 'ألوان متباينة'], ['mono', 'رمادي للطباعة']]) +
+    sel('o_order', 'الترتيب', [['weak', 'الأضعف أولاً'], ['strong', 'الأقوى أولاً'], ['orig', 'الترتيب الأصلي']]) +
+    '<label><input type="checkbox" id="o_vals" onchange="opener.nrxApply(window)"' + (o.vals ? ' checked' : '') + '> إظهار القيم</label></span>' +
+    '<span class="grp"><span>الرسوم:</span>' + cfg.charts.map(function (c) { return '<label><input type="checkbox" id="c_' + c.id + '" onchange="opener.nrxApply(window)"' + (nrxOn(o, c.id) ? ' checked' : '') + '> ' + esc(c.label) + '</label>'; }).join('') + '</span>' +
+    '<span style="margin-right:auto"><button onclick="window.print()">طباعة / حفظ PDF</button> <button style="background:#ffffff22" onclick="window.close()">إغلاق</button></span></div>';
+  const doc = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>' + esc(cfg.title) + '</title><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet"><style>' + NX_CSS + '</style></head><body><div class="wrap">' + ctl + '<div id="rep"></div></div></body></html>';
+  w.document.open(); w.document.write(doc); w.document.close();
+  nrxPaint(w);
+}
+function nrxPaint(w) {
+  const cfg = A.NXC; if (!cfg) return;
+  const o = nrxO(), now = todayStr() + ' ' + new Date().toTimeString().slice(0, 5);
+  const hd = function (t) { return '<div class="top-bar"><div><h1>' + esc(t) + '</h1><div class="sub">' + esc(cfg.sub) + '</div></div><div class="meta"><b>تاريخ الإصدار:</b> ' + esc(now) + '</div></div>'; };
+  let pages; try { pages = cfg.build(o); } catch (e) { pages = [{ title: cfg.title, html: '<div class="nodata">تعذّر بناء التقرير.</div>' }]; }
+  const el = w.document.getElementById('rep'); if (!el) return;
+  el.innerHTML = pages.map(function (p, i) { return '<div' + (i < pages.length - 1 ? ' class="pg"' : '') + '>' + hd(p.title) + p.html + '</div>'; }).join('');
+}
+function nrxApply(w) {
+  const o = nrxO(), g = function (id) { return w.document.getElementById(id); };
+  try {
+    o.kind = g('o_kind').value; o.trend = g('o_trend').value; o.pal = g('o_pal').value; o.order = g('o_order').value; o.vals = g('o_vals').checked ? 1 : 0;
+    (A.NXC ? A.NXC.charts : []).forEach(function (c) { const e = g('c_' + c.id); if (e) o.off[c.id] = !e.checked; });
+  } catch (e) {}
+  nrxPaint(w);
+}
+/* ---------- أدوات Excel المشتركة للفرع والمجموعة ---------- */
+function nrxXl() {
+  const X = {}, bd = { bottom: { style: 'thin', color: { rgb: 'CBD5E1' } } };
+  const F = function (sz, b, c) { return { name: 'Calibri', sz: sz, bold: !!b, color: { rgb: c } }; };
+  X.sT = { font: F(18, 1, '064E2B'), alignment: { horizontal: 'right', vertical: 'center' } };
+  X.sM = { font: F(11, 0, '5B7083'), alignment: { horizontal: 'right', vertical: 'center' } };
+  X.sS = { font: F(14, 1, '0F7A43'), alignment: { horizontal: 'right', vertical: 'center' } };
+  X.sN = { font: F(11, 0, '263445'), alignment: { horizontal: 'right', vertical: 'center', wrapText: true } };
+  X.sH = { font: F(11, 1, 'FFFFFF'), fill: { patternType: 'solid', fgColor: { rgb: '064E2B' } }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true } };
+  X.sR = { font: F(11, 0, '1F2A24'), alignment: { horizontal: 'right', vertical: 'center', wrapText: true }, border: bd };
+  X.sC = { font: F(11, 0, '1F2A24'), alignment: { horizontal: 'center', vertical: 'center' }, border: bd };
+  X.sB = { font: F(11, 1, '064E2B'), alignment: { horizontal: 'right', vertical: 'center' }, border: bd };
+  X.cell = function (v, s) { return { v: v, t: typeof v === 'number' ? 'n' : 's', s: s }; };
+  X.pc = function (v) {
+    if (v == null) return X.cell('لا بيانات', { font: F(11, 0, '8A97A3'), fill: { patternType: 'solid', fgColor: { rgb: 'F0EFE9' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: bd });
+    const bg = v < 35 ? 'FBEAE6' : v < 65 ? 'FDF3D8' : 'E3F5EA', fg = v < 35 ? 'B3402A' : v < 65 ? '8A5A00' : '0B6B3A';
+    return { v: v / 100, t: 'n', s: { font: F(11, 1, fg), fill: { patternType: 'solid', fgColor: { rgb: bg } }, alignment: { horizontal: 'center', vertical: 'center' }, border: bd, numFmt: '0%' } };
+  };
+  /* عمود «الرسم»: أشرطة نصية داخل الخلية (مكتبة Excel الحالية لا تكتب رسوماً حقيقية) */
+  X.bar = function (v) { return v == null ? X.cell('', X.sR) : X.cell('█'.repeat(Math.round(v / 5)) + ' ' + v + '%', { font: F(10, 0, '0F5B52'), alignment: { horizontal: 'right', vertical: 'center' }, border: bd }); };
+  X.wk = function (s) {
+    const m = { s: ['ذاتي', '0F5B52', 'E3F0EC'], g: ['جماعي', '0F5B52', 'CFE5DF'], ro: ['أُعيد فتحه', '8A5A00', 'FDF3D8'], n: ['لم يُرسل', '8A97A3', 'F0EFE9'] }[s] || ['', '000000', 'FFFFFF'];
+    return X.cell(m[0], { font: F(10, 0, m[1]), fill: { patternType: 'solid', fgColor: { rgb: m[2] } }, alignment: { horizontal: 'center', vertical: 'center' }, border: bd });
+  };
+  X.mk = function (nc) {
+    const o = { rows: [], merges: [], hts: [] };
+    o.full = function (t, s, h) { const r = o.rows.length, a = [X.cell(t, s)]; for (let c = 1; c < nc; c++) a.push(X.cell('', s)); o.rows.push(a); o.merges.push({ s: { r: r, c: 0 }, e: { r: r, c: nc - 1 } }); o.hts.push({ hpt: h || 22 }); };
+    o.row = function (a, h) { o.rows.push(a); o.hts.push({ hpt: h || 21 }); };
+    o.gap = function () { o.rows.push([]); o.hts.push({ hpt: 12 }); };
+    o.done = function (cols) { const w = XLSX.utils.aoa_to_sheet(o.rows); w['!merges'] = o.merges; w['!rows'] = o.hts; w['!cols'] = cols.map(function (x) { return { wch: x }; }); return w; };
+    return o;
+  };
+  X.head = function (S, title, sub, per, now) {
+    S.full(title, X.sT, 30);
+    S.full(sub + ' | الفترة: ' + per, X.sM, 20);
+    S.full('تاريخ الإصدار: ' + now, X.sM, 20);
+    S.gap();
+  };
+  X.save = function (sheets, file) {
+    const wb = XLSX.utils.book_new(); wb.Workbook = { Views: [{ RTL: true }] };
+    sheets.forEach(function (s) { XLSX.utils.book_append_sheet(wb, s[0].done(s[1]), s[2]); });
+    XLSX.writeFile(wb, file);
+  };
+  return X;
+}
+function nrxPer(E) { return String(E.per.start) + ' ← ' + String(E.per.end) + (E.per.current ? ' (الحالية)' : ''); }
+function nrxNow() { return todayStr() + ' ' + new Date().toTimeString().slice(0, 5); }
+function nrxWkHeads(E) { return (E.weeks || []).map(function (w, i) { return 'أسبوع ' + (i + 1) + ' · ' + String(w).slice(5).replace('-', '/'); }); }
+function nrxMemRows(S, X, E, mem) {
+  const wh = nrxWkHeads(E);
+  S.row([X.cell('العضو', X.sH)].concat(wh.map(function (h) { return X.cell(h, X.sH); })).concat([X.cell('الإرسال', X.sH), X.cell('التنفيذ', X.sH), X.cell('ملاحظة', X.sH)]), 30);
+  mem.forEach(function (m) { S.row([X.cell(m.name, X.sB)].concat(m.st.map(X.wk)).concat([X.pc(m.sp), X.pc(m.ep), X.cell(m.note || '', X.sR)])); });
+}
+/* ================= الفرع ================= */
+function nrBranchXlsx() {
+  if (typeof XLSX === 'undefined') { alert('جاري تحميل محرك إكسل، يرجى المحاولة بعد ثوانٍ.'); return; }
+  const E = A.N && A.N.exp;
+  if (!E || E.role !== 'branch') { alert('لا بيانات للتصدير بعد.'); return; }
+  try {
+    const X = nrxXl(), now = nrxNow(), per = nrxPer(E), sub = 'مسؤول الفرع · ' + E.name;
+    const cell = X.cell, ipOf = function () { return E.items.filter(function (x) { return x.v != null; }).slice().sort(function (a, b) { return a.v - b.v; }); };
+    const s1 = X.mk(4); X.head(s1, 'تقرير الفرع: الملخص', sub, per, now);
+    s1.full('المؤشرات العامة', X.sS, 26);
+    s1.row([cell('المؤشر', X.sH), cell('القيمة', X.sH), cell('', X.sH), cell('', X.sH)], 24);
+    s1.row([cell('الأعضاء / المجموعات', X.sR), cell(E.nm + ' / ' + E.groups.length, X.sC), cell('', X.sR), cell('', X.sR)]);
+    s1.row([cell('أسابيع مكتملة', X.sR), cell(E.okn + ' من ' + E.bl, X.sC), cell('', X.sR), cell('', X.sR)]);
+    s1.row([cell('الإرسال', X.sR), X.pc(E.all.sp), cell('', X.sR), cell('', X.sR)]);
+    s1.row([cell('التنفيذ', X.sR), X.pc(E.all.ep), cell('', X.sR), cell('', X.sR)]);
+    s1.row([cell('حالة الاعتماد', X.sR), cell(E.apSt, X.sC), cell('', X.sR), cell('', X.sR)]);
+    if (E.prev) { s1.row([cell('الفترة السابقة: الإرسال', X.sR), X.pc(E.prev.sp), cell('', X.sR), cell('', X.sR)]); s1.row([cell('الفترة السابقة: التنفيذ', X.sR), X.pc(E.prev.ep), cell('', X.sR), cell('', X.sR)]); }
+    s1.gap();
+    const wk = E.groups.filter(function (g) { return g.sp != null; })[0];
+    s1.full(wk ? ('أضعف مجموعة: ' + wk.name + ' (إرسال ' + nrxPt(wk.sp) + '، تنفيذ ' + nrxPt(wk.ep) + ')') : 'لا بيانات لأسابيع مكتملة في هذه الفترة بعد.', X.sN, 24);
+    s1.gap();
+    const ip = ipOf();
+    if (ip.length) {
+      s1.full('أضعف ثلاثة بنود في الفرع', X.sS, 26); ip.slice(0, 3).forEach(function (x) { s1.row([cell(x.title, X.sR), X.pc(x.v), cell('', X.sR), cell('', X.sR)]); }); s1.gap();
+      s1.full('أقوى ثلاثة بنود في الفرع', X.sS, 26); ip.slice(-3).reverse().forEach(function (x) { s1.row([cell(x.title, X.sR), X.pc(x.v), cell('', X.sR), cell('', X.sR)]); }); s1.gap();
+    }
+    if (E.rq && E.rq.loaded) { s1.row([cell('طلبات إعادة فتح معلّقة', X.sR), cell(E.rq.pend, X.sC), cell('', X.sR), cell('', X.sR)]); s1.gap(); }
+    s1.full('طريقة الحساب: الإرسال = المُرسَل ÷ (الأعضاء × الأسابيع المكتملة). التنفيذ = البنود المنفَّذة ÷ (المُرسَل × ' + E.ti + ' بنداً). الأسبوع الجاري لا يُحتسب. الألوان: أحمر دون 35%، أصفر دون 65%، أخضر ما فوق. الرسوم البيانية الكاملة في ملف PDF؛ عمود «الرسم» أشرطة نصية.', X.sN, 60);
+    const s2 = X.mk(8); X.head(s2, 'مقارنة المجموعات من الأضعف', sub, per, now);
+    s2.row(['الترتيب', 'المجموعة', 'الأعضاء', 'الإرسال', 'التنفيذ', 'جماعي', 'رسم الإرسال', 'رسم التنفيذ'].map(function (t) { return cell(t, X.sH); }), 28);
+    E.groups.forEach(function (g, i) { s2.row([cell(i + 1, X.sC), cell(g.name, X.sB), cell(g.n, X.sC), X.pc(g.sp), X.pc(g.ep), X.pc(g.gp), X.bar(g.sp), X.bar(g.ep)]); });
+    s2.gap();
+    s2.full('اتجاه الإرسال عبر أسابيع الفترة', X.sS, 26);
+    if (!E.trend.length) s2.full('لا أسبوع مكتمل بعد في هذه الفترة.', X.sN, 22);
+    else { s2.row([cell('الأسبوع', X.sH), cell('', X.sH), cell('', X.sH), cell('الإرسال', X.sH), cell('', X.sH), cell('', X.sH), cell('الرسم', X.sH), cell('', X.sH)], 24); E.trend.forEach(function (t) { s2.row([cell(t.l, X.sR), cell('', X.sR), cell('', X.sR), X.pc(t.p), cell('', X.sR), cell('', X.sR), X.bar(t.p), cell('', X.sR)]); }); }
+    const nc3 = 3 + E.groups.length, s3 = X.mk(Math.max(nc3, 4)); X.head(s3, 'البنود × المجموعات (نسبة التنفيذ بين المُرسَل)', sub, per, now);
+    s3.row([cell('البند', X.sH), cell('القسم', X.sH), cell('الفرع', X.sH)].concat(E.groups.map(function (g) { return cell(g.name, X.sH); })), 28);
+    E.items.forEach(function (it, i) { s3.row([cell(it.title, X.sR), cell(it.cat, X.sC), X.pc(it.v)].concat(E.groups.map(function (g) { return X.pc(g.cells[i]); }))); });
+    const sheets = [[s1, [40, 22, 14, 14], 'الملخص'], [s2, [26, 26, 11, 12, 12, 12, 26, 26], 'المجموعات'], [s3, [44, 22, 12].concat(E.groups.map(function () { return 14; })), 'البنود']];
+    if (E.mem && E.mem.rows.length) {
+      const s4 = X.mk(4 + E.weeks.length); X.head(s4, 'أعضاء ' + E.mem.gname + ' بأسمائهم', sub, per, now);
+      nrxMemRows(s4, X, E, E.mem.rows);
+      sheets.push([s4, [28].concat(E.weeks.map(function () { return 13; })).concat([11, 11, 34]), 'الأعضاء']);
+    }
+    X.save(sheets, 'تقرير_الفرع_' + E.name + '_' + String(E.per.start) + '_' + String(E.per.end) + '_' + todayStr() + '.xlsx');
+  } catch (e) { alert('تعذّر إنشاء ملف إكسل.'); }
+}
+function nrBranchPdf() {
+  const E = A.N && A.N.exp;
+  if (!E || E.role !== 'branch') { alert('لا بيانات للتصدير بعد.'); return; }
+  nrxPdf({
+    title: 'تقرير الفرع — ' + E.name, sub: 'مسؤول الفرع · ' + E.name + ' | الفترة: ' + nrxPer(E),
+    charts: [{ id: 'b_donut', label: 'دائرة الإرسال' }, { id: 'b_cmp', label: 'مقارنة المجموعات' }, { id: 'b_trend', label: 'اتجاه الأسابيع' }, { id: 'b_items', label: 'تنفيذ البنود' }, { id: 'b_heat', label: 'الخريطة الحرارية' }],
+    build: function (o) {
+      const ip = E.items.filter(function (x) { return x.v != null; }).slice().sort(function (a, b) { return a.v - b.v; }).map(function (x) { return { t: x.title, v: x.v }; });
+      const wk = E.groups.filter(function (g) { return g.sp != null; })[0];
+      let p1 = '<div class="kpis">' + nrxKpi(nrxPt(E.all.sp), 'الإرسال') + nrxKpi(nrxPt(E.all.ep), 'التنفيذ') + nrxKpi(E.groups.length, 'مجموعات') + nrxKpi(E.nm, 'أعضاء') + nrxKpi(E.okn + ' من ' + E.bl, 'أسابيع مكتملة') + nrxKpi(E.apSt, 'حالة الاعتماد') + (nrxOn(o, 'b_donut') ? nrxDonut(E.all.sp, 'نسبة الإرسال', o) : '') + '</div>';
+      p1 += nrxBoxP('أضعف مجموعة', wk ? '<b>' + esc(wk.name) + '</b>: إرسال ' + nrxPt(wk.sp) + '، تنفيذ ' + nrxPt(wk.ep) + '.' : 'لا بيانات لأسابيع مكتملة في هذه الفترة بعد.');
+      p1 += nrxCmp(o, 'b_cmp', 'مقارنة المجموعات: الإرسال والتنفيذ', 'الإرسال = المُرسَل ÷ (الأعضاء × الأسابيع المكتملة). التنفيذ بين المُرسَل فقط.', E.groups.map(function (g) { return g.name; }), [{ name: 'الإرسال', vals: E.groups.map(function (g) { return g.sp; }) }, { name: 'التنفيذ', vals: E.groups.map(function (g) { return g.ep; }) }]);
+      p1 += nrxBox(o, 'b_trend', 'اتجاه الإرسال عبر الأسابيع المكتملة', E.trend.length ? '' : 'لا أسبوع مكتمل بعد.', E.trend.length ? nrxTrend(E.trend.map(function (t) { return t.l; }), [{ name: 'الإرسال', vals: E.trend.map(function (t) { return t.p; }) }], o) : nrxNo(), nrxLeg(['الإرسال'], o));
+      let p2 = '<div class="grid-2"><div class="box-warn"><div class="sec-title">أضعف ثلاثة بنود في الفرع</div>' + nrxList(ip.slice(0, 3)) + '</div><div class="box-ok"><div class="sec-title">أقوى ثلاثة بنود في الفرع</div>' + nrxList(ip.slice(-3).reverse()) + '</div></div>';
+      p2 += nrxCmp(o, 'b_items', 'تنفيذ البنود الأربعة عشر في الفرع', 'نسبة التنفيذ بين المُرسَل.', E.items.map(function (x, i) { return (i + 1) + '. ' + x.title; }), [{ name: 'التنفيذ', vals: E.items.map(function (x) { return x.v; }) }]);
+      p2 += nrxBox(o, 'b_heat', 'الخريطة الحرارية: المجموعات × البنود', 'أحمر دون 35%، أصفر دون 65%، أخضر ما فوق. الأرقام في الرأس هي أرقام البنود.', nrxHeat(E.groups.map(function (g) { return g.name; }), E.items.map(function (x, i) { return i + 1; }), E.groups.map(function (g) { return g.cells; }), E.items.map(function (x) { return x.title; }), E.secs));
+      let p3 = nrxBoxP('المجموعات من الأضعف', '<table>' + nrxTh(['#', 'المجموعة', 'الأعضاء', 'الإرسال', 'التنفيذ', 'جماعي']) + E.groups.map(function (g, i) { return '<tr>' + nrxTx(i + 1, 1) + '<td><b>' + esc(g.name) + '</b></td>' + nrxTx(g.n, 1) + nrxTd(g.sp) + nrxTd(g.ep) + nrxTd(g.gp) + '</tr>'; }).join('') + '</table>');
+      if (E.prev) p3 += nrxBoxP('مقارنة بالفترة السابقة', 'الفترة السابقة: إرسال ' + nrxPt(E.prev.sp) + '، تنفيذ ' + nrxPt(E.prev.ep) + ' ← الحالية: إرسال ' + nrxPt(E.all.sp) + '، تنفيذ ' + nrxPt(E.all.ep) + '.');
+      if (E.mem && E.mem.rows.length) p3 += nrxBoxP('أعضاء ' + E.mem.gname + ' بأسمائهم', '<table>' + nrxTh(['العضو'].concat(nrxWkHeads(E)).concat(['الإرسال', 'التنفيذ', 'ملاحظة'])) + E.mem.rows.map(function (m) { return '<tr><td><b>' + esc(m.name) + '</b></td>' + m.st.map(nrxWkCell).join('') + nrxTd(m.sp) + nrxTd(m.ep) + '<td>' + esc(m.note || '') + '</td></tr>'; }).join('') + '</table>');
+      p3 += nrxBoxP('طريقة الحساب وحدود التقرير', 'الإرسال = المُرسَل ÷ (الأعضاء × الأسابيع المكتملة). التنفيذ = البنود المنفَّذة ÷ (المُرسَل × ' + E.ti + ' بنداً). الأسبوع الجاري لا يُحتسب. يُحتسب كل عضو نشط اليوم في كل أسبوع من الفترة.');
+      return [{ title: 'تقرير الفرع: الملخص', html: p1 }, { title: 'البنود والخريطة الحرارية', html: p2 }, { title: 'المجموعات والأعضاء', html: p3 }];
+    }
+  });
+}
+/* ================= المجموعة ================= */
+function nrGroupXlsx() {
+  if (typeof XLSX === 'undefined') { alert('جاري تحميل محرك إكسل، يرجى المحاولة بعد ثوانٍ.'); return; }
+  const E = A.N && A.N.exp;
+  if (!E || E.role !== 'group') { alert('لا بيانات للتصدير بعد.'); return; }
+  try {
+    const X = nrxXl(), now = nrxNow(), per = nrxPer(E), sub = 'مسؤول المجموعة · ' + E.name, cell = X.cell;
+    const s1 = X.mk(4); X.head(s1, 'تقرير المجموعة: الملخص', sub, per, now);
+    s1.full('المؤشرات العامة', X.sS, 26);
+    s1.row([cell('المؤشر', X.sH), cell('القيمة', X.sH), cell('', X.sH), cell('', X.sH)], 24);
+    s1.row([cell('الأعضاء', X.sR), cell(E.nm, X.sC), cell('', X.sR), cell('', X.sR)]);
+    s1.row([cell('أسابيع مكتملة', X.sR), cell(E.okn + ' من ' + E.bl, X.sC), cell('', X.sR), cell('', X.sR)]);
+    s1.row([cell('الإرسال', X.sR), X.pc(E.sp), cell(E.sent + ' من ' + E.poss + ' ممكنة', X.sR), cell('', X.sR)]);
+    s1.row([cell('التنفيذ', X.sR), X.pc(E.ep), cell('', X.sR), cell('', X.sR)]);
+    const need = E.members.filter(function (m) { return m.need; });
+    s1.row([cell('يحتاجون تواصلاً', X.sR), cell(E.okn >= 2 ? need.length : 'يلزم أسبوعان مكتملان', X.sC), cell('', X.sR), cell('', X.sR)]);
+    if (E.rqPend != null) s1.row([cell('طلبات إعادة فتح تنتظر قرارك', X.sR), cell(E.rqPend, X.sC), cell('', X.sR), cell('', X.sR)]);
+    s1.gap();
+    const ip = E.items.filter(function (x) { return x.v != null; }).slice().sort(function (a, b) { return a.v - b.v; });
+    if (ip.length) { s1.full('أضعف ثلاثة بنود: موضوع اللقاء القادم', X.sS, 26); ip.slice(0, 3).forEach(function (x) { s1.row([cell(x.title, X.sR), X.pc(x.v), cell('', X.sR), cell('', X.sR)]); }); s1.gap(); }
+    if (need.length) { s1.full('يحتاجون تواصلاً الآن', X.sS, 26); need.forEach(function (m) { s1.row([cell(m.name, X.sB), cell(m.note || '', X.sR), cell('', X.sR), cell('', X.sR)]); }); s1.gap(); }
+    s1.full('طريقة الحساب: الإرسال = المُرسَل ÷ (الأعضاء × الأسابيع المكتملة). التنفيذ = البنود المنفَّذة ÷ (المُرسَل × ' + E.ti + ' بنداً). الأسبوع الجاري لا يُحتسب. أسباب طلبات إعادة الفتح لا تدخل هذا الملف. الرسوم الكاملة في ملف PDF.', X.sN, 60);
+    const s2 = X.mk(4 + E.weeks.length); X.head(s2, 'أعضاء المجموعة', sub, per, now);
+    nrxMemRows(s2, X, E, E.members);
+    const s3 = X.mk(4); X.head(s3, 'البنود (نسبة التنفيذ بين المُرسَل)', sub, per, now);
+    s3.row(['البند', 'القسم', 'التنفيذ', 'الرسم'].map(function (t) { return cell(t, X.sH); }), 26);
+    E.items.forEach(function (it) { s3.row([cell(it.title, X.sR), cell(it.cat, X.sC), X.pc(it.v), X.bar(it.v)]); });
+    s3.gap();
+    s3.full('اتجاه الإرسال عبر أسابيع الفترة', X.sS, 26);
+    if (!E.trend.length) s3.full('لا أسبوع مكتمل بعد في هذه الفترة.', X.sN, 22);
+    else { s3.row(['الأسبوع', 'المُرسِلون', 'النسبة', 'الرسم'].map(function (t) { return cell(t, X.sH); }), 24); E.trend.forEach(function (t) { s3.row([cell(t.l, X.sR), cell(t.n + ' من ' + E.nm, X.sC), X.pc(t.p), X.bar(t.p)]); }); }
+    X.save([[s1, [40, 22, 24, 12], 'الملخص'], [s2, [28].concat(E.weeks.map(function () { return 13; })).concat([11, 11, 34]), 'الأعضاء'], [s3, [48, 22, 13, 28], 'البنود والاتجاه']], 'تقرير_المجموعة_' + E.name + '_' + String(E.per.start) + '_' + String(E.per.end) + '_' + todayStr() + '.xlsx');
+  } catch (e) { alert('تعذّر إنشاء ملف إكسل.'); }
+}
+function nrGroupPdf() {
+  const E = A.N && A.N.exp;
+  if (!E || E.role !== 'group') { alert('لا بيانات للتصدير بعد.'); return; }
+  nrxPdf({
+    title: 'تقرير المجموعة — ' + E.name, sub: 'مسؤول المجموعة · ' + E.name + ' | الفترة: ' + nrxPer(E),
+    charts: [{ id: 'g_donut', label: 'دائرة الإرسال' }, { id: 'g_mem', label: 'إرسال وتنفيذ الأعضاء' }, { id: 'g_trend', label: 'اتجاه الأسابيع' }, { id: 'g_items', label: 'تنفيذ البنود' }],
+    build: function (o) {
+      const need = E.members.filter(function (m) { return m.need; });
+      const ip = E.items.filter(function (x) { return x.v != null; }).slice().sort(function (a, b) { return a.v - b.v; }).map(function (x) { return { t: x.title, v: x.v }; });
+      let p1 = '<div class="kpis">' + nrxKpi(nrxPt(E.sp), 'الإرسال') + nrxKpi(nrxPt(E.ep), 'التنفيذ') + nrxKpi(E.nm, 'أعضاء') + nrxKpi(E.okn + ' من ' + E.bl, 'أسابيع مكتملة') + nrxKpi(E.okn >= 2 ? need.length : '—', 'يحتاجون تواصلاً') + (E.rqPend != null ? nrxKpi(E.rqPend, 'طلبات تنتظر قرارك') : '') + (nrxOn(o, 'g_donut') ? nrxDonut(E.sp, 'نسبة الإرسال', o) : '') + '</div>';
+      p1 += nrxCmp(o, 'g_mem', 'إرسال وتنفيذ كل عضو', 'الإرسال = الأسابيع المُرسَلة ÷ الأسابيع المكتملة. التنفيذ بين ما أُرسل فقط.', E.members.map(function (m) { return m.name; }), [{ name: 'الإرسال', vals: E.members.map(function (m) { return m.sp; }) }, { name: 'التنفيذ', vals: E.members.map(function (m) { return m.ep; }) }]);
+      p1 += nrxBox(o, 'g_trend', 'اتجاه الإرسال عبر الأسابيع المكتملة', E.trend.length ? '' : 'لا أسبوع مكتمل بعد.', E.trend.length ? nrxTrend(E.trend.map(function (t) { return t.l; }), [{ name: 'الإرسال', vals: E.trend.map(function (t) { return t.p; }) }], o) : nrxNo(), nrxLeg(['نسبة المُرسِلين'], o));
+      let p2 = '<div class="grid-2"><div class="box-warn"><div class="sec-title">أضعف ثلاثة بنود: موضوع اللقاء القادم</div>' + nrxList(ip.slice(0, 3)) + '</div><div class="box-ok"><div class="sec-title">أقوى ثلاثة بنود</div>' + nrxList(ip.slice(-3).reverse()) + '</div></div>';
+      p2 += nrxCmp(o, 'g_items', 'تنفيذ البنود الأربعة عشر في المجموعة', 'نسبة التنفيذ بين المُرسَل.', E.items.map(function (x, i) { return (i + 1) + '. ' + x.title; }), [{ name: 'التنفيذ', vals: E.items.map(function (x) { return x.v; }) }]);
+      if (need.length) p2 += nrxBoxP('يحتاجون تواصلاً الآن', need.map(function (m) { return '<div><b>' + esc(m.name) + ':</b> ' + esc(m.note || '') + '</div>'; }).join(''));
+      let p3 = nrxBoxP('أعضاء المجموعة', '<table>' + nrxTh(['العضو'].concat(nrxWkHeads(E)).concat(['الإرسال', 'التنفيذ', 'ملاحظة'])) + E.members.map(function (m) { return '<tr><td><b>' + esc(m.name) + '</b></td>' + m.st.map(nrxWkCell).join('') + nrxTd(m.sp) + nrxTd(m.ep) + '<td>' + esc(m.note || '') + '</td></tr>'; }).join('') + '</table>');
+      p3 += nrxBoxP('طريقة الحساب وحدود التقرير', 'الإرسال = المُرسَل ÷ (الأعضاء × الأسابيع المكتملة). التنفيذ = البنود المنفَّذة ÷ (المُرسَل × ' + E.ti + ' بنداً). الأسبوع الجاري لا يُحتسب. أسباب طلبات إعادة الفتح لا تدخل هذا التقرير.');
+      return [{ title: 'تقرير المجموعة: الملخص', html: p1 }, { title: 'البنود', html: p2 }, { title: 'الأعضاء', html: p3 }];
+    }
+  });
+}function nrMcScroll() { setTimeout(function () { const e = document.getElementById('nrmc'); if (e && e.scrollIntoView) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60); }
 function nrMcClose() { if (A.N) { A.N.mc = null; adminRender(); } }
 function nrMc(id) {
   if (!A.N || A.role !== 'group') return;
@@ -894,7 +1245,7 @@ function nrGroupHtml(R, M) {
   h += '<div class="card"><div class="row"><div class="grow"><div class="muted">مسؤول المجموعة · أعضاء مجموعته بأسمائهم</div><h2>' + esc(A.groupName || '') + ': من يحتاج متابعتي؟</h2>' +
     '<div class="muted">الفترة: ' + esc(String(per.start)) + ' إلى ' + esc(String(per.end)) + ' · ' + ms.length + ' أعضاء · ' + okb.length + ' من ' + bl.length + ' أسابيع مكتملة' + (cur ? ' · الأسبوع الجاري (من ' + dm(cur.w) + ') غير محتسب' : '') + '</div></div>' +
     (pers.length > 1 ? '<select onchange="nrPer(this.value)">' + pers.slice(0, 8).map(function (p) { return '<option value="' + p.id + '"' + (p.id === per.id ? ' selected' : '') + '>' + dm(p.start) + ' إلى ' + dm(p.end) + '</option>'; }).join('') + '</select> ' : '') +
-    '<button class="sec sm" onclick="A.N=null;adminRender()">تحديث</button></div></div>';
+    '<button class="sec sm" onclick="nrGroupXlsx()">تصدير Excel</button><button class="sec sm" onclick="nrGroupPdf()">تصدير PDF</button><button class="sec sm" onclick="A.N=null;adminRender()">تحديث</button></div></div>';
   h += '<div class="nrg-k">' +
     '<div><div class="muted">نسبة الإرسال</div><b>' + pv(sp) + '</b><div class="muted">' + sent + ' من ' + poss + ' ممكنة (' + ms.length + ' أعضاء × ' + okb.length + ' أسابيع)</div></div>' +
     '<div><div class="muted">نسبة التنفيذ</div><b>' + pv(ep) + '</b><div class="muted">من ' + sent + ' إرسالاً × ' + ti + ' بنداً</div></div>' +
@@ -923,6 +1274,18 @@ function nrGroupHtml(R, M) {
   h += '<div class="card"><h3>طلبات إعادة الفتح تنتظر قرارك' + (N.rq && rqPend.length ? ' (' + rqPend.length + ')' : '') + '</h3><div class="muted">قرارك وحدك. يقرأ العذر مسؤول الفرع فقط.</div>' +
     (N.rqErr ? '<p class="err">تعذّر تحميل الطلبات.</p>' : !N.rq ? '<p class="muted">جارٍ التحميل…</p>' : !rqPend.length ? '<p class="muted">لا طلبات معلّقة.</p>' :
       rqPend.slice(0, 20).map(function (r) { return '<div style="border:1px solid #e1e8e5;border-radius:10px;padding:10px 12px;margin-top:8px"><div class="row"><b class="grow">' + esc(r.member) + '</b><span class="muted">' + esc(String(r.week).slice(0, 10)) + '</span></div><div>«' + esc(r.reason) + '»</div><div class="row" style="margin-top:8px"><button class="sm" onclick="nrDecide(' + r.id + ',true)">قبول</button> <button class="sec sm" onclick="nrDecide(' + r.id + ',false)">رفض</button></div></div>'; }).join('')) + '</div>';
+  try {
+    N.exp = {
+      role: 'group', name: A.groupName || '', per: per, bl: bl.length, okn: okb.length, ti: ti, nm: ms.length, sent: sent, poss: poss, sp: sp, ep: ep,
+      weeks: okb.map(function (b) { return b.w; }),
+      items: items.map(function (it) { let d = 0; okb.forEach(function (b) { if (b.i >= 0) { const og2 = (R.gi || {})[String(gid)]; const a = og2 && og2[String(it.id)]; d += a ? (a[b.i] || 0) : 0; } }); return { title: it.title, cat: it.cat || 'غير مصنّف', v: gSent ? Math.round(100 * d / gSent) : null }; }),
+      members: rows.map(function (r) {
+        return { name: r.m.name, st: okb.map(function (b) { return cell(r.m, b, 'ro') ? 'ro' : !cell(r.m, b, 's') ? 'n' : srcOf(r.m, b) === 'group' ? 'g' : 's'; }), n: r.n, sp: okb.length ? Math.round(100 * r.n / okb.length) : null, ep: r.n && ti ? Math.round(100 * r.d / (r.n * ti)) : null, note: r.last2 ? 'لم يُرسل أسبوعين متتاليين' : r.ro ? 'أُعيد فتح أسبوع له بإذن' : (r.why[0] || ''), need: r.need };
+      }),
+      trend: tr.map(function (x) { return { l: x.l, n: x.n, p: ms.length ? Math.round(100 * x.n / ms.length) : null }; }),
+      rqPend: N.rq ? rqPend.length : null
+    };
+  } catch (e) { N.exp = null; }
   return h;
 }
 /* == adminweek_v1 == */

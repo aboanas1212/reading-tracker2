@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <!-- == clean5b == -->
-<meta name="build" content="20261115-030232">
+<meta name="build" content="20261115-031951">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>متابعة ورد المحاسبة الأسبوعي</title>
@@ -1201,6 +1201,43 @@ function nrMcHtml(ms, per) {
     }).join('') + '</tr></table></div></div>';
   return h;
 }
+/* == nr_cw_v1 == */
+function nrLoadCw() {
+  const keep = A.N;
+  if (keep.cwBusy) return;
+  keep.cwBusy = true;
+  rpc('group_prep_get', { p_pass: A.pass }).then(function (r) {
+    keep.cwBusy = false;
+    if (r && Array.isArray(r.members)) keep.cw = { week: String(r.week || ''), ms: r.members.map(function (m) { return { name: String(m.name || ''), sent: !!m.submitted, locked: !!m.locked }; }) };
+    else keep.cwErr = 'bad_response';
+    if (A.tab === 'nr') adminRender();
+  }).catch(function (e) {
+    keep.cwBusy = false;
+    keep.cwErr = String((e && e.message) || e);
+    if (A.tab === 'nr') adminRender();
+  });
+}
+function nrCwStrip(cur) {
+  if (!cur) return '';
+  const N = A.N;
+  if (!N.cw && !N.cwErr && !N.cwBusy) nrLoadCw();
+  let h = '<div class="card"><h3>الأسبوع الجاري</h3>';
+  if (N.cwErr) return h + '<div class="muted">' + (String(N.cwErr).indexOf('no_period') === 0 ? 'لا فترة جارية الآن.' : 'تعذّر تحميل حالة الأسبوع الجاري. اضغط «تحديث» للمحاولة مجدداً.') + '</div></div>';
+  if (!N.cw) return h + '<p class="muted">جارٍ تحميل الحالة…</p></div>';
+  const ms = N.cw.ms.slice().sort(function (a, b) { return String(a.name).localeCompare(String(b.name), 'ar'); });
+  if (!ms.length) return h + '<div class="muted">لا أعضاء في المجموعة.</div></div>';
+  const sent = ms.filter(function (m) { return m.sent; });
+  const wait = ms.filter(function (m) { return !m.sent && !m.locked; });
+  const lk = ms.filter(function (m) { return !m.sent && m.locked; });
+  const chip = function (m, bg, fg) { return '<span style="display:inline-block;padding:4px 12px;margin:3px 0 3px 6px;border-radius:999px;background:' + bg + ';color:' + fg + '">' + esc(m.name) + '</span>'; };
+  const wkTxt = N.cw.week ? 'أسبوع ' + esc(N.cw.week.slice(5).replace('-', '/')) + ' · ' : '';
+  h += '<div class="muted">' + wkTxt + 'حالة فقط، لا تدخل في أي نسبة أو تقرير.</div>' +
+    '<div style="margin:8px 0"><b>' + sent.length + '</b> أرسلوا · <b>' + wait.length + '</b> لم يُرسلوا بعد' + (lk.length ? ' · <b>' + lk.length + '</b> أُغلقت فترتهم' : '') + '</div>';
+  if (wait.length) h += '<div><span class="muted">لم يُرسلوا بعد: </span>' + wait.map(function (m) { return chip(m, '#fbe9e5', '#8a3a2a'); }).join('') + '</div>';
+  if (sent.length) h += '<div><span class="muted">أرسلوا: </span>' + sent.map(function (m) { return chip(m, '#cfe5df', '#0f5b52'); }).join('') + '</div>';
+  if (lk.length) h += '<div><span class="muted">أُغلقت فترتهم: </span>' + lk.map(function (m) { return chip(m, '#eceeed', '#5b6b66'); }).join('') + '</div>';
+  return h + '</div>';
+}
 function nrGroupHtml(R, M) {
   const N = A.N;
   if (!M) return N.err ? '<div class="err">تعذّر تحميل بيانات الفترات.</div><button class="sec sm" onclick="A.N=null;adminRender()">إعادة المحاولة</button>' : '<p class="muted">جارٍ تحميل الفترات…</p>';
@@ -1246,6 +1283,7 @@ function nrGroupHtml(R, M) {
     '<div class="muted">الفترة: ' + esc(String(per.start)) + ' إلى ' + esc(String(per.end)) + ' · ' + ms.length + ' أعضاء · ' + okb.length + ' من ' + bl.length + ' أسابيع مكتملة' + (cur ? ' · الأسبوع الجاري (من ' + dm(cur.w) + ') غير محتسب' : '') + '</div></div>' +
     (pers.length > 1 ? '<select onchange="nrPer(this.value)">' + pers.slice(0, 8).map(function (p) { return '<option value="' + p.id + '"' + (p.id === per.id ? ' selected' : '') + '>' + dm(p.start) + ' إلى ' + dm(p.end) + '</option>'; }).join('') + '</select> ' : '') +
     '<button class="sec sm" onclick="nrGroupXlsx()">تصدير Excel</button><button class="sec sm" onclick="nrGroupPdf()">تصدير PDF</button><button class="sec sm" onclick="A.N=null;adminRender()">تحديث</button></div></div>';
+  h += nrCwStrip(cur);
   h += '<div class="nrg-k">' +
     '<div><div class="muted">نسبة الإرسال</div><b>' + pv(sp) + '</b><div class="muted">' + sent + ' من ' + poss + ' ممكنة (' + ms.length + ' أعضاء × ' + okb.length + ' أسابيع)</div></div>' +
     '<div><div class="muted">نسبة التنفيذ</div><b>' + pv(ep) + '</b><div class="muted">من ' + sent + ' إرسالاً × ' + ti + ' بنداً</div></div>' +
